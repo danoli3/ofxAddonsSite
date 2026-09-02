@@ -1,6 +1,23 @@
 <div class="page-head">
   <h1>My Addons</h1>
 </div>
+
+<?php if (!empty($publicAddons)): ?>
+  <div class="addon-grid">
+    <?php foreach ($publicAddons as $addon): ?>
+      <?php ofx_addon_partial($addon); ?>
+    <?php endforeach; ?>
+  </div>
+<?php else: ?>
+  <p class="empty-state">
+    Nothing of yours is publicly listed yet &mdash; categorize an addon below and it'll show up here exactly
+    as visitors see it.
+  </p>
+<?php endif; ?>
+
+<div class="page-head">
+  <h1>Edit Addons</h1>
+</div>
 <p class="page-intro">
   Repos of yours the crawler has found. Categorize them, write your own description, hide one from public
   listings, or point at a custom thumbnail/GIF &mdash; changes here are yours; a crawl sync will never

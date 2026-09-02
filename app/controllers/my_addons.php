@@ -13,10 +13,25 @@ function ofx_my_addons_index(): void
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
     $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($repos, 'id'));
 
+    $stmt = $pdo->prepare("
+        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
+               GROUP_CONCAT(c.name SEPARATOR '||') AS categories
+        FROM repos r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN categorizations cz ON cz.repo_id = r.id
+        LEFT JOIN categories c ON c.id = cz.category_id
+        WHERE r.user_id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
+        GROUP BY r.id
+        ORDER BY LOWER(r.name) ASC
+    ");
+    $stmt->execute([$user['id']]);
+    $publicAddons = $stmt->fetchAll();
+
     ofx_render('my_addons/index', [
         'repos' => $repos,
         'categories' => $categories,
         'repoCategoryIds' => $repoCategoryIds,
+        'publicAddons' => $publicAddons,
         'title' => 'My Addons',
     ]);
 }
