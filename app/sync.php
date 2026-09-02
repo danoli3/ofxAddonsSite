@@ -138,7 +138,13 @@ function ofx_sync_to_datetime(?string $iso): ?string
 
 function ofx_fetch_latest_crawl_snapshot(): ?array
 {
-    $url = 'https://github.com/danoli3/ofxAddons/releases/latest/download/addons.json';
+    $snapshot = ofx_fetch_crawl_release_asset('addons.json.gz', true);
+    return $snapshot ?? ofx_fetch_crawl_release_asset('addons.json', false);
+}
+
+function ofx_fetch_crawl_release_asset(string $asset, bool $gzipped): ?array
+{
+    $url = "https://github.com/danoli3/ofxAddons/releases/latest/download/{$asset}";
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -152,6 +158,13 @@ function ofx_fetch_latest_crawl_snapshot(): ?array
 
     if ($status !== 200 || !$body) {
         return null;
+    }
+
+    if ($gzipped) {
+        $body = @gzdecode($body);
+        if ($body === false) {
+            return null;
+        }
     }
 
     $data = json_decode($body, true);

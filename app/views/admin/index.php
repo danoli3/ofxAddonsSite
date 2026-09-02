@@ -14,6 +14,11 @@
     <input type="file" name="file" accept=".json,.xml" required>
     <button type="submit">Upload</button>
   </form>
+  <div class="admin-toolbar__group">
+    <span class="admin-toolbar__label">Data</span>
+    <button type="button" id="admin-sync-now">Pull latest release</button>
+    <span id="admin-sync-status" class="admin-row__status"></span>
+  </div>
   <a class="admin-toolbar__link" href="/admin/log">Log &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/admins">Users &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>

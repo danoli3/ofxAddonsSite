@@ -194,6 +194,31 @@ $(function () {
     });
   });
 
+  $('#admin-sync-now').on('click', function () {
+    var $btn = $(this);
+    var $status = $('#admin-sync-status');
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Pulling latest release…');
+
+    $.ajax({
+      url: '/admin/sync-now',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $status.text(res.added + ' added, ' + res.updated + ' updated, ' + res.skipped_banned + ' skipped');
+    }).fail(function (xhr) {
+      var msg = 'Sync failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.admin-user__toggle', function () {
     var $btn = $(this);
     var $row = $btn.closest('tr');

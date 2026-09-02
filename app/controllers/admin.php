@@ -456,3 +456,30 @@ function ofx_admin_toggle_admin(string $id): void
 
     echo json_encode(['status' => 200, 'admin' => (bool)$newAdmin]);
 }
+
+function ofx_admin_sync_now(): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $snapshot = ofx_fetch_latest_crawl_snapshot();
+    if (!$snapshot) {
+        http_response_code(502);
+        echo json_encode(['status' => 502, 'error' => ['could not fetch the latest release from danoli3/ofxAddons']]);
+        return;
+    }
+
+    $pdo = ofx_db();
+    $result = ofx_apply_crawl_snapshot($pdo, $snapshot['addons']);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'],
+        'manual_sync',
+        null,
+        "{$result['added']} added, {$result['updated']} updated, {$result['skipped_banned']} skipped"
+    );
+
+    echo json_encode(['status' => 200] + $result);
+}
