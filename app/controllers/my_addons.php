@@ -73,8 +73,10 @@ function ofx_my_addons_update(string $id): void
     $categoryIds = ofx_valid_category_ids($pdo, $_POST['category_ids'] ?? []);
 
     $currentType = $repo['type'] ?? 'Unsorted';
-    if ($currentType !== 'Incomplete') {
+    if ($currentType === 'Unsorted') {
         $type = !empty($categoryIds) ? 'Addon' : 'Unsorted';
+    } elseif ($currentType === 'Addon' && empty($categoryIds)) {
+        $type = 'Unsorted';
     } else {
         $type = $currentType;
     }
