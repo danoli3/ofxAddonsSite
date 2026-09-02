@@ -1,6 +1,11 @@
 <div class="page-head">
   <h1>Admin &mdash; Categorize</h1>
 </div>
+<p class="page-intro">
+  <strong>Recently pushed</strong> sorts by the addon's last Github commit. <strong>Recently updated</strong>
+  sorts by when this database last touched the row &mdash; a daily crawl sync or an admin/owner edit, not
+  necessarily a new commit.
+</p>
 
 <div class="admin-toolbar">
   <div class="admin-toolbar__group">
