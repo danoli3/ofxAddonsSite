@@ -426,7 +426,7 @@ function ofx_admin_admins(): void
     $admin = ofx_require_admin();
     $pdo = ofx_db();
 
-    $stmt = $pdo->query('SELECT * FROM users ORDER BY updated_at DESC');
+    $stmt = $pdo->query('SELECT * FROM users WHERE last_login_at IS NOT NULL ORDER BY last_login_at DESC');
 
     ofx_render('admin/admins', [
         'users' => $stmt->fetchAll(),

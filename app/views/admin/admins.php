@@ -2,8 +2,8 @@
   <h1>Users</h1>
 </div>
 <p class="page-intro">
-  Every account that has signed in with GitHub, most recently active first.
-  <a href="/admin/repos">&larr; Back to admin</a>
+  Every account that has actually signed in with GitHub (not just repo owners the crawler has seen),
+  most recently logged in first. <a href="/admin/repos">&larr; Back to admin</a>
 </p>
 
 <div class="table-scroll">
@@ -12,7 +12,7 @@
     <tr>
       <th>User</th>
       <th>First seen</th>
-      <th>Last seen</th>
+      <th>Last login</th>
       <th>Access</th>
       <th></th>
     </tr>
@@ -27,7 +27,7 @@
           </a>
         </td>
         <td><?= ofx_h(ofx_time_ago($u['created_at'])) ?></td>
-        <td><?= ofx_h(ofx_time_ago($u['updated_at'])) ?></td>
+        <td><?= ofx_h(ofx_time_ago($u['last_login_at'])) ?></td>
         <td><?= $u['admin'] ? '<span class="tag">Admin</span>' : 'User' ?></td>
         <td>
           <?php if ((int)$u['id'] !== $currentUserId): ?>

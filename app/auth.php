@@ -153,7 +153,8 @@ function ofx_login_or_create_user(array $githubUser): array
 
     if ($user) {
         $stmt = $pdo->prepare(
-            'UPDATE users SET uid = ?, login = ?, name = ?, avatar_url = ?, location = ?, updated_at = NOW() WHERE id = ?'
+            'UPDATE users SET uid = ?, login = ?, name = ?, avatar_url = ?, location = ?,
+             last_login_at = NOW(), updated_at = NOW() WHERE id = ?'
         );
         $stmt->execute([$uid, $login, $name, $avatar, $location, $user['id']]);
         $user = array_merge($user, compact('uid', 'login', 'name', 'avatar', 'location'));
@@ -161,7 +162,8 @@ function ofx_login_or_create_user(array $githubUser): array
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO users (provider, uid, login, name, avatar_url, location, admin, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), NOW())'
+        'INSERT INTO users (provider, uid, login, name, avatar_url, location, admin, last_login_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), NOW(), NOW())'
     );
     $stmt->execute(['github', $uid, $login, $name, $avatar, $location]);
 
