@@ -10,11 +10,12 @@
   </div>
   <form class="admin-toolbar__group" action="/admin/import" method="post" enctype="multipart/form-data">
     <span class="admin-toolbar__label">Import</span>
+    <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
     <input type="file" name="file" accept=".json,.xml" required>
     <button type="submit">Upload</button>
   </form>
   <a class="admin-toolbar__link" href="/admin/log">Log &rarr;</a>
-  <a class="admin-toolbar__link" href="/admin/admins">Admins &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/admins">Users &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
 </div>
 

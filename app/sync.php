@@ -1,6 +1,18 @@
 <?php
 declare(strict_types=1);
 
+function ofx_valid_category_ids(PDO $pdo, $submitted): array
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', is_array($submitted) ? $submitted : []))));
+    if (empty($ids)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare("SELECT id FROM categories WHERE id IN ({$placeholders})");
+    $stmt->execute($ids);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
 function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
 {
     $added = 0;

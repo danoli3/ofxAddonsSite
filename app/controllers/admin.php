@@ -86,6 +86,7 @@ function ofx_admin_update(string $id): void
 {
     ofx_require_admin();
     header('Content-Type: application/json');
+    ofx_require_csrf();
 
     $type = $_POST['type'] ?? null;
     if (!in_array($type, OFX_REPO_TYPES, true)) {
@@ -94,7 +95,7 @@ function ofx_admin_update(string $id): void
         return;
     }
 
-    $categoryIds = array_values(array_filter(array_map('intval', $_POST['category_ids'] ?? [])));
+    $categoryIds = ofx_valid_category_ids(ofx_db(), $_POST['category_ids'] ?? []);
 
     if ($type === 'Addon' && empty($categoryIds)) {
         http_response_code(400);
@@ -163,6 +164,7 @@ function ofx_admin_generate_description(string $id): void
 {
     ofx_require_admin();
     header('Content-Type: application/json');
+    ofx_require_csrf();
 
     if (!ofx_env('OPENAI_API_KEY')) {
         http_response_code(501);
@@ -264,6 +266,12 @@ function ofx_admin_export(string $format): void
 function ofx_admin_import(): void
 {
     ofx_require_admin();
+
+    if (!ofx_csrf_verify()) {
+        $_SESSION['flash'] = 'Import failed: invalid request, please try again.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
 
     if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
         $_SESSION['flash'] = 'Import failed: no file uploaded.';
@@ -401,13 +409,50 @@ function ofx_admin_log(): void
 
 function ofx_admin_admins(): void
 {
-    ofx_require_admin();
+    $admin = ofx_require_admin();
     $pdo = ofx_db();
 
-    $stmt = $pdo->query('SELECT * FROM users WHERE admin = 1 ORDER BY LOWER(login) ASC');
+    $stmt = $pdo->query('SELECT * FROM users ORDER BY updated_at DESC');
 
     ofx_render('admin/admins', [
-        'admins' => $stmt->fetchAll(),
-        'title' => 'Admins',
+        'users' => $stmt->fetchAll(),
+        'currentUserId' => (int)$admin['id'],
+        'title' => 'Users',
     ]);
+}
+
+function ofx_admin_toggle_admin(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    if ((int)$id === (int)$admin['id']) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ["Can't change your own admin access here"]]);
+        return;
+    }
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT id, login, admin FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['user not found']]);
+        return;
+    }
+
+    $newAdmin = $user['admin'] ? 0 : 1;
+    $pdo->prepare('UPDATE users SET admin = ?, updated_at = NOW() WHERE id = ?')->execute([$newAdmin, $id]);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'],
+        $newAdmin ? 'grant_admin' : 'revoke_admin',
+        null,
+        $user['login'] ?? ('user #' . $id)
+    );
+
+    echo json_encode(['status' => 200, 'admin' => (bool)$newAdmin]);
 }

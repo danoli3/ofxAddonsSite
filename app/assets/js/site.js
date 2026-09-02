@@ -1,4 +1,12 @@
 $(function () {
+  $.ajaxSetup({
+    beforeSend: function (xhr, settings) {
+      if (settings.type === 'POST') {
+        xhr.setRequestHeader('X-CSRF-Token', $('meta[name="csrf-token"]').attr('content'));
+      }
+    }
+  });
+
   var $filter = $('#addon-filter');
   if ($filter.length) {
     $filter.on('input', function () {
@@ -182,6 +190,35 @@ $(function () {
       } catch (e) {}
       $status.text(msg);
     }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
+  $(document).on('click', '.admin-user__toggle', function () {
+    var $btn = $(this);
+    var $row = $btn.closest('tr');
+    var userId = $row.data('user-id');
+    var makingAdmin = $btn.data('admin') != 1;
+    var login = $row.find('a').text().trim();
+    var verb = makingAdmin ? 'Grant' : 'Revoke';
+    if (!window.confirm(verb + ' admin access ' + (makingAdmin ? 'to' : 'from') + ' ' + login + '?')) {
+      return;
+    }
+
+    $btn.prop('disabled', true);
+    $.ajax({
+      url: '/admin/admins/' + userId + '/toggle',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
       $btn.prop('disabled', false);
     });
   });

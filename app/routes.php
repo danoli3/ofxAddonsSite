@@ -32,6 +32,7 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/banned$#', 'ofx_admin_banned'],
         ['GET', '#^/admin/log$#', 'ofx_admin_log'],
         ['GET', '#^/admin/admins$#', 'ofx_admin_admins'],
+        ['POST', '#^/admin/admins/(\d+)/toggle$#', 'ofx_admin_toggle_admin'],
         ['GET', '#^/admin/export\.(json|xml)$#', 'ofx_admin_export'],
         ['POST', '#^/admin/import$#', 'ofx_admin_import'],
         ['GET', '#^/my/addons$#', 'ofx_my_addons_index'],

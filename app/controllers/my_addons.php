@@ -25,6 +25,7 @@ function ofx_my_addons_update(string $id): void
 {
     $user = ofx_require_user();
     header('Content-Type: application/json');
+    ofx_require_csrf();
 
     $pdo = ofx_db();
     $repo = ofx_my_addons_owned_repo($pdo, $id, (int)$user['id']);
@@ -44,27 +45,37 @@ function ofx_my_addons_update(string $id): void
     }
 
     $thumbnailOverride = trim($_POST['thumbnail_url_override'] ?? '');
-    if ($thumbnailOverride !== '' && !filter_var($thumbnailOverride, FILTER_VALIDATE_URL)) {
-        http_response_code(400);
-        echo json_encode(['status' => 400, 'error' => ['Thumbnail must be a valid URL']]);
-        return;
+    if ($thumbnailOverride !== '') {
+        $error = ofx_validate_thumbnail_url($thumbnailOverride);
+        if ($error) {
+            http_response_code(400);
+            echo json_encode(['status' => 400, 'error' => [$error]]);
+            return;
+        }
     }
 
     $hidden = !empty($_POST['hidden']) ? 1 : 0;
-    $categoryIds = array_values(array_filter(array_map('intval', $_POST['category_ids'] ?? [])));
+    $categoryIds = ofx_valid_category_ids($pdo, $_POST['category_ids'] ?? []);
+
+    $currentType = $repo['type'] ?? 'Unsorted';
+    if ($currentType !== 'Incomplete') {
+        $type = !empty($categoryIds) ? 'Addon' : 'Unsorted';
+    } else {
+        $type = $currentType;
+    }
 
     $pdo->beginTransaction();
     try {
         if (array_key_exists('description', $_POST)) {
             $generated = !empty($_POST['description_generated']) ? 1 : 0;
             $pdo->prepare(
-                'UPDATE repos SET description = ?, description_curated = 1, description_generated = ?,
+                'UPDATE repos SET type = ?, description = ?, description_curated = 1, description_generated = ?,
                  hidden_by_owner = ?, thumbnail_url_override = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$_POST['description'], $generated, $hidden, $thumbnailOverride ?: null, $id]);
+            )->execute([$type, $_POST['description'], $generated, $hidden, $thumbnailOverride ?: null, $id]);
         } else {
             $pdo->prepare(
-                'UPDATE repos SET hidden_by_owner = ?, thumbnail_url_override = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$hidden, $thumbnailOverride ?: null, $id]);
+                'UPDATE repos SET type = ?, hidden_by_owner = ?, thumbnail_url_override = ?, updated_at = NOW() WHERE id = ?'
+            )->execute([$type, $hidden, $thumbnailOverride ?: null, $id]);
         }
 
         $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$id]);
@@ -100,6 +111,7 @@ function ofx_my_addons_generate_description(string $id): void
 {
     $user = ofx_require_user();
     header('Content-Type: application/json');
+    ofx_require_csrf();
 
     if (!ofx_env('OPENAI_API_KEY')) {
         http_response_code(501);
@@ -134,7 +146,7 @@ function ofx_my_addons_generate_description(string $id): void
 
 function ofx_my_addons_owned_repo(PDO $pdo, string $repoId, int $userId): ?array
 {
-    $stmt = $pdo->prepare('SELECT id, full_name, name, user_id FROM repos WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, full_name, name, user_id, type FROM repos WHERE id = ? LIMIT 1');
     $stmt->execute([$repoId]);
     $repo = $stmt->fetch();
     if (!$repo || (int)$repo['user_id'] !== $userId) {

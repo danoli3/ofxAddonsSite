@@ -9,6 +9,7 @@ $flash = ofx_flash_get();
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?= ofx_h($title ?? 'ofxAddons') ?> · ofxAddons</title>
   <meta name="description" content="The central place to discover openFrameworks addons.">
+  <meta name="csrf-token" content="<?= ofx_h(ofx_csrf_token()) ?>">
   <link rel="icon" href="/app/assets/img/ofxlogo-small.png">
   <link rel="stylesheet" href="<?= ofx_h(ofx_asset_url('/app/assets/css/site.css')) ?>">
 </head>
