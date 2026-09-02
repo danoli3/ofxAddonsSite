@@ -68,6 +68,11 @@ function ofx_category_addon_partial(array $addon, int $categoryId, bool $isAdmin
     include __DIR__ . '/views/partials/category-addon-card.php';
 }
 
+function ofx_category_picker(array $categories, array $selectedCategoryIds): void
+{
+    include __DIR__ . '/views/partials/category-picker.php';
+}
+
 function ofx_addon_grid(array $addons, bool $hasMore, string $nextUrl): void
 {
     include __DIR__ . '/views/partials/addon-grid.php';

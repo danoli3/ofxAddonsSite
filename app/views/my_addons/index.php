@@ -73,18 +73,15 @@
           </div>
         </td>
         <td>
-          <select class="admin-row__categories" multiple size="4">
-            <?php foreach ($categories as $category): ?>
-              <?php $selected = in_array((int)$category['id'], $repoCategoryIds[$repo['id']] ?? [], true); ?>
-              <option value="<?= (int)$category['id'] ?>" <?= $selected ? 'selected' : '' ?>>
-                <?= ofx_h($category['name']) ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
+          <?php ofx_category_picker($categories, $repoCategoryIds[$repo['id']] ?? []); ?>
         </td>
+        <?php
+          $detectedThumbnail = $repo['thumbnail_url_override']
+              ?: (!empty($repo['has_thumbnail']) ? ofx_thumbnail_url($repo['full_name']) : '');
+        ?>
         <td>
           <input type="url" class="my-addon-row__thumbnail" placeholder="https://.../image.png or .gif"
-                 value="<?= ofx_h($repo['thumbnail_url_override'] ?? '') ?>">
+                 value="<?= ofx_h($detectedThumbnail) ?>">
           <label class="my-addon-row__hidden-label">
             <input type="checkbox" class="my-addon-row__hidden" <?= !empty($repo['hidden_by_owner']) ? 'checked' : '' ?>>
             Hide from public listings

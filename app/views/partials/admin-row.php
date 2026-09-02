@@ -37,14 +37,7 @@
     </select>
   </td>
   <td>
-    <select class="admin-row__categories" multiple size="4">
-      <?php foreach ($categories as $category): ?>
-        <?php $selected = in_array((int)$category['id'], $selectedCategoryIds, true); ?>
-        <option value="<?= (int)$category['id'] ?>" <?= $selected ? 'selected' : '' ?>>
-          <?= ofx_h($category['name']) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
+    <?php ofx_category_picker($categories, $selectedCategoryIds); ?>
   </td>
   <td class="admin-row__actions">
     <button type="button" class="admin-row__save">Save</button>

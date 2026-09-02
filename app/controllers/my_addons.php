@@ -6,7 +6,7 @@ function ofx_my_addons_index(): void
     $user = ofx_require_user();
     $pdo = ofx_db();
 
-    $stmt = $pdo->prepare('SELECT * FROM repos WHERE user_id = ? ORDER BY LOWER(name) ASC');
+    $stmt = $pdo->prepare('SELECT * FROM repos WHERE user_id = ? ORDER BY hidden_by_owner ASC, LOWER(name) ASC');
     $stmt->execute([$user['id']]);
     $repos = $stmt->fetchAll();
 

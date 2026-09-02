@@ -125,11 +125,17 @@ $(function () {
     updateCharCount($(this));
   });
 
+  $(document).on('click', '.category-chip', function () {
+    $(this).toggleClass('is-selected');
+  });
+
   $(document).on('click', '.admin-row__save', function () {
     var $row = $(this).closest('.admin-row');
     var $typeSelect = $row.find('.admin-row__type');
     var type = $typeSelect.val() || 'Addon';
-    var categoryIds = $row.find('.admin-row__categories').val();
+    var categoryIds = $row.find('.category-chip.is-selected').map(function () {
+      return $(this).data('category-id');
+    }).get();
     var description = $row.find('.admin-row__desc').val();
     var generated = $row.find('.admin-row__desc-generated').val() === '1';
 
