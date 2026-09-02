@@ -277,6 +277,49 @@ function ofx_admin_export(string $format): void
     echo json_encode($entries, JSON_PRETTY_PRINT);
 }
 
+// GET /admin/export-triage.json - everything still needing a human (or
+// AI) decision: Unsorted, Incomplete, Spam. Includes the master
+// category list and the same structural signals the crawler uses, so
+// a local model has enough to either assign real categories or flag
+// something as spam. Import side is deliberately not built yet - the
+// output shape a model actually produces needs to be seen first.
+function ofx_admin_export_triage(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $categories = $pdo->query('SELECT name FROM categories ORDER BY LOWER(name) ASC')->fetchAll(PDO::FETCH_COLUMN);
+
+    $placeholders = implode(',', array_fill(0, count(OFX_ADMIN_TYPES), '?'));
+    $stmt = $pdo->prepare("
+        SELECT id, full_name, name, description, type, stargazers_count,
+               has_makefile, example_count, has_correct_folder_structure, has_thumbnail, archived
+        FROM repos
+        WHERE type IN ({$placeholders})
+        ORDER BY LOWER(full_name) ASC
+    ");
+    $stmt->execute(OFX_ADMIN_TYPES);
+    $addons = array_map(function (array $row): array {
+        return [
+            'id' => (int)$row['id'],
+            'full_name' => $row['full_name'],
+            'name' => $row['name'],
+            'description' => $row['description'],
+            'type' => $row['type'],
+            'stargazers_count' => (int)$row['stargazers_count'],
+            'has_makefile' => (bool)$row['has_makefile'],
+            'example_count' => (int)$row['example_count'],
+            'has_correct_folder_structure' => (bool)$row['has_correct_folder_structure'],
+            'has_thumbnail' => (bool)$row['has_thumbnail'],
+            'archived' => (bool)$row['archived'],
+        ];
+    }, $stmt->fetchAll());
+
+    header('Content-Type: application/json');
+    header('Content-Disposition: attachment; filename="ofxaddons-triage.json"');
+    echo json_encode(['categories' => $categories, 'addons' => $addons], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+}
+
 function ofx_admin_import(): void
 {
     ofx_require_admin();

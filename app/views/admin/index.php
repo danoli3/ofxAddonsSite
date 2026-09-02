@@ -13,6 +13,10 @@
     <a href="/admin/export.json">JSON</a>
     <a href="/admin/export.xml">XML</a>
   </div>
+  <div class="admin-toolbar__group">
+    <span class="admin-toolbar__label">AI triage</span>
+    <a href="/admin/export-triage.json" title="Unsorted/Incomplete/Spam repos + category list, for feeding to a local model">Download</a>
+  </div>
   <form class="admin-toolbar__group" action="/admin/import" method="post" enctype="multipart/form-data">
     <span class="admin-toolbar__label">Import</span>
     <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
