@@ -34,6 +34,7 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/admins$#', 'ofx_admin_admins'],
         ['POST', '#^/admin/admins/(\d+)/toggle$#', 'ofx_admin_toggle_admin'],
         ['POST', '#^/admin/sync-now$#', 'ofx_admin_sync_now'],
+        ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
         ['GET', '#^/admin/export\.(json|xml)$#', 'ofx_admin_export'],
         ['POST', '#^/admin/import$#', 'ofx_admin_import'],
         ['GET', '#^/my/addons$#', 'ofx_my_addons_index'],

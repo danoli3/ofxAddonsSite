@@ -483,3 +483,34 @@ function ofx_admin_sync_now(): void
 
     echo json_encode(['status' => 200] + $result);
 }
+
+function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT featured FROM categorizations WHERE repo_id = ? AND category_id = ? LIMIT 1');
+    $stmt->execute([$repoId, $categoryId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['that addon is not in this category']]);
+        return;
+    }
+
+    $newFeatured = $row['featured'] ? 0 : 1;
+    $pdo->prepare('UPDATE categorizations SET featured = ?, updated_at = NOW() WHERE repo_id = ? AND category_id = ?')
+        ->execute([$newFeatured, $repoId, $categoryId]);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'],
+        $newFeatured ? 'feature' : 'unfeature',
+        (int)$repoId,
+        'category #' . $categoryId
+    );
+
+    echo json_encode(['status' => 200, 'featured' => (bool)$newFeatured]);
+}

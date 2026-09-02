@@ -22,6 +22,9 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
         </a>
       <?php endif; ?>
     </div>
+    <?php if (!empty($addon['featured'])): ?>
+      <span class="tag tag--featured" title="Featured in this category">★ Featured</span>
+    <?php endif; ?>
     <?php if (!empty($addon['archived'])): ?>
       <span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>
     <?php endif; ?>

@@ -237,6 +237,25 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .tag--archived { color: var(--text-muted); background: rgba(154, 161, 181, .12); border-color: rgba(154, 161, 181, .3); }
 .tag--releases { color: var(--accent-1); background: rgba(124, 92, 255, .1); border-color: rgba(124, 92, 255, .3); }
 .tag--releases:hover { text-decoration: none; opacity: .85; }
+.tag--featured { color: #f5b638; background: rgba(245, 182, 56, .12); border-color: rgba(245, 182, 56, .35); }
+
+.addon-card-wrap { position: relative; }
+.addon-card-wrap.is-featured .addon-card { border-color: rgba(245, 182, 56, .5); }
+.feature-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  font-size: .7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.feature-toggle:hover { border-color: #f5b638; color: #f5b638; }
 .addon-card__meta {
   display: flex;
   align-items: center;

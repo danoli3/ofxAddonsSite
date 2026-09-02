@@ -8,12 +8,12 @@ function ofx_categories_index(): void
     $pdo = ofx_db();
 
     $stmt = $pdo->query('
-        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url, cz.category_id
+        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url, cz.category_id, cz.featured
         FROM repos r
         JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN users u ON u.id = r.user_id
         WHERE r.type = "Addon" AND r.hidden_by_owner = 0
-        ORDER BY LOWER(r.name) ASC
+        ORDER BY cz.featured DESC, LOWER(r.name) ASC
     ');
 
     $addonsByCategory = [];
@@ -35,6 +35,7 @@ function ofx_categories_index(): void
 function ofx_categories_show(string $id): void
 {
     $pdo = ofx_db();
+    $isAdmin = !empty(ofx_current_user()['admin'] ?? false);
 
     $stmt = $pdo->prepare('SELECT * FROM categories WHERE id = ? LIMIT 1');
     $stmt->execute([$id]);
@@ -49,12 +50,12 @@ function ofx_categories_show(string $id): void
     $fetch = OFX_PAGE_SIZE + 1;
 
     $stmt = $pdo->prepare("
-        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url
+        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url, cz.featured
         FROM repos r
         JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN users u ON u.id = r.user_id
         WHERE cz.category_id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
-        ORDER BY LOWER(r.name) ASC
+        ORDER BY cz.featured DESC, LOWER(r.name) ASC
         LIMIT {$fetch} OFFSET {$offset}
     ");
     $stmt->execute([$id]);
@@ -63,7 +64,7 @@ function ofx_categories_show(string $id): void
     if (ofx_is_ajax()) {
         header('X-Has-More: ' . ($hasMore ? '1' : '0'));
         foreach ($addons as $addon) {
-            ofx_addon_partial($addon);
+            ofx_category_addon_partial($addon, (int)$id, $isAdmin);
         }
         return;
     }
@@ -73,6 +74,7 @@ function ofx_categories_show(string $id): void
         'addons' => $addons,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
+        'isAdmin' => $isAdmin,
         'title' => $category['name'],
     ]);
 }

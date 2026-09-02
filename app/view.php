@@ -63,6 +63,11 @@ function ofx_addon_partial(array $addon): void
     include __DIR__ . '/views/partials/addon-card.php';
 }
 
+function ofx_category_addon_partial(array $addon, int $categoryId, bool $isAdmin): void
+{
+    include __DIR__ . '/views/partials/category-addon-card.php';
+}
+
 function ofx_addon_grid(array $addons, bool $hasMore, string $nextUrl): void
 {
     include __DIR__ . '/views/partials/addon-grid.php';

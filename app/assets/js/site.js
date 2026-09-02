@@ -194,6 +194,28 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.feature-toggle', function () {
+    var $btn = $(this);
+    var repoId = $btn.data('repo-id');
+    var categoryId = $btn.data('category-id');
+
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/categorizations/' + repoId + '/' + categoryId + '/toggle-featured',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $btn.data('featured', res.featured ? '1' : '0');
+      $btn.text(res.featured ? '★ Featured' : '☆ Feature');
+      $btn.closest('.addon-card-wrap').toggleClass('is-featured', !!res.featured);
+    }).fail(function () {
+      window.alert('Could not update featured status');
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $('#admin-sync-now').on('click', function () {
     var $btn = $(this);
     var $status = $('#admin-sync-status');
