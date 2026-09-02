@@ -1,5 +1,13 @@
 RewriteEngine On
 
+# Never serve dotfiles directly (.env, .git/*, .htaccess itself) - this
+# should already be unreachable via the front-controller routing below,
+# but .env/.git sit right in the docroot so this stays explicit rather
+# than relying on that alone.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
 # DreamHost's PHP setup strips the Authorization header before it ever
 # reaches PHP - $_SERVER['HTTP_AUTHORIZATION'] is silently empty
 # without this, which broke the /webhooks/sync bearer-token check.

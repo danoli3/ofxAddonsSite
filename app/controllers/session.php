@@ -28,6 +28,10 @@ function ofx_session_create(): void
 
     $user = ofx_login_or_create_user($githubUser);
 
+    // new session id on every login - stops session fixation (an
+    // attacker handing a victim a pre-chosen session id before they
+    // authenticate, then reusing that same id afterward)
+    session_regenerate_id(true);
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['flash'] = 'Signed in!';
 
