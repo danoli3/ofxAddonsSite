@@ -368,6 +368,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .admin-row__owner { color: var(--text-muted); font-size: .78rem; }
 .admin-row__url { display: block; color: var(--text-muted); font-size: .74rem; margin-top: 2px; }
 .admin-row__url:hover { color: var(--accent-3); }
+.admin-row__updated { color: var(--text-muted); font-size: .72rem; margin-top: 2px; opacity: .75; }
 .admin-row__desc-cell { display: flex; flex-direction: column; gap: 6px; }
 .admin-row__desc-static { color: var(--text-muted); }
 .log-avatar { width: 18px; height: 18px; border-radius: 5px; object-fit: cover; vertical-align: middle; margin-right: 4px; }

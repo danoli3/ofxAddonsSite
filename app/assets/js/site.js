@@ -139,7 +139,7 @@ $(function () {
     var $thumb = $row.find('.my-addon-row__thumbnail');
     if ($thumb.length) extra.thumbnail_url_override = $thumb.val();
 
-    var removeIfNot = $typeSelect.length ? ['Unsorted', 'Incomplete'] : null;
+    var removeIfNot = $typeSelect.length ? ['Unsorted', 'Incomplete', 'Spam'] : null;
 
     saveRepoType($row, type, categoryIds, removeIfNot, description, generated, extra);
   });
@@ -308,7 +308,7 @@ $(function () {
     $('.admin-tab').on('click', function (e) {
       e.preventDefault();
       var url = $(this).attr('href');
-      $('.admin-tab').removeClass('active');
+      $(this).closest('.admin-tabs').find('.admin-tab').removeClass('active');
       $(this).addClass('active');
       if (window.history && history.pushState) history.pushState(null, '', url);
       var sep = url.indexOf('?') === -1 ? '?' : '&';

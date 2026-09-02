@@ -37,12 +37,24 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
         $userId = ofx_sync_upsert_user($pdo, $item['owner'] ?? []);
 
         $hasCorrectFolder = !empty($item['has_correct_folder_structure']);
+        $hasAnyStructureSignal = !empty($item['has_makefile'])
+            || !empty($item['example_count'])
+            || !empty($item['has_thumbnail']);
 
         $type = $existing['type'] ?? 'Unsorted';
-        if (empty($item['pushed_at'])) {
-            $type = 'Empty';
-        } elseif (!$hasCorrectFolder) {
-            $type = 'Incomplete';
+        $stillPending = !$existing || in_array($type, ['Unsorted', 'Incomplete', 'Spam', 'Empty'], true);
+        if ($stillPending) {
+            if (empty($item['pushed_at'])) {
+                $type = 'Empty';
+            } elseif (!$hasCorrectFolder) {
+                // "ofx" name matches by coincidence and nothing in the
+                // repo even looks like an attempt at an addon (no src/,
+                // no example/, no makefile, no thumbnail) - almost
+                // always name-squatting or content-spam, not a real
+                // work-in-progress addon. Kept reversible (just another
+                // type an admin can change) rather than auto-banning.
+                $type = $hasAnyStructureSignal ? 'Incomplete' : 'Spam';
+            }
         }
 
         $params = [

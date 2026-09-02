@@ -1,8 +1,12 @@
 <?php
 declare(strict_types=1);
 
-const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Incomplete', 'NonAddon', 'Unsorted'];
-const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete'];
+const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Incomplete', 'NonAddon', 'Spam', 'Unsorted'];
+const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam'];
+// "Curated" isn't a repos.type value - it's a separate tab filtered on
+// description_curated=1 (any type), so admins can review/audit every
+// hand-written or AI-generated-then-approved description in one place.
+const OFX_ADMIN_CURATED_TAB = 'Curated';
 const OFX_ADMIN_PAGE_SIZE = 25;
 
 function ofx_admin_index(): void
@@ -11,23 +15,31 @@ function ofx_admin_index(): void
     $pdo = ofx_db();
 
     $type = $_GET['type'] ?? 'Unsorted';
-    if (!in_array($type, OFX_ADMIN_TYPES, true)) {
+    if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB) {
         $type = 'Unsorted';
     }
+    $isCuratedTab = $type === OFX_ADMIN_CURATED_TAB;
+
+    $sort = $_GET['sort'] ?? 'pushed';
+    if (!in_array($sort, ['pushed', 'updated'], true)) {
+        $sort = 'pushed';
+    }
+    $orderColumn = $sort === 'updated' ? 'r.updated_at' : 'r.pushed_at';
 
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * OFX_ADMIN_PAGE_SIZE;
     $fetch = OFX_ADMIN_PAGE_SIZE + 1;
 
+    $where = $isCuratedTab ? 'r.description_curated = 1' : 'r.type = ?';
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
-        WHERE r.type = ?
-        ORDER BY r.pushed_at DESC
+        WHERE {$where}
+        ORDER BY {$orderColumn} DESC
         LIMIT {$fetch} OFFSET {$offset}
     ");
-    $stmt->execute([$type]);
+    $stmt->execute($isCuratedTab ? [] : [$type]);
     [$repos, $hasMore] = ofx_paginate_slice($stmt->fetchAll(), OFX_ADMIN_PAGE_SIZE);
 
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
@@ -47,6 +59,7 @@ function ofx_admin_index(): void
         $countStmt->execute([$t]);
         $counts[$t] = (int)$countStmt->fetchColumn();
     }
+    $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE description_curated = 1')->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
@@ -54,6 +67,7 @@ function ofx_admin_index(): void
         'categories' => $categories,
         'admin' => $admin,
         'type' => $type,
+        'sort' => $sort,
         'counts' => $counts,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),

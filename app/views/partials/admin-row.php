@@ -7,6 +7,7 @@
     <a class="admin-row__url" href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener">
       github.com/<?= ofx_h($repo['full_name']) ?>
     </a>
+    <div class="admin-row__updated">Updated <?= ofx_h(ofx_time_ago($repo['updated_at'] ?? null)) ?></div>
   </td>
   <td class="admin-row__desc-cell">
     <textarea class="admin-row__desc" rows="3"
