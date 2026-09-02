@@ -221,7 +221,7 @@ function ofx_admin_banned(): void
         SELECT r.*, u.login AS user_login
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
-        WHERE r.type = "NonAddon"
+        WHERE r.type = "NonAddon" AND r.hidden_by_owner = 0
         ORDER BY r.updated_at DESC
     ');
 
