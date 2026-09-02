@@ -1,0 +1,51 @@
+<div class="page-head">
+  <h1>Admin &mdash; Categorize</h1>
+</div>
+
+<div class="admin-toolbar">
+  <div class="admin-toolbar__group">
+    <span class="admin-toolbar__label">Export</span>
+    <a href="/admin/export.json">JSON</a>
+    <a href="/admin/export.xml">XML</a>
+  </div>
+  <form class="admin-toolbar__group" action="/admin/import" method="post" enctype="multipart/form-data">
+    <span class="admin-toolbar__label">Import</span>
+    <input type="file" name="file" accept=".json,.xml" required>
+    <button type="submit">Upload</button>
+  </form>
+  <a class="admin-toolbar__link" href="/admin/log">Log &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/admins">Admins &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
+</div>
+
+<div class="admin-tabs">
+  <?php foreach (OFX_ADMIN_TYPES as $t): ?>
+    <a href="/admin/repos?type=<?= ofx_h($t) ?>" class="admin-tab <?= $type === $t ? 'active' : '' ?>" data-type="<?= ofx_h($t) ?>">
+      <?= ofx_h($t) ?> <span class="count"><?= $counts[$t] ?></span>
+    </a>
+  <?php endforeach; ?>
+</div>
+
+<div class="table-scroll">
+<table class="admin-table" id="admin-table" data-endpoint="/admin/repos">
+  <thead>
+    <tr>
+      <th>Repo</th>
+      <th>Description</th>
+      <th>Type</th>
+      <th>Categories</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="admin-tbody" data-has-more="<?= $hasMore ? '1' : '0' ?>" data-next-url="<?= ofx_h($nextUrl) ?>">
+    <?php foreach ($repos as $repo): ?>
+      <?php ofx_admin_row_partial($repo, $categories, $repoCategoryIds[$repo['id']] ?? []); ?>
+    <?php endforeach; ?>
+  </tbody>
+</table>
+</div>
+<div class="grid-sentinel" id="admin-sentinel"></div>
+<div class="grid-loading" hidden>
+  <span class="spinner"></span> Loading more&hellip;
+</div>
+<p class="grid-end" hidden>You&rsquo;ve reached the end.</p>

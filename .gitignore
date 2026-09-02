@@ -1,0 +1,14 @@
+# secrets - DB credentials, Github OAuth/token, OpenAI key. Never commit this.
+.env
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local tooling artifacts (not part of the site)
+.claude/
+
+# logs, if anything ever writes them locally
+*.log
