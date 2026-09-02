@@ -1,5 +1,11 @@
 RewriteEngine On
 
+# DreamHost's PHP setup strips the Authorization header before it ever
+# reaches PHP - $_SERVER['HTTP_AUTHORIZATION'] is silently empty
+# without this, which broke the /webhooks/sync bearer-token check.
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
 # Serve real files/directories directly (assets, etc) - only route
 # through the front controller when nothing on disk matches.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
