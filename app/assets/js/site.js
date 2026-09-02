@@ -311,14 +311,32 @@ $(function () {
     }, { rootMargin: '400px' });
     adminObserver.observe($adminSentinel[0]);
 
+    function withSearch(url) {
+      var q = $('#admin-search').val();
+      url = url.replace(/([?&])q=[^&]*&?/, '$1').replace(/[?&]$/, '');
+      if (q) url += (url.indexOf('?') === -1 ? '?' : '&') + 'q=' + encodeURIComponent(q);
+      return url;
+    }
+
     $('.admin-tab').on('click', function (e) {
       e.preventDefault();
-      var url = $(this).attr('href');
+      var url = withSearch($(this).attr('href'));
       $(this).closest('.admin-tabs').find('.admin-tab').removeClass('active');
       $(this).addClass('active');
       if (window.history && history.pushState) history.pushState(null, '', url);
       var sep = url.indexOf('?') === -1 ? '?' : '&';
       loadAdminRows(url + sep + 'page=1', true);
+    });
+
+    var adminSearchTimer;
+    $('#admin-search').on('input', function () {
+      clearTimeout(adminSearchTimer);
+      adminSearchTimer = setTimeout(function () {
+        var url = withSearch($('.admin-tabs .admin-tab.active').attr('href') || '/admin/repos');
+        if (window.history && history.pushState) history.pushState(null, '', url);
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        loadAdminRows(url + sep + 'page=1', true);
+      }, 350);
     });
   }
 });

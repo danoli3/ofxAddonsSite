@@ -26,11 +26,19 @@ function ofx_admin_index(): void
     }
     $orderColumn = $sort === 'updated' ? 'r.updated_at' : 'r.pushed_at';
 
+    $search = trim($_GET['q'] ?? '');
+
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * OFX_ADMIN_PAGE_SIZE;
     $fetch = OFX_ADMIN_PAGE_SIZE + 1;
 
     $where = $isCuratedTab ? 'r.description_curated = 1' : 'r.type = ?';
+    $params = $isCuratedTab ? [] : [$type];
+    if ($search !== '') {
+        $where .= ' AND (r.full_name LIKE ? OR r.name LIKE ?)';
+        $params[] = "%{$search}%";
+        $params[] = "%{$search}%";
+    }
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login
         FROM repos r
@@ -39,7 +47,7 @@ function ofx_admin_index(): void
         ORDER BY {$orderColumn} DESC
         LIMIT {$fetch} OFFSET {$offset}
     ");
-    $stmt->execute($isCuratedTab ? [] : [$type]);
+    $stmt->execute($params);
     [$repos, $hasMore] = ofx_paginate_slice($stmt->fetchAll(), OFX_ADMIN_PAGE_SIZE);
 
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
@@ -68,6 +76,7 @@ function ofx_admin_index(): void
         'admin' => $admin,
         'type' => $type,
         'sort' => $sort,
+        'search' => $search,
         'counts' => $counts,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),

@@ -33,19 +33,23 @@
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
 </div>
 
+<?php $qSuffix = $search !== '' ? '&q=' . urlencode($search) : ''; ?>
+
+<input type="text" class="filter-box" id="admin-search" placeholder="Search by repo name&hellip;" value="<?= ofx_h($search) ?>">
+
 <div class="admin-tabs">
   <?php foreach ([...OFX_ADMIN_TYPES, OFX_ADMIN_CURATED_TAB] as $t): ?>
-    <a href="/admin/repos?type=<?= ofx_h($t) ?>&sort=<?= ofx_h($sort) ?>" class="admin-tab <?= $type === $t ? 'active' : '' ?>" data-type="<?= ofx_h($t) ?>">
+    <a href="/admin/repos?type=<?= ofx_h($t) ?>&sort=<?= ofx_h($sort) ?><?= $qSuffix ?>" class="admin-tab <?= $type === $t ? 'active' : '' ?>" data-type="<?= ofx_h($t) ?>">
       <?= ofx_h($t) ?> <span class="count"><?= $counts[$t] ?></span>
     </a>
   <?php endforeach; ?>
 </div>
 
 <div class="admin-tabs admin-tabs--sort">
-  <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=pushed" class="admin-tab <?= $sort === 'pushed' ? 'active' : '' ?>">
+  <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=pushed<?= $qSuffix ?>" class="admin-tab <?= $sort === 'pushed' ? 'active' : '' ?>">
     Recently pushed
   </a>
-  <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=updated" class="admin-tab <?= $sort === 'updated' ? 'active' : '' ?>">
+  <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=updated<?= $qSuffix ?>" class="admin-tab <?= $sort === 'updated' ? 'active' : '' ?>">
     Recently updated
   </a>
 </div>
