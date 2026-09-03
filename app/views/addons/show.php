@@ -33,6 +33,12 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
 
 <div class="addon-detail__meta">
   <span title="Stars">&#9733; <?= (int)($addon['stargazers_count'] ?? 0) ?></span>
+  <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>/forks" target="_blank" rel="noopener" title="Forks">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+      <path d="M5 3.25a1.75 1.75 0 1 1 3.5 0 1.75 1.75 0 0 1-3.5 0Zm5.75 0a1.75 1.75 0 1 1 3.5 0 1.75 1.75 0 0 1-3.5 0ZM6.5 5.75c.276 0 .5.224.5.5v1.774c.996.284 1.719 1.207 1.719 2.298v.478h.219a.5.5 0 0 1 0 1H7.5a.5.5 0 0 1 0-1h.219v-.478c0-1.09.723-2.014 1.719-2.298V6.25a.5.5 0 0 1 1 0v1.774c.996.284 1.719 1.207 1.719 2.298v.478H9.5a1.75 1.75 0 0 0-1.75 1.75v.5a1.75 1.75 0 0 0 1.75 1.75h.5a1.75 1.75 0 0 0 1.75-1.75"/>
+    </svg>
+    <?= (int)($addon['forks_count'] ?? 0) ?>
+  </a>
   <span>Last commit <?= ofx_h(ofx_time_ago($addon['pushed_at'] ?? null)) ?></span>
 </div>
 

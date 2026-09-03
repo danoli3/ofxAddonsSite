@@ -1,6 +1,9 @@
 <div class="page-head">
   <h1>All Addons</h1>
-  <input type="text" class="filter-box" id="addon-filter" placeholder="Filter addons&hellip;">
+  <div class="filter-wrap">
+    <input type="text" class="filter-box" id="addon-filter" placeholder="Filter addons&hellip;">
+    <span class="spinner search-spinner" aria-hidden="true"></span>
+  </div>
 </div>
 
 <div class="sort-tabs">

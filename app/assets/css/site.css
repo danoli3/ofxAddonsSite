@@ -129,6 +129,18 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .prose pre code { background: none; border: none; padding: 0; color: inherit; }
 .empty-state { color: var(--text-muted); font-style: italic; }
 
+.filter-wrap { position: relative; display: inline-flex; align-items: center; }
+.filter-wrap--hero { display: flex; width: 100%; max-width: 420px; margin: 0 auto; }
+.filter-wrap .filter-box { padding-right: 34px; }
+.filter-wrap .search-spinner {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  margin-top: -8px;
+  display: none;
+}
+.filter-wrap.is-searching .search-spinner { display: block; }
+
 .filter-box {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -337,6 +349,8 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   font-size: .85rem;
   margin-bottom: 8px;
 }
+.addon-detail__meta a { display: inline-flex; align-items: center; gap: 4px; color: inherit; }
+.addon-detail__meta a:hover { color: var(--accent-3); text-decoration: none; }
 .addon-detail__readme {
   background: var(--surface);
   border: 1px solid var(--border);

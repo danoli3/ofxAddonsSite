@@ -15,15 +15,18 @@ $(function () {
     // filtering, since a global addon search wouldn't make sense there.
     var $filterable = $('#filterable-content');
     var $searchResults = $('#search-results');
+    var $filterWrap = $filter.closest('.filter-wrap');
     var dbFallbackEnabled = $filterable.length && $searchResults.length;
     var searchXhr = null;
     var searchTimer = null;
 
     function showLocalListing() {
+      clearTimeout(searchTimer);
       if (searchXhr) {
         searchXhr.abort();
         searchXhr = null;
       }
+      $filterWrap.removeClass('is-searching');
       $searchResults.prop('hidden', true).empty();
       $filterable.show();
     }
@@ -32,6 +35,7 @@ $(function () {
       if (searchXhr) {
         searchXhr.abort();
       }
+      $filterWrap.addClass('is-searching');
       searchXhr = $.ajax({ url: '/search?q=' + encodeURIComponent(q), method: 'GET' })
         .done(function (html) {
           // The query box may have changed (or been cleared) while this
@@ -41,6 +45,9 @@ $(function () {
           }
           $filterable.hide();
           $searchResults.html(html).prop('hidden', false);
+        })
+        .always(function () {
+          $filterWrap.removeClass('is-searching');
         });
     }
 
@@ -72,7 +79,11 @@ $(function () {
         showLocalListing();
         return;
       }
-      searchTimer = setTimeout(function () { runDbSearch(q); }, 300);
+      // wait for a 1s pause in typing before hitting the database - the
+      // spinner (shown only once the request is actually in flight, via
+      // is-searching) makes it clear this is a deliberate lookup, not a
+      // per-keystroke refresh
+      searchTimer = setTimeout(function () { runDbSearch(q); }, 1000);
     });
   }
 

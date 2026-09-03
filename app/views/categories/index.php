@@ -1,7 +1,10 @@
 <div class="hero">
   <h1>Discover openFrameworks addons</h1>
   <p>The central place to find, browse and categorize the openFrameworks addon ecosystem.</p>
-  <input type="text" class="filter-box filter-box--hero" id="addon-filter" placeholder="Search addons&hellip;">
+  <div class="filter-wrap filter-wrap--hero">
+    <input type="text" class="filter-box filter-box--hero" id="addon-filter" placeholder="Search addons&hellip;">
+    <span class="spinner search-spinner" aria-hidden="true"></span>
+  </div>
 </div>
 
 <div id="search-results" class="addon-grid" hidden></div>
