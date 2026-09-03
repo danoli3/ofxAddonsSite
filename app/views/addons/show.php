@@ -65,6 +65,27 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
   </div>
 <?php endif; ?>
 
+<?php if (!empty($aheadBranches)): ?>
+  <div class="page-head" id="branches"><h2>Branches ahead of <?= ofx_h($addon['default_branch'] ?: 'the default branch') ?></h2></div>
+  <p class="page-intro">
+    These branches have commits not yet on <?= ofx_h($addon['default_branch'] ?: 'the default branch') ?> &mdash;
+    could be unmerged fixes or work in progress worth a look.
+  </p>
+  <div class="fork-list">
+    <?php foreach ($aheadBranches as $branch): ?>
+      <a class="fork-card" href="https://github.com/<?= ofx_h($addon['full_name']) ?>/compare/<?= ofx_h($addon['default_branch'] ?? '') ?>...<?= ofx_h($branch['name'] ?? '') ?>" target="_blank" rel="noopener">
+        <div class="fork-card__info">
+          <span class="fork-card__name"><?= ofx_h($branch['name'] ?? '') ?></span>
+          <span class="fork-card__meta">
+            <?= (int)($branch['ahead_by'] ?? 0) ?> commit<?= (int)($branch['ahead_by'] ?? 0) === 1 ? '' : 's' ?> ahead
+            &middot; last commit <?= ofx_h(ofx_time_ago($branch['last_commit_at'] ?? null)) ?>
+          </span>
+        </div>
+      </a>
+    <?php endforeach; ?>
+  </div>
+<?php endif; ?>
+
 <div class="page-head"><h2>README</h2></div>
 <?php if ($readme): ?>
   <div class="addon-detail__readme"><?= ofx_render_markdown_lite($readme) ?></div>

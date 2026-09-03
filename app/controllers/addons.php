@@ -49,11 +49,18 @@ function ofx_addons_show(string $owner, string $repo): void
         $newerForks = is_array($decoded) ? $decoded : [];
     }
 
+    $aheadBranches = [];
+    if (!empty($addon['ahead_branches'])) {
+        $decoded = json_decode($addon['ahead_branches'], true);
+        $aheadBranches = is_array($decoded) ? $decoded : [];
+    }
+
     $readme = ofx_fetch_readme($addon['full_name']);
 
     ofx_render('addons/show', [
         'addon' => $addon,
         'newerForks' => $newerForks,
+        'aheadBranches' => $aheadBranches,
         'readme' => $readme,
         'title' => $addon['name'],
     ]);

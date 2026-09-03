@@ -58,6 +58,7 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
         }
 
         $newerForks = !empty($item['newer_forks']) ? json_encode($item['newer_forks']) : null;
+        $aheadBranches = !empty($item['ahead_branches']) ? json_encode($item['ahead_branches']) : null;
 
         $params = [
             ofx_sync_to_datetime($item['created_at'] ?? null),
@@ -75,6 +76,8 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             !empty($item['archived']) ? 1 : 0,
             !empty($item['has_releases']) ? 1 : 0,
             $newerForks,
+            $item['default_branch'] ?? null,
+            $aheadBranches,
             $userId,
             $type,
         ];
@@ -86,11 +89,13 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
                 ? 'UPDATE repos SET created_at=?, forks_count=?, fork=?, name=?, parent=?,
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
                    has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
+                   default_branch=?, ahead_branches=?,
                    user_id=?, type=?, updated_at=NOW()
                    WHERE id=?'
                 : 'UPDATE repos SET created_at=?, forks_count=?, fork=?, name=?, parent=?,
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
                    has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
+                   default_branch=?, ahead_branches=?,
                    user_id=?, type=?, description=?, updated_at=NOW()
                    WHERE id=?';
             $execParams = $isCurated ? $params : [...$params, $item['description'] ?? null];
@@ -99,8 +104,9 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
         } else {
             $sql = 'INSERT INTO repos (created_at, forks_count, fork, name, parent, pushed_at,
                     source, stargazers_count, example_count, has_makefile, has_correct_folder_structure,
-                    has_thumbnail, archived, has_releases, newer_forks, user_id, type, description, full_name, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
+                    has_thumbnail, archived, has_releases, newer_forks, default_branch, ahead_branches,
+                    user_id, type, description, full_name, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
             $pdo->prepare($sql)->execute([...$params, $item['description'] ?? null, $fullName]);
             $added++;
         }
