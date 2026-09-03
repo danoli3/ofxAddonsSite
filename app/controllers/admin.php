@@ -32,7 +32,12 @@ function ofx_admin_index(): void
     $offset = ($page - 1) * OFX_ADMIN_PAGE_SIZE;
     $fetch = OFX_ADMIN_PAGE_SIZE + 1;
 
-    $where = $isCuratedTab ? 'r.description_curated = 1' : 'r.type = ?';
+    // banned repos (NonAddon/Deleted) can end up with a curated
+    // description from before they were banned - they belong on the
+    // Banned page, not cluttering this review tab
+    $where = $isCuratedTab
+        ? "r.description_curated = 1 AND r.type NOT IN ('NonAddon', 'Deleted')"
+        : 'r.type = ?';
     $params = $isCuratedTab ? [] : [$type];
     if ($search !== '') {
         $where .= ' AND (r.full_name LIKE ? OR r.name LIKE ?)';
@@ -67,7 +72,9 @@ function ofx_admin_index(): void
         $countStmt->execute([$t]);
         $counts[$t] = (int)$countStmt->fetchColumn();
     }
-    $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE description_curated = 1')->fetchColumn();
+    $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query(
+        "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
+    )->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
