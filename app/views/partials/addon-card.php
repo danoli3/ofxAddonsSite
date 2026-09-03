@@ -22,7 +22,7 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
         </a>
       <?php endif; ?>
       <?php if (($addon['type'] ?? null) === 'Addon'): ?>
-        <a class="addon-card__more" href="/addons/<?= (int)$addon['id'] ?>">More info &rarr;</a>
+        <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($addon['full_name'])) ?>">More info &rarr;</a>
       <?php endif; ?>
     </div>
     <?php if (!empty($addon['featured'])): ?>

@@ -9,7 +9,7 @@
     </a>
     <div class="admin-row__updated">Last commit <?= ofx_h(ofx_time_ago($repo['pushed_at'] ?? null)) ?></div>
     <?php if ($repo['type'] === 'Addon'): ?>
-      <a class="addon-card__more" href="/addons/<?= (int)$repo['id'] ?>">More info &rarr;</a>
+      <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
     <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">

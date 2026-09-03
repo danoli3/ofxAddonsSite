@@ -38,30 +38,70 @@ const OFX_README_MAX_CHARS = 20000;
 // rule runs - a literal <script> in someone's README becomes inert
 // text (&lt;script&gt;) at that point and stays that way, since none
 // of the rules below look for angle brackets. Because escaping
-// happens before the link rule builds an href="..." attribute, a
+// happens before a rule builds an href="..."/src="..." attribute, a
 // quote character in a URL is already &quot; by then too, so it can't
-// break out of the attribute either. Deliberately basic - headings,
-// bold/italic, inline code, fenced code blocks, links (http/https
-// only), and simple "- " lists.
+// break out of the attribute either. Deliberately basic - ATX and
+// Setext headings, bold/italic, inline code, fenced code blocks,
+// images and links (http/https only), simple "- " lists, and GFM
+// pipe tables.
 function ofx_render_markdown_lite(string $markdown): string
 {
     $markdown = mb_substr($markdown, 0, OFX_README_MAX_CHARS);
+    $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
     $html = ofx_h($markdown);
 
     $html = preg_replace_callback('/```[a-zA-Z0-9]*\n(.*?)\n?```/s', function (array $m): string {
         return '<pre class="md-code"><code>' . $m[1] . '</code></pre>';
     }, $html);
 
+    // Setext headings (Title\n===  or  Title\n---) before ATX ones,
+    // since both end up producing the same <h1>/<h2> tags
+    $html = preg_replace('/^(.+)\n={3,}[ \t]*$/m', '<h1>$1</h1>', $html);
+    $html = preg_replace('/^(.+)\n-{3,}[ \t]*$/m', '<h2>$1</h2>', $html);
+
     $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html);
     $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
     $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html);
     $html = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $html);
+
+    // GFM pipe tables: a header row, a |---|---| separator row (at
+    // least two dash-runs so a plain "---" thematic break/Setext
+    // underline never matches this), then one or more body rows
+    $html = preg_replace_callback(
+        '/^(.*\|.*)\n\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*\n((?:.*\|.*\n?)+)/m',
+        function (array $m): string {
+            $head = array_map('trim', explode('|', trim($m[1], "| \t")));
+            $headHtml = '<tr>' . implode('', array_map(fn($c) => '<th>' . $c . '</th>', $head)) . '</tr>';
+
+            $bodyHtml = '';
+            foreach (array_filter(explode("\n", rtrim($m[2], "\n"))) as $line) {
+                if (!str_contains($line, '|')) {
+                    continue;
+                }
+                $cells = array_map('trim', explode('|', trim($line, "| \t")));
+                $bodyHtml .= '<tr>' . implode('', array_map(fn($c) => '<td>' . $c . '</td>', $cells)) . '</tr>';
+            }
+
+            return '<table class="md-table"><thead>' . $headHtml . '</thead><tbody>' . $bodyHtml . '</tbody></table>';
+        },
+        $html
+    );
 
     $html = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $html);
     $html = preg_replace('/__(.+?)__/', '<strong>$1</strong>', $html);
     $html = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/', '<em>$1</em>', $html);
 
     $html = preg_replace('/`([^`]+?)`/', '<code>$1</code>', $html);
+
+    // Images before links - ![alt](url) shares [alt](url) syntax with
+    // a link, just prefixed with "!", so this has to run first or the
+    // link rule below partially matches it and leaves a stray "!"
+    $html = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)\)/', function (array $m): string {
+        if (!preg_match('#^https?://#i', $m[2])) {
+            return '';
+        }
+        return '<img src="' . $m[2] . '" alt="' . $m[1] . '" loading="lazy">';
+    }, $html);
 
     $html = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function (array $m): string {
         if (!preg_match('#^https?://#i', $m[2])) {
@@ -90,6 +130,12 @@ function ofx_flash_get(): ?string
 function ofx_avatar_url(?string $url): string
 {
     return $url ?: '/app/assets/img/default-gravatar.png';
+}
+
+function ofx_addon_url(string $fullName): string
+{
+    [$owner, $repo] = array_pad(explode('/', $fullName, 2), 2, '');
+    return '/addons/' . rawurlencode($owner) . '/' . rawurlencode($repo);
 }
 
 function ofx_thumbnail_url(string $fullName, ?string $override = null): string

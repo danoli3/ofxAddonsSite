@@ -51,7 +51,7 @@
           </a>
           <div class="admin-row__owner"><?= ofx_h($repo['type']) ?></div>
           <?php if ($repo['type'] === 'Addon'): ?>
-            <a class="addon-card__more" href="/addons/<?= (int)$repo['id'] ?>">More info &rarr;</a>
+            <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
           <?php endif; ?>
           <?php if (!empty($repo['hidden_by_owner'])): ?>
             <span class="tag tag--archived">Hidden from public</span>
