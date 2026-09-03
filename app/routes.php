@@ -22,6 +22,8 @@ function ofx_dispatch(): void
         ['GET', '#^/contributors$#', 'ofx_contributors_index'],
         ['GET', '#^/contributors/([^/]+)$#', 'ofx_contributors_show'],
         ['GET', '#^/pages/howto$#', 'ofx_pages_howto'],
+        ['GET', '#^/sitemap\.xml$#', 'ofx_sitemap_xml'],
+        ['GET', '#^/llms\.txt$#', 'ofx_llms_txt'],
         ['POST', '#^/webhooks/sync$#', 'ofx_webhook_sync'],
         ['GET', '#^/banned\.json$#', 'ofx_banned_json'],
         ['GET', '#^/addon-repos\.json$#', 'ofx_addon_repos_json'],

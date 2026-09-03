@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /my/
+Disallow: /webhooks/
+Disallow: /auth/
+
+Sitemap: https://ofxaddons.danoli3.com/sitemap.xml
