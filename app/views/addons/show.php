@@ -37,7 +37,7 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
 </div>
 
 <?php if (!empty($newerForks)): ?>
-  <div class="page-head"><h2>More recently updated forks</h2></div>
+  <div class="page-head" id="forks"><h2>More recently updated forks</h2></div>
   <p class="page-intro">
     These forks have been pushed to more recently than <?= ofx_h($addon['full_name']) ?> itself &mdash;
     worth checking if you're hitting issues with the original.

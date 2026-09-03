@@ -129,6 +129,16 @@ $(function () {
     $(this).toggleClass('is-selected');
   });
 
+  $(document).on('input', '.my-addon-row__thumbnail', function () {
+    var url = $(this).val().trim();
+    var $preview = $(this).siblings('.my-addon-row__thumbnail-preview');
+    if (!url) {
+      $preview.prop('hidden', true);
+      return;
+    }
+    $preview.attr('src', url);
+  });
+
   $(document).on('click', '.admin-row__save', function () {
     var $row = $(this).closest('.admin-row');
     var $typeSelect = $row.find('.admin-row__type');

@@ -90,6 +90,9 @@
               ?: (!empty($repo['has_thumbnail']) ? ofx_thumbnail_url($repo['full_name']) : '');
         ?>
         <td>
+          <img class="my-addon-row__thumbnail-preview" src="<?= ofx_h($detectedThumbnail) ?>" alt=""
+               loading="lazy" <?= $detectedThumbnail === '' ? 'hidden' : '' ?>
+               onerror="this.hidden = true" onload="this.hidden = false">
           <input type="url" class="my-addon-row__thumbnail" placeholder="https://.../image.png or .gif"
                  value="<?= ofx_h($detectedThumbnail) ?>">
           <label class="my-addon-row__hidden-label">

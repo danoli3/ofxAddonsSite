@@ -266,7 +266,10 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   padding-top: 10px;
   margin-top: auto;
 }
+.addon-card__stats { display: flex; align-items: center; gap: 10px; }
 .addon-card__stars { display: flex; align-items: center; gap: 4px; color: #f0b93b; font-weight: 600; }
+.addon-card__forks { display: flex; align-items: center; gap: 4px; color: var(--accent-3); font-weight: 600; }
+.addon-card__forks:hover { text-decoration: none; opacity: .85; }
 .addon-card.is-hidden { display: none; }
 
 .grid-sentinel { height: 1px; }
@@ -447,6 +450,11 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .admin-table th:nth-child(3), .admin-table td:nth-child(3) { width: 13%; }
 .admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 29%; }
 .admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 12%; }
+/* /my/addons has a different column order (Categories then Thumbnail
+   URL, not Type then Categories) - swap the 3rd/4th widths so the
+   category chip picker isn't squeezed into the narrow "Type" slot */
+#my-addons-table th:nth-child(3), #my-addons-table td:nth-child(3) { width: 29%; }
+#my-addons-table th:nth-child(4), #my-addons-table td:nth-child(4) { width: 13%; }
 .admin-row__owner { color: var(--text-muted); font-size: .78rem; }
 .admin-row__url { display: block; color: var(--text-muted); font-size: .74rem; margin-top: 2px; }
 .admin-row__url:hover { color: var(--accent-3); }
@@ -528,6 +536,15 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   background: rgba(124, 92, 255, .18);
   border-color: var(--accent-1);
   color: var(--text);
+}
+.my-addon-row__thumbnail-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 90px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--bg-alt);
+  margin-bottom: 8px;
 }
 .my-addon-row__thumbnail {
   width: 100%;
