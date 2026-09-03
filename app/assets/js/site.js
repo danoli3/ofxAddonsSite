@@ -9,18 +9,70 @@ $(function () {
 
   var $filter = $('#addon-filter');
   if ($filter.length) {
+    // Pages that opt into the database-search fallback wrap their listing in
+    // #filterable-content and provide a #search-results container. Pages
+    // without those (e.g. /unsorted) just keep the old client-side-only
+    // filtering, since a global addon search wouldn't make sense there.
+    var $filterable = $('#filterable-content');
+    var $searchResults = $('#search-results');
+    var dbFallbackEnabled = $filterable.length && $searchResults.length;
+    var searchXhr = null;
+    var searchTimer = null;
+
+    function showLocalListing() {
+      if (searchXhr) {
+        searchXhr.abort();
+        searchXhr = null;
+      }
+      $searchResults.prop('hidden', true).empty();
+      $filterable.show();
+    }
+
+    function runDbSearch(q) {
+      if (searchXhr) {
+        searchXhr.abort();
+      }
+      searchXhr = $.ajax({ url: '/search?q=' + encodeURIComponent(q), method: 'GET' })
+        .done(function (html) {
+          // The query box may have changed (or been cleared) while this
+          // request was in flight - only apply a result that still matches.
+          if ($filter.val().toLowerCase().trim() !== q) {
+            return;
+          }
+          $filterable.hide();
+          $searchResults.html(html).prop('hidden', false);
+        });
+    }
+
     $filter.on('input', function () {
       var q = $(this).val().toLowerCase().trim();
+      clearTimeout(searchTimer);
+
+      var anyMatch = false;
       $('.addon-card').each(function () {
         var $card = $(this);
         var matches = !q || $card.data('name').indexOf(q) !== -1 || $card.data('desc').indexOf(q) !== -1;
         $card.toggleClass('is-hidden', !matches);
+        if (matches) anyMatch = true;
       });
       $('.category-section').each(function () {
         var $section = $(this);
         var visible = $section.find('.addon-card').not('.is-hidden').length;
         $section.toggle(visible > 0);
       });
+
+      if (!dbFallbackEnabled) {
+        return;
+      }
+      if (!q || anyMatch) {
+        showLocalListing();
+        return;
+      }
+      if (q.length < 2) {
+        showLocalListing();
+        return;
+      }
+      searchTimer = setTimeout(function () { runDbSearch(q); }, 300);
     });
   }
 

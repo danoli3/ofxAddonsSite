@@ -59,6 +59,54 @@ function ofx_addons_show(string $owner, string $repo): void
     ]);
 }
 
+// GET /search?q=... - fallback for the filter box on /categories, /categories/{id}
+// and /addons: those filter client-side against only the addon-cards already in
+// the DOM (a handful per category preview, one page of infinite-scroll results),
+// so a real addon further down the alphabet or list never gets a match. The JS
+// only calls this once the client-side filter finds nothing, so it's a fallback,
+// not a replacement.
+function ofx_addons_search(): void
+{
+    $q = trim((string)($_GET['q'] ?? ''));
+    $q = mb_substr($q, 0, 80);
+
+    if (mb_strlen($q) < 2) {
+        return;
+    }
+
+    // Escape LIKE's own wildcard characters (and the escape character itself)
+    // so a literal % or _ typed by the user is matched literally, not treated
+    // as a wildcard. Bound as a parameter below, so this is about correct
+    // matching, not SQL injection - PDO's prepared statement already prevents that.
+    $like = '%' . addcslashes($q, '%_\\') . '%';
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare("
+        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
+               GROUP_CONCAT(c.name SEPARATOR '||') AS categories
+        FROM repos r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN categorizations cz ON cz.repo_id = r.id
+        LEFT JOIN categories c ON c.id = cz.category_id
+        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
+          AND (r.name LIKE ? OR r.full_name LIKE ? OR r.description LIKE ?)
+        GROUP BY r.id
+        ORDER BY r.stargazers_count DESC
+        LIMIT 30
+    ");
+    $stmt->execute([$like, $like, $like]);
+    $addons = $stmt->fetchAll();
+
+    if (empty($addons)) {
+        echo '<p class="empty-state">No addons found for &ldquo;' . ofx_h($q) . '&rdquo;.</p>';
+        return;
+    }
+
+    foreach ($addons as $addon) {
+        ofx_addon_partial($addon);
+    }
+}
+
 function ofx_render_addons_sorted(?string $sort): void
 {
 

@@ -4,5 +4,6 @@ Disallow: /admin/
 Disallow: /my/
 Disallow: /webhooks/
 Disallow: /auth/
+Disallow: /search
 
 Sitemap: https://ofxaddons.danoli3.com/sitemap.xml

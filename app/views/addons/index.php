@@ -9,4 +9,8 @@
   <a href="/addons?sort=popular" class="<?= $sort === 'popular' ? 'active' : '' ?>">Popular</a>
 </div>
 
-<?php ofx_addon_grid($addons, $hasMore, $nextUrl); ?>
+<div id="search-results" class="addon-grid" hidden></div>
+
+<div id="filterable-content">
+  <?php ofx_addon_grid($addons, $hasMore, $nextUrl); ?>
+</div>
