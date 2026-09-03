@@ -35,12 +35,15 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/admins/(\d+)/toggle$#', 'ofx_admin_toggle_admin'],
         ['POST', '#^/admin/sync-now$#', 'ofx_admin_sync_now'],
         ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
+        ['POST', '#^/admin/repos/(\d+)/dismiss-appeal$#', 'ofx_admin_dismiss_appeal'],
         ['GET', '#^/admin/export\.(json|xml)$#', 'ofx_admin_export'],
         ['GET', '#^/admin/export-triage\.json$#', 'ofx_admin_export_triage'],
+        ['GET', '#^/admin/export-banned\.json$#', 'ofx_admin_export_banned'],
         ['POST', '#^/admin/import$#', 'ofx_admin_import'],
         ['GET', '#^/my/addons$#', 'ofx_my_addons_index'],
         ['POST', '#^/my/addons/(\d+)$#', 'ofx_my_addons_update'],
         ['POST', '#^/my/addons/(\d+)/generate-description$#', 'ofx_my_addons_generate_description'],
+        ['POST', '#^/my/addons/(\d+)/appeal-ban$#', 'ofx_my_addons_appeal_ban'],
     ];
 
     foreach ($routes as [$m, $pattern, $handler]) {

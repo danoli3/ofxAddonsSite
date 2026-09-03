@@ -169,6 +169,55 @@ $(function () {
     saveRepoType($row, 'Unsorted', [], []);
   });
 
+  $(document).on('click', '.admin-row__dismiss-appeal', function () {
+    var $btn = $(this);
+    var $row = $btn.closest('.admin-row');
+    var repoId = $row.data('repo-id');
+    var $status = $row.find('.admin-row__status');
+
+    $btn.prop('disabled', true);
+    $status.text('Saving…');
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/dismiss-appeal',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $row.fadeOut(300, function () { $row.remove(); });
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.text(msg);
+      $btn.prop('disabled', false);
+    });
+  });
+
+  $(document).on('click', '.my-addon-row__appeal-ban', function () {
+    var $btn = $(this);
+    var repoId = $btn.data('repo-id');
+
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: '/my/addons/' + repoId + '/appeal-ban',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $btn.replaceWith('<span class="tag tag--curated">Ban appealed</span>');
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
+      $btn.prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.admin-row__generate-desc', function () {
     var $btn = $(this);
     var $row = $btn.closest('.admin-row');

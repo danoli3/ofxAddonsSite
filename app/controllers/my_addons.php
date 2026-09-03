@@ -124,6 +124,34 @@ function ofx_my_addons_update(string $id): void
     echo json_encode(['status' => 200]);
 }
 
+// POST /my/addons/{id}/appeal-ban - owner-only, only meaningful on a
+// repo an admin has banned (NonAddon). Just flags it for review; an
+// admin still has to actually unban it on /admin/banned.
+function ofx_my_addons_appeal_ban(string $id): void
+{
+    $user = ofx_require_user();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $repo = ofx_my_addons_owned_repo($pdo, $id, (int)$user['id']);
+    if (!$repo) {
+        http_response_code(403);
+        echo json_encode(['status' => 403, 'error' => ['not your addon']]);
+        return;
+    }
+    if ($repo['type'] !== 'NonAddon') {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ['this addon is not banned']]);
+        return;
+    }
+
+    $pdo->prepare('UPDATE repos SET ban_appealed = 1, updated_at = NOW() WHERE id = ?')->execute([$id]);
+    ofx_log_admin_action($pdo, $user['id'], 'appeal_ban', (int)$id, null);
+
+    echo json_encode(['status' => 200]);
+}
+
 function ofx_my_addons_generate_description(string $id): void
 {
     $user = ofx_require_user();

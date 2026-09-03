@@ -136,14 +136,20 @@ function ofx_admin_update(string $id): void
     $pdo->beginTransaction();
     try {
 
+        // moving off NonAddon (unbanning) clears any pending appeal too -
+        // it's resolved either way, and a future re-ban should start fresh
         if (array_key_exists('description', $_POST)) {
             $generated = !empty($_POST['description_generated']) ? 1 : 0;
             $pdo->prepare(
-                'UPDATE repos SET type = ?, description = ?, description_curated = 1,
-                 description_generated = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$type, $_POST['description'], $generated, $id]);
+                "UPDATE repos SET type = ?, description = ?, description_curated = 1,
+                 description_generated = ?, ban_appealed = IF(? != 'NonAddon', 0, ban_appealed),
+                 updated_at = NOW() WHERE id = ?"
+            )->execute([$type, $_POST['description'], $generated, $type, $id]);
         } else {
-            $pdo->prepare('UPDATE repos SET type = ?, updated_at = NOW() WHERE id = ?')->execute([$type, $id]);
+            $pdo->prepare(
+                "UPDATE repos SET type = ?, ban_appealed = IF(? != 'NonAddon', 0, ban_appealed),
+                 updated_at = NOW() WHERE id = ?"
+            )->execute([$type, $type, $id]);
         }
         $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$id]);
 
@@ -231,13 +237,56 @@ function ofx_admin_banned(): void
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
         WHERE r.type = "NonAddon" AND r.hidden_by_owner = 0
-        ORDER BY r.updated_at DESC
+        ORDER BY r.ban_appealed DESC, r.updated_at DESC
     ');
 
     ofx_render('admin/banned', [
         'repos' => $stmt->fetchAll(),
         'title' => 'Banned',
     ]);
+}
+
+// GET /admin/export-banned.json - downloadable list of every banned
+// repo (NonAddon/Deleted), for feeding into external automation (e.g.
+// a Github Action that wants to skip them). banned_at prefers the
+// admin_logs entry that actually recorded the ban over repos.updated_at,
+// since that column also moves on unrelated crawl syncs.
+function ofx_admin_export_banned(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $stmt = $pdo->query("
+        SELECT r.full_name, r.type, r.updated_at, r.ban_appealed,
+               (SELECT l.created_at FROM admin_logs l
+                WHERE l.repo_id = r.id AND l.details LIKE 'type: NonAddon%'
+                ORDER BY l.created_at DESC LIMIT 1) AS logged_banned_at,
+               (SELECT u.login FROM admin_logs l
+                JOIN users u ON u.id = l.user_id
+                WHERE l.repo_id = r.id AND l.details LIKE 'type: NonAddon%'
+                ORDER BY l.created_at DESC LIMIT 1) AS banned_by
+        FROM repos r
+        WHERE r.type IN ('NonAddon', 'Deleted')
+        ORDER BY LOWER(r.full_name) ASC
+    ");
+    $banned = array_map(function (array $row): array {
+        $bannedAt = $row['logged_banned_at'] ?? $row['updated_at'];
+        $ts = $bannedAt ? strtotime($bannedAt) : false;
+        return [
+            'full_name' => $row['full_name'],
+            'type' => $row['type'],
+            'banned_at' => $ts !== false ? gmdate('c', $ts) : null,
+            'banned_by' => $row['banned_by'],
+            'appealed' => (bool)$row['ban_appealed'],
+        ];
+    }, $stmt->fetchAll());
+
+    header('Content-Type: application/json');
+    header('Content-Disposition: attachment; filename="ofxaddons-banned.json"');
+    echo json_encode(
+        ['generated_at' => gmdate('c'), 'banned' => $banned],
+        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+    );
 }
 
 function ofx_admin_export(string $format): void
@@ -579,4 +628,26 @@ function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
     );
 
     echo json_encode(['status' => 200, 'featured' => (bool)$newFeatured]);
+}
+
+// POST /admin/repos/{id}/dismiss-appeal - the ban stands, just clears
+// the appeal flag so it drops back out of the "Appealed" section.
+function ofx_admin_dismiss_appeal(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare("UPDATE repos SET ban_appealed = 0, updated_at = NOW() WHERE id = ? AND type = 'NonAddon'");
+    $stmt->execute([$id]);
+    if ($stmt->rowCount() === 0) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['not a banned repo']]);
+        return;
+    }
+
+    ofx_log_admin_action($pdo, $admin['id'], 'dismiss_appeal', (int)$id, null);
+
+    echo json_encode(['status' => 200]);
 }
