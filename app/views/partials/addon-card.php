@@ -21,6 +21,9 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
           @<?= ofx_h($addon['user_login']) ?>
         </a>
       <?php endif; ?>
+      <?php if (($addon['type'] ?? null) === 'Addon'): ?>
+        <a class="addon-card__more" href="/addons/<?= (int)$addon['id'] ?>">More info &rarr;</a>
+      <?php endif; ?>
     </div>
     <?php if (!empty($addon['featured'])): ?>
       <span class="tag tag--featured" title="Featured in this category">★ Featured</span>

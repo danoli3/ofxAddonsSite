@@ -16,6 +16,47 @@ function ofx_addons_popular(): void
     ofx_render_addons_sorted('popular');
 }
 
+// GET /addons/{id} - the "more info" page linked from every addon
+// card: full description, categories, forks that are more actively
+// maintained than the addon itself (see the crawler's newer_forks
+// field - only tracked for confirmed Addons, only kept when a fork's
+// pushed_at is later than the addon's own), and a live-fetched README.
+function ofx_addons_show(string $id): void
+{
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare("
+        SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
+               GROUP_CONCAT(c.name SEPARATOR '||') AS categories
+        FROM repos r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN categorizations cz ON cz.repo_id = r.id
+        LEFT JOIN categories c ON c.id = cz.category_id
+        WHERE r.id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
+        GROUP BY r.id
+    ");
+    $stmt->execute([$id]);
+    $addon = $stmt->fetch();
+    if (!$addon) {
+        ofx_not_found();
+        return;
+    }
+
+    $newerForks = [];
+    if (!empty($addon['newer_forks'])) {
+        $decoded = json_decode($addon['newer_forks'], true);
+        $newerForks = is_array($decoded) ? $decoded : [];
+    }
+
+    $readme = ofx_fetch_readme($addon['full_name']);
+
+    ofx_render('addons/show', [
+        'addon' => $addon,
+        'newerForks' => $newerForks,
+        'readme' => $readme,
+        'title' => $addon['name'],
+    ]);
+}
+
 function ofx_render_addons_sorted(?string $sort): void
 {
 

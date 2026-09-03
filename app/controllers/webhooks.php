@@ -32,3 +32,15 @@ function ofx_banned_json(): void
     header('Cache-Control: no-cache');
     echo json_encode(ofx_banned_full_names(ofx_db()));
 }
+
+// GET /addon-repos.json - full_names the site has actually confirmed
+// are real addons. The crawler uses this to scope fork-tracking down
+// to repos worth the extra API calls, instead of every Unsorted/Spam
+// repo the search turns up.
+function ofx_addon_repos_json(): void
+{
+    header('Content-Type: application/json');
+    header('Cache-Control: no-cache');
+    $names = ofx_db()->query("SELECT full_name FROM repos WHERE type = 'Addon'")->fetchAll(PDO::FETCH_COLUMN);
+    echo json_encode($names);
+}

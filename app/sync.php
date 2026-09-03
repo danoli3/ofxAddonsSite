@@ -57,6 +57,8 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             }
         }
 
+        $newerForks = !empty($item['newer_forks']) ? json_encode($item['newer_forks']) : null;
+
         $params = [
             ofx_sync_to_datetime($item['created_at'] ?? null),
             (int)($item['forks_count'] ?? 0),
@@ -72,6 +74,7 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             !empty($item['has_thumbnail']) ? 1 : 0,
             !empty($item['archived']) ? 1 : 0,
             !empty($item['has_releases']) ? 1 : 0,
+            $newerForks,
             $userId,
             $type,
         ];
@@ -82,13 +85,13 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             $sql = $isCurated
                 ? 'UPDATE repos SET created_at=?, forks_count=?, fork=?, name=?, parent=?,
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
-                   has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, user_id=?,
-                   type=?, updated_at=NOW()
+                   has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
+                   user_id=?, type=?, updated_at=NOW()
                    WHERE id=?'
                 : 'UPDATE repos SET created_at=?, forks_count=?, fork=?, name=?, parent=?,
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
-                   has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, user_id=?,
-                   type=?, description=?, updated_at=NOW()
+                   has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
+                   user_id=?, type=?, description=?, updated_at=NOW()
                    WHERE id=?';
             $execParams = $isCurated ? $params : [...$params, $item['description'] ?? null];
             $pdo->prepare($sql)->execute([...$execParams, $existing['id']]);
@@ -96,8 +99,8 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
         } else {
             $sql = 'INSERT INTO repos (created_at, forks_count, fork, name, parent, pushed_at,
                     source, stargazers_count, example_count, has_makefile, has_correct_folder_structure,
-                    has_thumbnail, archived, has_releases, user_id, type, description, full_name, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
+                    has_thumbnail, archived, has_releases, newer_forks, user_id, type, description, full_name, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
             $pdo->prepare($sql)->execute([...$params, $item['description'] ?? null, $fullName]);
             $added++;
         }
