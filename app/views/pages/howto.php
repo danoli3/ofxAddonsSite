@@ -30,6 +30,9 @@ git clone https://github.com/owner/ofxSomeAddon</pre>
 <h2>Getting listed</h2>
 <p>There's no submission form &mdash; push your addon to GitHub with an <code>ofx</code> prefix in the repo name and the crawler picks it up automatically (it runs every few hours). From there it shows up under <a href="/unsorted">Unsorted</a> until someone categorizes it.</p>
 
+<h2>Managing your own addons</h2>
+<p>Sign in with GitHub (top right) and any repo of yours the crawler has found shows up under <strong>My Addons</strong>. From there you can pick categories yourself &mdash; which is what actually gets an addon out of Unsorted and onto the site, no need to wait on an admin &mdash; along with writing your own description (or generating one from your README), setting a custom thumbnail, and hiding a repo from public listings if it's not ready yet.</p>
+
 <h2>Adding a thumbnail</h2>
 <p>Addons can show a small header image on their card. Add a <strong>270&times;70px</strong> PNG named <code>ofxaddons_thumbnail.png</code> to the root of your repo, and it'll show up automatically on the next crawl.</p>
 
