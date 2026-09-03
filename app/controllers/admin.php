@@ -579,6 +579,65 @@ function ofx_admin_toggle_admin(string $id): void
     echo json_encode(['status' => 200, 'admin' => (bool)$newAdmin]);
 }
 
+// POST /admin/add-repo - pulls in one specific repo Github search never
+// surfaces on its own: crawl.php only searches for repos whose *name*
+// starts with "ofx", so a real addon under a different naming
+// convention (e.g. drawcall/ofmUI) is invisible to it. Fetches the
+// same data the crawler would for one repo and runs it through the
+// same sync pipeline as a scheduled crawl, so the result lands in
+// Unsorted for normal admin triage exactly like anything the crawler
+// finds - no separate insert path to keep in sync with that one.
+function ofx_admin_add_repo(): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $fullName = ofx_admin_parse_repo_input((string)($_POST['repo'] ?? ''));
+    if (!$fullName) {
+        http_response_code(422);
+        echo json_encode(['status' => 422, 'error' => 'Enter a Github URL or owner/repo, e.g. drawcall/ofmUI']);
+        return;
+    }
+
+    $item = ofx_fetch_repo_snapshot($fullName);
+    if (!$item) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => "Could not find {$fullName} on Github"]);
+        return;
+    }
+
+    $pdo = ofx_db();
+    $result = ofx_apply_crawl_snapshot($pdo, [$item]);
+
+    ofx_log_admin_action($pdo, $admin['id'], 'manual_add', null, $item['full_name']);
+
+    $stmt = $pdo->prepare('SELECT type FROM repos WHERE full_name = ? LIMIT 1');
+    $stmt->execute([$item['full_name']]);
+    $type = $stmt->fetchColumn() ?: 'Unsorted';
+
+    echo json_encode(['status' => 200, 'full_name' => $item['full_name'], 'type' => $type] + $result);
+}
+
+// Accepts a bare "owner/repo", a full Github URL, or either with a
+// trailing ".git" - anything else is rejected before it ever reaches
+// the Github API call.
+function ofx_admin_parse_repo_input(string $input): ?string
+{
+    $input = trim($input);
+    if ($input === '') {
+        return null;
+    }
+    if (preg_match('~github\.com/([^/\s]+)/([^/\s?#]+)~i', $input, $m)) {
+        $input = $m[1] . '/' . $m[2];
+    }
+    $input = preg_replace('/\.git$/i', '', $input);
+    if (!preg_match('#^[\w.-]+/[\w.-]+$#', $input)) {
+        return null;
+    }
+    return $input;
+}
+
 function ofx_admin_sync_now(): void
 {
     $admin = ofx_require_admin();

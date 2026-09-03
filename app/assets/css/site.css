@@ -483,6 +483,15 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .admin-toolbar__group { display: flex; align-items: center; gap: 10px; margin: 0; }
 .admin-toolbar__label { color: var(--text-muted); font-weight: 600; }
 .admin-toolbar__group input[type="file"] { color: var(--text-muted); font-size: .8rem; max-width: 200px; }
+.admin-toolbar__group input[type="text"] {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: .8rem;
+  width: 200px;
+}
 .admin-toolbar__group button {
   background: var(--surface-hover);
   color: var(--text);
@@ -660,6 +669,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .admin-row__status { margin-left: 8px; font-size: .8rem; color: var(--text-muted); }
 .admin-row.is-saved { background: rgba(56, 225, 198, .06); }
 .admin-row.is-error .admin-row__status { color: #ff6b6b; }
+.admin-row__status.is-error { color: #ff6b6b; }
 
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; }
 .site-footer .wrap { padding: 24px 20px; color: var(--text-muted); font-size: .84rem; }

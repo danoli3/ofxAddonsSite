@@ -28,6 +28,12 @@
     <button type="button" id="admin-sync-now">Pull latest release</button>
     <span id="admin-sync-status" class="admin-row__status"></span>
   </div>
+  <div class="admin-toolbar__group">
+    <span class="admin-toolbar__label">Add repo</span>
+    <input type="text" id="admin-add-repo-input" placeholder="owner/repo or Github URL">
+    <button type="button" id="admin-add-repo" title="For addons the crawler's 'ofx' name search won't find, e.g. drawcall/ofmUI">Add</button>
+    <span id="admin-add-repo-status" class="admin-row__status"></span>
+  </div>
   <a class="admin-toolbar__link" href="/admin/log">Log &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/admins">Users &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>

@@ -78,6 +78,98 @@ function ofx_fetch_latest_release(string $fullName): ?array
     ];
 }
 
+// Fetches one repo's full data from Github and shapes it exactly like
+// a single item of the crawler's data/addons.json snapshot, so it can
+// be handed straight to ofx_apply_crawl_snapshot() - used by the admin
+// "add a repo manually" action, for real addons that use a different
+// naming convention (e.g. drawcall/ofmUI) than the "ofx" prefix
+// crawl.php searches Github for, so it would never surface on its own.
+function ofx_fetch_repo_snapshot(string $fullName): ?array
+{
+    [$owner, $repo] = array_pad(explode('/', $fullName, 2), 2, '');
+
+    $token = ofx_env('GITHUB_TOKEN');
+    $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: ofxaddons-site'];
+    if ($token) {
+        $headers[] = "Authorization: token {$token}";
+    }
+
+    $ch = curl_init('https://api.github.com/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo));
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+    $body = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($status !== 200 || !$body) {
+        return null;
+    }
+    $item = json_decode($body, true);
+    if (empty($item['full_name'])) {
+        return null;
+    }
+
+    $hasMakefile = false;
+    $exampleCount = 0;
+    $hasCorrectFolder = false;
+    $hasThumbnail = false;
+
+    $ch = curl_init('https://api.github.com/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/contents');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+    $contentsBody = curl_exec($ch);
+    $contentsStatus = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($contentsStatus === 200 && $contentsBody) {
+        foreach (json_decode($contentsBody, true) ?: [] as $entry) {
+            $name = $entry['name'] ?? '';
+            if ($name === 'addon_config.mk' || $name === 'addon.make') {
+                $hasMakefile = true;
+            } elseif (preg_match('/example/i', $name)) {
+                $exampleCount++;
+            } elseif (preg_match('/src/i', $name)) {
+                $hasCorrectFolder = true;
+            } elseif (preg_match('/ofxaddons_thumbnail\.png/i', $name)) {
+                $hasThumbnail = true;
+            }
+        }
+    }
+
+    return [
+        'full_name' => $item['full_name'],
+        'name' => $item['name'] ?? null,
+        'description' => $item['description'] ?? null,
+        'owner' => [
+            'id' => $item['owner']['id'] ?? null,
+            'login' => $item['owner']['login'] ?? null,
+            'avatar_url' => $item['owner']['avatar_url'] ?? null,
+        ],
+        'fork' => !empty($item['fork']),
+        'parent' => $item['parent']['full_name'] ?? null,
+        'source' => $item['source']['full_name'] ?? null,
+        'stargazers_count' => (int)($item['stargazers_count'] ?? 0),
+        'forks_count' => (int)($item['forks_count'] ?? 0),
+        'pushed_at' => $item['pushed_at'] ?? null,
+        'created_at' => $item['created_at'] ?? null,
+        'default_branch' => $item['default_branch'] ?? null,
+        'has_makefile' => $hasMakefile,
+        'example_count' => $exampleCount,
+        'has_correct_folder_structure' => $hasCorrectFolder,
+        'has_thumbnail' => $hasThumbnail,
+        'archived' => !empty($item['archived']),
+        'has_releases' => ofx_fetch_latest_release($item['full_name']) !== null,
+        'newer_forks' => [],
+        'ahead_branches' => [],
+    ];
+}
+
 function ofx_generate_description(string $repoName, string $readme): ?string
 {
     $apiKey = ofx_env('OPENAI_API_KEY');

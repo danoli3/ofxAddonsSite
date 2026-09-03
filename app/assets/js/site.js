@@ -387,6 +387,45 @@ $(function () {
     });
   });
 
+  $('#admin-add-repo').on('click', function () {
+    var $btn = $(this);
+    var $input = $('#admin-add-repo-input');
+    var $status = $('#admin-add-repo-status');
+    var repo = $input.val().trim();
+    if (!repo) {
+      return;
+    }
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Fetching from Github…');
+
+    $.ajax({
+      url: '/admin/add-repo',
+      method: 'POST',
+      data: { repo: repo },
+      dataType: 'json'
+    }).done(function (res) {
+      $status.text(res.full_name + ' added as ' + res.type + ' - reloading…');
+      $input.val('');
+      // NonAddon/Deleted repos already banned before this add live on the
+      // Banned page, not any of the admin tabs (which only cover
+      // Unsorted/Incomplete/Spam/Addon) - send those there instead
+      var isBanned = res.type === 'NonAddon' || res.type === 'Deleted';
+      window.location.href = isBanned
+        ? '/admin/banned'
+        : '/admin/repos?type=' + encodeURIComponent(res.type) + '&q=' + encodeURIComponent(res.full_name);
+    }).fail(function (xhr) {
+      var msg = 'Could not add that repo';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.admin-user__toggle', function () {
     var $btn = $(this);
     var $row = $btn.closest('tr');
