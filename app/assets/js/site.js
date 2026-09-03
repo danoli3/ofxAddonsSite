@@ -7,6 +7,24 @@ $(function () {
     }
   });
 
+  // copy-to-clipboard buttons next to the clone URL fields on the addon
+  // detail page - purely client-side, nothing sent anywhere
+  $(document).on('click', '.copy-field__btn', function () {
+    var $btn = $(this);
+    var targetId = $btn.data('copy-target');
+    var $input = $('#' + targetId);
+    if (!$input.length || !navigator.clipboard) {
+      return;
+    }
+    navigator.clipboard.writeText($input.val()).then(function () {
+      var original = $btn.text();
+      $btn.addClass('is-copied').text('Copied!');
+      setTimeout(function () {
+        $btn.removeClass('is-copied').text(original);
+      }, 1500);
+    });
+  });
+
   var $filter = $('#addon-filter');
   if ($filter.length) {
     // Pages that opt into the database-search fallback wrap their listing in

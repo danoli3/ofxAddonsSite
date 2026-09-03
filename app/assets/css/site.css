@@ -407,6 +407,50 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 }
 .addon-detail__readme table.md-table th { background: var(--bg-alt); color: var(--text); }
 
+.addon-detail__get { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.copy-field { display: flex; align-items: center; gap: 8px; }
+.copy-field__label { width: 46px; flex-shrink: 0; font-size: .78rem; color: var(--text-muted); font-weight: 600; }
+.copy-field__input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .84rem;
+}
+.copy-field__btn {
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: .82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.copy-field__btn:hover { border-color: rgba(124, 92, 255, .5); background: var(--surface-hover); }
+.copy-field__btn.is-copied { color: var(--accent-3); border-color: rgba(56, 225, 198, .4); }
+.addon-detail__get-links { font-size: .84rem; color: var(--text-muted); }
+.addon-detail__get-links a { color: var(--accent-3); }
+
+.release-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 8px;
+}
+.release-card__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.release-card__tag { font-weight: 700; color: var(--accent-3); }
+.release-card__name { color: var(--text); font-weight: 600; }
+.release-card__date { color: var(--text-muted); font-size: .8rem; margin-left: auto; }
+.release-card__notes { color: var(--text-muted); font-size: .87rem; line-height: 1.5; max-height: 260px; overflow-y: auto; }
+
 .fork-list { display: flex; flex-direction: column; gap: 8px; }
 .fork-card {
   display: flex;

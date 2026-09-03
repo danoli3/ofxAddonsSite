@@ -35,6 +35,49 @@ function ofx_fetch_readme(string $fullName): ?string
     return $decoded !== false ? $decoded : null;
 }
 
+// Live-fetched on the addon detail page, same as the README above -
+// only called when has_releases is already true (set by the crawler's
+// cheap releases/latest check) so this doesn't waste a call on the
+// majority of addons that have never cut a release.
+function ofx_fetch_latest_release(string $fullName): ?array
+{
+    [$owner, $repo] = array_pad(explode('/', $fullName, 2), 2, '');
+    $url = 'https://api.github.com/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/releases/latest';
+
+    $token = ofx_env('GITHUB_TOKEN');
+    $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: ofxaddons-site'];
+    if ($token) {
+        $headers[] = "Authorization: token {$token}";
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+    $body = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($status !== 200 || !$body) {
+        return null;
+    }
+
+    $data = json_decode($body, true);
+    if (empty($data['tag_name'])) {
+        return null;
+    }
+
+    return [
+        'tag_name' => $data['tag_name'],
+        'name' => $data['name'] ?? null,
+        'published_at' => $data['published_at'] ?? null,
+        'html_url' => $data['html_url'] ?? null,
+        'body' => $data['body'] ?? null,
+    ];
+}
+
 function ofx_generate_description(string $repoName, string $readme): ?string
 {
     $apiKey = ofx_env('OPENAI_API_KEY');

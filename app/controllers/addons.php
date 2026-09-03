@@ -56,12 +56,14 @@ function ofx_addons_show(string $owner, string $repo): void
     }
 
     $readme = ofx_fetch_readme($addon['full_name']);
+    $latestRelease = !empty($addon['has_releases']) ? ofx_fetch_latest_release($addon['full_name']) : null;
 
     ofx_render('addons/show', [
         'addon' => $addon,
         'newerForks' => $newerForks,
         'aheadBranches' => $aheadBranches,
         'readme' => $readme,
+        'latestRelease' => $latestRelease,
         'title' => $addon['name'],
     ]);
 }

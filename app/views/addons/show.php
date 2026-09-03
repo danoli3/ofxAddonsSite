@@ -92,3 +92,46 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
 <?php else: ?>
   <p class="empty-state">Couldn't load a README for this repo.</p>
 <?php endif; ?>
+
+<div class="page-head" id="get"><h2>Get this addon</h2></div>
+<div class="addon-detail__get">
+  <div class="copy-field">
+    <span class="copy-field__label">HTTPS</span>
+    <input type="text" class="copy-field__input" id="clone-https" readonly
+           value="https://github.com/<?= ofx_h($addon['full_name']) ?>.git">
+    <button type="button" class="copy-field__btn" data-copy-target="clone-https">Copy</button>
+  </div>
+  <div class="copy-field">
+    <span class="copy-field__label">SSH</span>
+    <input type="text" class="copy-field__input" id="clone-ssh" readonly
+           value="git@github.com:<?= ofx_h($addon['full_name']) ?>.git">
+    <button type="button" class="copy-field__btn" data-copy-target="clone-ssh">Copy</button>
+  </div>
+  <div class="addon-detail__get-links">
+    <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">View on GitHub</a>
+    <?php if (!empty($addon['default_branch'])): ?>
+      &middot; <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>/archive/refs/heads/<?= ofx_h($addon['default_branch']) ?>.zip">Download ZIP</a>
+    <?php endif; ?>
+    <?php if (!empty($addon['has_releases'])): ?>
+      &middot; <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>/releases" target="_blank" rel="noopener">All releases</a>
+    <?php endif; ?>
+  </div>
+</div>
+
+<?php if ($latestRelease): ?>
+  <div class="page-head"><h2>Latest release</h2></div>
+  <div class="release-card">
+    <div class="release-card__head">
+      <a class="release-card__tag" href="<?= ofx_h($latestRelease['html_url'] ?: 'https://github.com/' . $addon['full_name'] . '/releases') ?>" target="_blank" rel="noopener">
+        <?= ofx_h($latestRelease['tag_name']) ?>
+      </a>
+      <?php if (!empty($latestRelease['name']) && $latestRelease['name'] !== $latestRelease['tag_name']): ?>
+        <span class="release-card__name"><?= ofx_h($latestRelease['name']) ?></span>
+      <?php endif; ?>
+      <span class="release-card__date">published <?= ofx_h(ofx_time_ago($latestRelease['published_at'] ?? null)) ?></span>
+    </div>
+    <?php if (!empty($latestRelease['body'])): ?>
+      <div class="release-card__notes"><?= ofx_render_markdown_lite(mb_substr($latestRelease['body'], 0, 2000)) ?></div>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
