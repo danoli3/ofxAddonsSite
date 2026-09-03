@@ -386,6 +386,12 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 }
 .addon-detail__readme pre.md-code code { background: none; padding: 0; color: var(--text-muted); }
 .addon-detail__readme ul { margin: .4em 0; padding-left: 1.4em; }
+.addon-detail__readme blockquote {
+  margin: .6em 0;
+  padding: 2px 14px;
+  border-left: 3px solid var(--border);
+  color: var(--text-muted);
+}
 .addon-detail__readme a { color: var(--accent-3); }
 .addon-detail__readme img { max-width: 100%; height: auto; vertical-align: middle; }
 .addon-detail__readme table.md-table {

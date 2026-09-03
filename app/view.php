@@ -110,10 +110,22 @@ function ofx_render_markdown_lite(string $markdown): string
         return '<a href="' . $m[2] . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
     }, $html);
 
-    $html = preg_replace_callback('/(?:^[-*] .+\n?)+/m', function (array $m): string {
+    // allow (and strip) leading whitespace so an indented list item -
+    // common under a paragraph or nested one level - still matches;
+    // the ^ anchor otherwise only catches a dash/star at column zero
+    $html = preg_replace_callback('/(?:^[ \t]*[-*] .+\n?)+/m', function (array $m): string {
         $items = array_filter(array_map('trim', explode("\n", trim($m[0]))));
         $lis = array_map(fn($i) => '<li>' . preg_replace('/^[-*] /', '', $i) . '</li>', $items);
         return '<ul>' . implode('', $lis) . '</ul>';
+    }, $html);
+
+    // blockquotes - already-escaped input means a literal ">" is "&gt;"
+    // by this point, so match that instead of the raw character
+    $html = preg_replace_callback('/(?:^[ \t]*&gt;[ \t]?.*\n?)+/m', function (array $m): string {
+        $lines = array_map(function (string $line): string {
+            return preg_replace('/^[ \t]*&gt;[ \t]?/', '', $line);
+        }, explode("\n", rtrim($m[0], "\n")));
+        return '<blockquote>' . implode('<br>', $lines) . '</blockquote>';
     }, $html);
 
     return nl2br($html);
