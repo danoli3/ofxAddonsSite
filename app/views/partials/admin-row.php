@@ -8,9 +8,12 @@
       github.com/<?= ofx_h($repo['full_name']) ?>
     </a>
     <div class="admin-row__updated">Last commit <?= ofx_h(ofx_time_ago($repo['pushed_at'] ?? null)) ?></div>
+    <?php if ($repo['type'] === 'Addon'): ?>
+      <a class="addon-card__more" href="/addons/<?= (int)$repo['id'] ?>">More info &rarr;</a>
+    <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">
-    <textarea class="admin-row__desc" rows="3"
+    <textarea class="admin-row__desc" rows="5"
               maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
     <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
     <div class="admin-row__desc-meta">
