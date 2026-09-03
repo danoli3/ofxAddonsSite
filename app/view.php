@@ -30,6 +30,55 @@ function ofx_h(?string $s): string
     return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+const OFX_README_MAX_CHARS = 20000;
+
+// Minimal, dependency-free markdown-to-HTML for READMEs, which are
+// written by arbitrary Github users and therefore untrusted input.
+// The whole source is escaped FIRST (ofx_h), before any formatting
+// rule runs - a literal <script> in someone's README becomes inert
+// text (&lt;script&gt;) at that point and stays that way, since none
+// of the rules below look for angle brackets. Because escaping
+// happens before the link rule builds an href="..." attribute, a
+// quote character in a URL is already &quot; by then too, so it can't
+// break out of the attribute either. Deliberately basic - headings,
+// bold/italic, inline code, fenced code blocks, links (http/https
+// only), and simple "- " lists.
+function ofx_render_markdown_lite(string $markdown): string
+{
+    $markdown = mb_substr($markdown, 0, OFX_README_MAX_CHARS);
+    $html = ofx_h($markdown);
+
+    $html = preg_replace_callback('/```[a-zA-Z0-9]*\n(.*?)\n?```/s', function (array $m): string {
+        return '<pre class="md-code"><code>' . $m[1] . '</code></pre>';
+    }, $html);
+
+    $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html);
+    $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
+    $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html);
+    $html = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $html);
+
+    $html = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $html);
+    $html = preg_replace('/__(.+?)__/', '<strong>$1</strong>', $html);
+    $html = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/', '<em>$1</em>', $html);
+
+    $html = preg_replace('/`([^`]+?)`/', '<code>$1</code>', $html);
+
+    $html = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function (array $m): string {
+        if (!preg_match('#^https?://#i', $m[2])) {
+            return $m[1];
+        }
+        return '<a href="' . $m[2] . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
+    }, $html);
+
+    $html = preg_replace_callback('/(?:^[-*] .+\n?)+/m', function (array $m): string {
+        $items = array_filter(array_map('trim', explode("\n", trim($m[0]))));
+        $lis = array_map(fn($i) => '<li>' . preg_replace('/^[-*] /', '', $i) . '</li>', $items);
+        return '<ul>' . implode('', $lis) . '</ul>';
+    }, $html);
+
+    return nl2br($html);
+}
+
 function ofx_flash_get(): ?string
 {
     ofx_session_start();

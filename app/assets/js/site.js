@@ -145,7 +145,7 @@ $(function () {
     var $thumb = $row.find('.my-addon-row__thumbnail');
     if ($thumb.length) extra.thumbnail_url_override = $thumb.val();
 
-    var removeIfNot = $typeSelect.length ? ['Unsorted', 'Incomplete', 'Spam'] : null;
+    var removeIfNot = $typeSelect.length ? ['Unsorted', 'Incomplete', 'Spam', 'Addon'] : null;
 
     saveRepoType($row, type, categoryIds, removeIfNot, description, generated, extra);
   });

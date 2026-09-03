@@ -1,6 +1,9 @@
 <?php
 $categories = !empty($addon['categories']) ? explode('||', $addon['categories']) : [];
 ?>
+<a href="/categories" class="addon-detail__back"
+   onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Back</a>
+
 <div class="page-head contributor-head">
   <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($addon['user_avatar_url'] ?? null)) ?>" alt="">
   <div>
@@ -58,7 +61,7 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
 
 <div class="page-head"><h2>README</h2></div>
 <?php if ($readme): ?>
-  <pre class="addon-detail__readme"><?= ofx_h($readme) ?></pre>
+  <div class="addon-detail__readme"><?= ofx_render_markdown_lite($readme) ?></div>
 <?php else: ?>
   <p class="empty-state">Couldn't load a README for this repo.</p>
 <?php endif; ?>

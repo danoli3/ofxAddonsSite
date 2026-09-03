@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Incomplete', 'NonAddon', 'Spam', 'Unsorted'];
-const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam'];
+const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam', 'Addon'];
 // "Curated" isn't a repos.type value - it's a separate tab filtered on
 // description_curated=1 (any type), so admins can review/audit every
 // hand-written or AI-generated-then-approved description in one place.
