@@ -114,6 +114,11 @@ function ofx_render_markdown_lite(string $markdown): string
     $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
     $html = ofx_h($markdown);
 
+    // A literal <br> survives escaping as the inert text "&lt;br&gt;"
+    // (by design, per the note above) - this narrowly un-escapes just
+    // that one tag shape back into a real line break, nothing else.
+    $html = preg_replace('/&lt;br\s*\/?&gt;/i', '<br>', $html);
+
     $html = preg_replace_callback('/```[a-zA-Z0-9]*\n(.*?)\n?```/s', function (array $m): string {
         return '<pre class="md-code"><code>' . $m[1] . '</code></pre>';
     }, $html);
@@ -157,6 +162,21 @@ function ofx_render_markdown_lite(string $markdown): string
 
     $html = preg_replace('/`([^`]+?)`/', '<code>$1</code>', $html);
 
+    // Reference-style definitions - [ref]: http://url "title" - collected
+    // and stripped before the images/links rules below so they have a
+    // lookup table ready by the time they need to resolve a ![alt][ref]
+    // or [text][ref]. Runs over already-escaped text same as every rule
+    // here, so a definition is just as safe as the inline (url) forms.
+    $refs = [];
+    $html = preg_replace_callback(
+        '/^[ \t]{0,3}\[([^\]]+)\]:[ \t]*(\S+)[ \t]*(?:"[^"]*"|\'[^\']*\'|\([^)]*\))?[ \t]*$/m',
+        function (array $m) use (&$refs): string {
+            $refs[strtolower(trim($m[1]))] = $m[2];
+            return '';
+        },
+        $html
+    );
+
     // Images before links - ![alt](url) shares [alt](url) syntax with
     // a link, just prefixed with "!", so this has to run first or the
     // link rule below partially matches it and leaves a stray "!"
@@ -167,11 +187,33 @@ function ofx_render_markdown_lite(string $markdown): string
         return '<img src="' . $m[2] . '" alt="' . $m[1] . '" loading="lazy">';
     }, $html);
 
+    // Reference-style images - ![alt][ref], or ![alt][] which reuses
+    // alt as the ref key - resolved against $refs above.
+    $html = preg_replace_callback('/!\[([^\]]*)\]\[([^\]]*)\]/', function (array $m) use ($refs): string {
+        $key = strtolower(trim($m[2] !== '' ? $m[2] : $m[1]));
+        $url = $refs[$key] ?? null;
+        if (!$url || !preg_match('#^https?://#i', $url)) {
+            return $m[1];
+        }
+        return '<img src="' . $url . '" alt="' . $m[1] . '" loading="lazy">';
+    }, $html);
+
     $html = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function (array $m): string {
         if (!preg_match('#^https?://#i', $m[2])) {
             return $m[1];
         }
         return '<a href="' . $m[2] . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
+    }, $html);
+
+    // Reference-style links - [text][ref], or [text][] which reuses
+    // text as the ref key.
+    $html = preg_replace_callback('/\[([^\]]+)\]\[([^\]]*)\]/', function (array $m) use ($refs): string {
+        $key = strtolower(trim($m[2] !== '' ? $m[2] : $m[1]));
+        $url = $refs[$key] ?? null;
+        if (!$url || !preg_match('#^https?://#i', $url)) {
+            return $m[1];
+        }
+        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
     }, $html);
 
     // allow (and strip) leading whitespace so an indented list item -

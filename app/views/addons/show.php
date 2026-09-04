@@ -67,7 +67,10 @@ $detailOfVersion = ofx_addon_of_version($addon);
     </svg>
     <?= (int)($addon['forks_count'] ?? 0) ?>
   </a>
-  <span>Last commit <?= ofx_h(ofx_time_ago($addon['pushed_at'] ?? null)) ?></span>
+  <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>/commits/<?= ofx_h($addon['default_branch'] ?: '') ?>"
+     target="_blank" rel="noopener" title="View commit history on Github">
+    Last commit <?= ofx_h(ofx_time_ago($addon['pushed_at'] ?? null)) ?>
+  </a>
   <?php if (!empty($addon['created_at'])): ?>
     <span title="<?= ofx_h(date('M j, Y', strtotime($addon['created_at']))) ?>">Created <?= ofx_h(ofx_time_ago($addon['created_at'])) ?></span>
   <?php endif; ?>
