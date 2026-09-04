@@ -52,8 +52,8 @@ $cardOfVersion = ofx_addon_of_version($addon);
       <?php if ($cardOfVersion): ?>
         <a class="tag tag--version<?= $cardOfVersion['curated'] ? '' : ' tag--version-guess' ?>"
            href="<?= ofx_h(ofx_version_url($cardOfVersion['version'])) ?>"
-           title="<?= $cardOfVersion['curated'] ? 'Version read from the README' : 'Guessed from the last commit date' ?>">
-          OF <?= ofx_h($cardOfVersion['version']) ?><?= $cardOfVersion['curated'] ? '' : '?' ?>
+           title="<?= $cardOfVersion['curated'] ? 'Confirmed version' : 'Guessed from the last commit date - not confirmed' ?>">
+          OF <?= ofx_h($cardOfVersion['version']) ?>
         </a>
       <?php endif; ?>
       <?php foreach ($categories as $cat): ?>

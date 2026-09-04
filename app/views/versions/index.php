@@ -3,7 +3,9 @@
 </div>
 <p class="page-intro">
   Guessed from each addon's last commit date against openFrameworks' real release history, unless a
-  version has been read directly from the addon's README.
+  version has been read directly from the addon's README. An addon listed under an older version often
+  still works on newer openFrameworks releases &mdash; this just reflects when it was last touched, not a
+  hard compatibility ceiling.
 </p>
 
 <?php if (empty($versions)): ?>

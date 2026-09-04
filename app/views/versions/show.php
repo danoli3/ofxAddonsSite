@@ -6,6 +6,8 @@
   </div>
 </div>
 <p class="page-intro">
+  Addons often still work on newer openFrameworks releases than the version shown here &mdash; this
+  reflects when an addon was last touched, not a hard compatibility ceiling.
   <a href="/versions">&larr; All versions</a>
 </p>
 

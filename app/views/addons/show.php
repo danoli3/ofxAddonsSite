@@ -37,8 +37,8 @@ $detailOfVersion = ofx_addon_of_version($addon);
   <?php if ($detailOfVersion): ?>
     <a class="tag tag--version<?= $detailOfVersion['curated'] ? '' : ' tag--version-guess' ?>"
        href="<?= ofx_h(ofx_version_url($detailOfVersion['version'])) ?>"
-       title="<?= $detailOfVersion['curated'] ? 'Version read from the README' : 'Guessed from the last commit date' ?>">
-      OF <?= ofx_h($detailOfVersion['version']) ?><?= $detailOfVersion['curated'] ? '' : '?' ?>
+       title="<?= $detailOfVersion['curated'] ? 'Confirmed version' : 'Guessed from the last commit date - not confirmed' ?>">
+      OF <?= ofx_h($detailOfVersion['version']) ?>
     </a>
   <?php endif; ?>
   <?php if (!empty($addon['archived'])): ?>
