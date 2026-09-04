@@ -94,6 +94,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 }
 .of-badge:hover { color: var(--accent-3); border-color: var(--accent-3); text-decoration: none; }
 .of-badge__logo {
+  display: inline-block;
   width: 15px;
   height: 15px;
   flex-shrink: 0;
