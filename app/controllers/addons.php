@@ -33,7 +33,7 @@ function ofx_addons_show(string $owner, string $repo): void
         LEFT JOIN users u ON u.id = r.user_id
         LEFT JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN categories c ON c.id = cz.category_id
-        WHERE r.full_name = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
+        WHERE r.full_name = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY r.id
     ");
     $stmt->execute([$fullName]);
@@ -49,6 +49,47 @@ function ofx_addons_show(string $owner, string $repo): void
         $newerForks = is_array($decoded) ? $decoded : [];
     }
 
+    // Admin-confirmed forks (Github's own fork metadata missed or lost
+    // the relationship) that actually have unique commits - shown
+    // regardless of recency, unlike the auto-detected list above which
+    // only ever includes forks pushed more recently than this addon's
+    // own pushed_at. Deduped against the auto-detected list by
+    // full_name in case Github does still report the same fork there.
+    $confirmedForkNames = array_column($newerForks, 'full_name');
+    $stmt = $pdo->prepare("
+        SELECT full_name, stargazers_count, confirmed_fork_stats,
+               (SELECT login FROM users WHERE id = repos.user_id) AS owner_login,
+               (SELECT avatar_url FROM users WHERE id = repos.user_id) AS owner_avatar_url
+        FROM repos
+        WHERE confirmed_fork_of = ?
+    ");
+    $stmt->execute([$addon['id']]);
+    foreach ($stmt->fetchAll() as $confirmed) {
+        if (in_array($confirmed['full_name'], $confirmedForkNames, true)) {
+            continue;
+        }
+        $stats = $confirmed['confirmed_fork_stats'] ? json_decode($confirmed['confirmed_fork_stats'], true) : null;
+        if (empty($stats['ahead_by'])) {
+            continue;
+        }
+        $newerForks[] = [
+            'full_name' => $confirmed['full_name'],
+            'owner_login' => $confirmed['owner_login'],
+            'owner_avatar_url' => $confirmed['owner_avatar_url'],
+            'stargazers_count' => (int)($confirmed['stargazers_count'] ?? 0),
+            'pushed_at' => $stats['last_commit_at'] ?? null,
+            'confirmed' => true,
+        ];
+    }
+    usort($newerForks, fn($a, $b) => strcmp($b['pushed_at'] ?? '', $a['pushed_at'] ?? ''));
+
+    $forkParent = null;
+    if (!empty($addon['confirmed_fork_of'])) {
+        $stmt = $pdo->prepare('SELECT full_name, name FROM repos WHERE id = ? LIMIT 1');
+        $stmt->execute([$addon['confirmed_fork_of']]);
+        $forkParent = $stmt->fetch() ?: null;
+    }
+
     $aheadBranches = [];
     if (!empty($addon['ahead_branches'])) {
         $decoded = json_decode($addon['ahead_branches'], true);
@@ -61,6 +102,7 @@ function ofx_addons_show(string $owner, string $repo): void
     ofx_render('addons/show', [
         'addon' => $addon,
         'newerForks' => $newerForks,
+        'forkParent' => $forkParent,
         'aheadBranches' => $aheadBranches,
         'readme' => $readme,
         'latestRelease' => $latestRelease,
@@ -97,7 +139,7 @@ function ofx_addons_search(): void
         LEFT JOIN users u ON u.id = r.user_id
         LEFT JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN categories c ON c.id = cz.category_id
-        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
+        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
           AND (r.name LIKE ? OR r.full_name LIKE ? OR r.description LIKE ?)
         GROUP BY r.id
         ORDER BY r.stargazers_count DESC
@@ -142,7 +184,7 @@ function ofx_render_addons_sorted(?string $sort): void
         LEFT JOIN users u ON u.id = r.user_id
         LEFT JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN categories c ON c.id = cz.category_id
-        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
+        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY r.id
         ORDER BY {$order}
         LIMIT {$fetch} OFFSET {$offset}

@@ -20,7 +20,7 @@ function ofx_my_addons_index(): void
         LEFT JOIN users u ON u.id = r.user_id
         LEFT JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN categories c ON c.id = cz.category_id
-        WHERE r.user_id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
+        WHERE r.user_id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY r.id
         ORDER BY LOWER(r.name) ASC
     ");

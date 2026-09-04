@@ -76,6 +76,12 @@ function ofx_admin_index(): void
         "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
     )->fetchColumn();
     $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
+    $dupeCount = (int)$pdo->query("
+        SELECT COUNT(*) FROM (
+            SELECT 1 FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0
+            GROUP BY LOWER(name) HAVING COUNT(*) > 1
+        ) t
+    ")->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
@@ -87,6 +93,7 @@ function ofx_admin_index(): void
         'search' => $search,
         'counts' => $counts,
         'reviewCount' => $reviewCount,
+        'dupeCount' => $dupeCount,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
         'title' => 'Admin',
@@ -759,4 +766,114 @@ function ofx_admin_review_queue(): void
         'repoCategoryIds' => $repoCategoryIds,
         'title' => 'Review requests',
     ]);
+}
+
+// GET /admin/duplicates - addons sharing the exact same name are
+// usually the same addon twice: a fork Github's own metadata doesn't
+// (or no longer does) mark as a fork - the parent's network can go
+// "detached" if the original repo was deleted or transferred, or the
+// crawler just never had a parent link to begin with. Grouped by name,
+// oldest created_at first as the presumed original, so an admin can
+// confirm the relationship by hand.
+function ofx_admin_duplicates(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $dupeNames = $pdo->query("
+        SELECT LOWER(name) AS name_key
+        FROM repos
+        WHERE type = 'Addon' AND hidden_by_owner = 0
+        GROUP BY LOWER(name)
+        HAVING COUNT(*) > 1
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $groups = [];
+    if (!empty($dupeNames)) {
+        $placeholders = implode(',', array_fill(0, count($dupeNames), '?'));
+        $stmt = $pdo->prepare("
+            SELECT r.*, u.login AS user_login
+            FROM repos r
+            LEFT JOIN users u ON u.id = r.user_id
+            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND LOWER(r.name) IN ({$placeholders})
+            ORDER BY LOWER(r.name) ASC, r.created_at ASC
+        ");
+        $stmt->execute($dupeNames);
+        foreach ($stmt->fetchAll() as $repo) {
+            $groups[strtolower($repo['name'])][] = $repo;
+        }
+    }
+
+    ofx_render('admin/duplicates', [
+        'groups' => $groups,
+        'title' => 'Possible duplicate addons',
+    ]);
+}
+
+// POST /admin/repos/{id}/confirm-fork - body: of=<parent repo id>,
+// hide=0|1. Live-compares default branches across the two repos (once,
+// cached on the fork's row) so the addon page can show whether this
+// fork actually has unique commits, independent of either repo's own
+// pushed_at - a fork that hasn't been touched in years still deserves
+// to show up if it diverged meaningfully back when it was made.
+function ofx_admin_confirm_fork(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $parentId = (int)($_POST['of'] ?? 0);
+    $hide = !empty($_POST['hide']);
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT id, full_name, default_branch FROM repos WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $repo = $stmt->fetch();
+    $stmt->execute([$parentId]);
+    $parent = $stmt->fetch();
+
+    if (!$repo || !$parent || (int)$repo['id'] === (int)$parent['id']) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ['invalid repo or original']]);
+        return;
+    }
+
+    $stats = null;
+    if ($repo['default_branch'] && $parent['default_branch']) {
+        $stats = ofx_fetch_fork_compare(
+            $parent['full_name'],
+            $parent['default_branch'],
+            $repo['full_name'],
+            $repo['default_branch']
+        );
+    }
+
+    $pdo->prepare('
+        UPDATE repos
+        SET confirmed_fork_of = ?, fork_hidden_by_admin = ?, confirmed_fork_stats = ?, updated_at = NOW()
+        WHERE id = ?
+    ')->execute([$parentId, $hide ? 1 : 0, $stats ? json_encode($stats) : null, $id]);
+
+    ofx_log_admin_action($pdo, $admin['id'], 'confirm_fork', (int)$id, "fork of repo #{$parentId}");
+
+    echo json_encode(['status' => 200, 'stats' => $stats]);
+}
+
+// POST /admin/repos/{id}/unconfirm-fork - undoes confirm-fork.
+function ofx_admin_unconfirm_fork(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $pdo->prepare('
+        UPDATE repos
+        SET confirmed_fork_of = NULL, fork_hidden_by_admin = 0, confirmed_fork_stats = NULL, updated_at = NOW()
+        WHERE id = ?
+    ')->execute([$id]);
+
+    ofx_log_admin_action($pdo, $admin['id'], 'unconfirm_fork', (int)$id, null);
+
+    echo json_encode(['status' => 200]);
 }

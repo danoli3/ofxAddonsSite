@@ -286,6 +286,61 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.dupe-item__confirm', function () {
+    var $btn = $(this);
+    var $item = $btn.closest('.dupe-item');
+    var $status = $item.find('.dupe-item__status');
+    var repoId = $btn.data('repo-id');
+    var parentId = $btn.data('parent-id');
+    var hide = $btn.data('hide');
+
+    $item.find('.dupe-item__confirm').prop('disabled', true);
+    $status.removeClass('is-error').text('Comparing on Github…');
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/confirm-fork',
+      method: 'POST',
+      data: { of: parentId, hide: hide },
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+      $item.find('.dupe-item__confirm').prop('disabled', false);
+    });
+  });
+
+  $(document).on('click', '.dupe-item__unconfirm', function () {
+    var $btn = $(this);
+    var $item = $btn.closest('.dupe-item');
+    var $status = $item.find('.dupe-item__status');
+    var repoId = $btn.data('repo-id');
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Saving…');
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/unconfirm-fork',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+      $btn.prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.my-addon-row__appeal-ban', function () {
     var $btn = $(this);
     var repoId = $btn.data('repo-id');

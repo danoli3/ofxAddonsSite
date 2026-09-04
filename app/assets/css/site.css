@@ -356,6 +356,16 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .addon-detail__back { display: inline-block; font-size: .85rem; color: var(--text-muted); margin-bottom: 14px; }
 .addon-detail__back:hover { color: var(--accent-3); text-decoration: none; }
 
+.addon-detail__fork-notice {
+  background: rgba(56, 225, 198, .08);
+  border: 1px solid rgba(56, 225, 198, .3);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-size: .88rem;
+  color: var(--text-muted);
+  margin: 10px 0 0;
+}
+.addon-detail__fork-notice a { color: var(--accent-3); font-weight: 600; }
 .addon-detail__tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
 .addon-detail__desc { color: var(--text); font-size: 1rem; line-height: 1.5; max-width: 720px; }
 .addon-detail__meta {
@@ -684,6 +694,33 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .admin-row.is-saved { background: rgba(56, 225, 198, .06); }
 .admin-row.is-error .admin-row__status { color: #ff6b6b; }
 .admin-row__status.is-error { color: #ff6b6b; }
+
+.dupe-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+.dupe-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.dupe-item--original { border-color: rgba(56, 225, 198, .35); }
+.dupe-item__info { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.dupe-item__meta { color: var(--text-muted); font-size: .78rem; }
+.dupe-item__confirm, .dupe-item__unconfirm {
+  background: var(--surface-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+}
+.dupe-item__status { font-size: .8rem; color: var(--text-muted); }
+.dupe-item__status.is-error { color: #ff6b6b; }
 
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; }
 .site-footer .wrap { padding: 24px 20px; color: var(--text-muted); font-size: .84rem; }

@@ -7,7 +7,7 @@ function ofx_contributors_index(): void
     $stmt = $pdo->query('
         SELECT u.*, COUNT(r.id) AS repo_count
         FROM users u
-        JOIN repos r ON r.user_id = u.id AND r.type = "Addon" AND r.hidden_by_owner = 0
+        JOIN repos r ON r.user_id = u.id AND r.type = "Addon" AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY u.id
         ORDER BY repo_count DESC, LOWER(u.login) ASC
     ');
@@ -31,7 +31,8 @@ function ofx_contributors_show(string $login): void
     }
 
     $stmt = $pdo->prepare(
-        'SELECT * FROM repos WHERE user_id = ? AND type = "Addon" AND hidden_by_owner = 0 ORDER BY LOWER(name) ASC'
+        'SELECT * FROM repos WHERE user_id = ? AND type = "Addon" AND hidden_by_owner = 0
+         AND fork_hidden_by_admin = 0 ORDER BY LOWER(name) ASC'
     );
     $stmt->execute([$user['id']]);
     $addons = $stmt->fetchAll();

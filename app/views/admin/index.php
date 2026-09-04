@@ -38,6 +38,7 @@
   <a class="admin-toolbar__link" href="/admin/admins">Users &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/review">Review requests<?= $reviewCount > 0 ? ' (' . $reviewCount . ')' : '' ?> &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/duplicates">Possible duplicates<?= $dupeCount > 0 ? ' (' . $dupeCount . ')' : '' ?> &rarr;</a>
 </div>
 
 <?php $qSuffix = $search !== '' ? '&q=' . urlencode($search) : ''; ?>

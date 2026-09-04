@@ -12,12 +12,15 @@ function ofx_sitemap_xml(): void
 
     $staticPaths = ['/categories', '/addons', '/freshest', '/popular', '/unsorted', '/contributors', '/pages/howto'];
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY id')->fetchAll();
-    $addons = $pdo->query("SELECT full_name, pushed_at FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0")->fetchAll();
+    $addons = $pdo->query("
+        SELECT full_name, pushed_at FROM repos
+        WHERE type = 'Addon' AND hidden_by_owner = 0 AND fork_hidden_by_admin = 0
+    ")->fetchAll();
     $contributors = $pdo->query("
         SELECT u.login, MAX(r.pushed_at) AS last_pushed
         FROM users u
         JOIN repos r ON r.user_id = u.id
-        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
+        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY u.id
     ")->fetchAll();
 
@@ -58,7 +61,9 @@ function ofx_llms_txt(): void
     $base = ofx_base_url();
 
     $categoryNames = $pdo->query('SELECT name FROM categories ORDER BY LOWER(name) ASC')->fetchAll(PDO::FETCH_COLUMN);
-    $addonCount = (int)$pdo->query("SELECT COUNT(*) FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0")->fetchColumn();
+    $addonCount = (int)$pdo->query("
+        SELECT COUNT(*) FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0 AND fork_hidden_by_admin = 0
+    ")->fetchColumn();
 
     echo "# ofxAddons\n\n";
     echo "> The central directory for openFrameworks addons - browse, search, and discover "

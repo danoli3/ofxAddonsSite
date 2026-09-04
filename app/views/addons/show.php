@@ -25,6 +25,13 @@ $detailIsAdmin = !empty($detailUser['admin']);
   <?php endif; ?>
 </div>
 
+<?php if ($forkParent): ?>
+  <p class="addon-detail__fork-notice">
+    This is a confirmed fork of
+    <a href="<?= ofx_h(ofx_addon_url($forkParent['full_name'])) ?>"><?= ofx_h($forkParent['name'] ?? $forkParent['full_name']) ?></a>.
+  </p>
+<?php endif; ?>
+
 <div class="addon-detail__tags">
   <?php if (!empty($addon['archived'])): ?>
     <span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>
@@ -59,17 +66,22 @@ $detailIsAdmin = !empty($detailUser['admin']);
 </div>
 
 <?php if (!empty($newerForks)): ?>
-  <div class="page-head" id="forks"><h2>More recently updated forks</h2></div>
+  <div class="page-head" id="forks"><h2>Forks</h2></div>
   <p class="page-intro">
-    These forks have been pushed to more recently than <?= ofx_h($addon['full_name']) ?> itself &mdash;
-    worth checking if you're hitting issues with the original.
+    Forks pushed to more recently than <?= ofx_h($addon['full_name']) ?> itself, plus any admin-confirmed
+    fork with commits of its own &mdash; worth checking if you're hitting issues with the original.
   </p>
   <div class="fork-list">
     <?php foreach ($newerForks as $fork): ?>
       <a class="fork-card" href="https://github.com/<?= ofx_h($fork['full_name'] ?? '') ?>" target="_blank" rel="noopener">
         <img class="fork-card__avatar" src="<?= ofx_h(ofx_avatar_url($fork['owner_avatar_url'] ?? null)) ?>" alt="" loading="lazy">
         <div class="fork-card__info">
-          <span class="fork-card__name"><?= ofx_h($fork['full_name'] ?? '') ?></span>
+          <span class="fork-card__name">
+            <?= ofx_h($fork['full_name'] ?? '') ?>
+            <?php if (!empty($fork['confirmed'])): ?>
+              <span class="tag tag--curated">Confirmed</span>
+            <?php endif; ?>
+          </span>
           <span class="fork-card__meta">
             by @<?= ofx_h($fork['owner_login'] ?? '') ?>
             &middot; &#9733; <?= (int)($fork['stargazers_count'] ?? 0) ?>

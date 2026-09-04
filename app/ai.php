@@ -170,6 +170,54 @@ function ofx_fetch_repo_snapshot(string $fullName): ?array
     ];
 }
 
+// Live cross-repo compare, used once when an admin confirms a fork
+// relationship Github's own metadata missed or lost (e.g. the parent
+// repo network is detached) - tells us whether the presumed fork
+// actually has unique commits ahead of the original, and when the
+// most recent one landed, independent of either repo's own pushed_at.
+function ofx_fetch_fork_compare(string $parentFullName, string $parentBranch, string $forkFullName, string $forkBranch): ?array
+{
+    [$parentOwner, $parentRepo] = array_pad(explode('/', $parentFullName, 2), 2, '');
+    [$forkOwner] = array_pad(explode('/', $forkFullName, 2), 2, '');
+
+    $token = ofx_env('GITHUB_TOKEN');
+    $headers = ['Accept: application/vnd.github.v3+json', 'User-Agent: ofxaddons-site'];
+    if ($token) {
+        $headers[] = "Authorization: token {$token}";
+    }
+
+    $base = rawurlencode($parentBranch);
+    $head = rawurlencode($forkOwner) . ':' . rawurlencode($forkBranch);
+    $url = 'https://api.github.com/repos/' . rawurlencode($parentOwner) . '/' . rawurlencode($parentRepo)
+        . "/compare/{$base}...{$head}";
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+    $body = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($status !== 200 || !$body) {
+        return null;
+    }
+
+    $data = json_decode($body, true);
+    $commits = $data['commits'] ?? [];
+    $lastCommit = end($commits);
+
+    return [
+        'ahead_by' => (int)($data['ahead_by'] ?? 0),
+        'behind_by' => (int)($data['behind_by'] ?? 0),
+        'last_commit_at' => $lastCommit['commit']['committer']['date']
+            ?? $lastCommit['commit']['author']['date']
+            ?? null,
+    ];
+}
+
 // With $existingDescription: writes an ADDITIONAL sentence covering
 // something the existing text doesn't already say (platform, dependencies,
 // what problem it solves, ...) instead of restating it - the caller
