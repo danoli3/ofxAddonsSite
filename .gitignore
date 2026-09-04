@@ -12,3 +12,7 @@ Thumbs.db
 
 # logs, if anything ever writes them locally
 *.log
+
+# regenerated cache of public sitemap/feed responses (see app/cache.php) -
+# runtime-generated, never meant to be committed
+/app/cache

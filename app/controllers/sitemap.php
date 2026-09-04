@@ -106,28 +106,38 @@ function ofx_sitemap_urls(): array
 // GET /sitemap.xml - every public page: static routes, categories,
 // every non-hidden confirmed Addon (using pushed_at as <lastmod>),
 // and every contributor with at least one listed addon.
-function ofx_sitemap_xml(): void
+function ofx_sitemap_xml_content(): string
 {
-    header('Content-Type: application/xml; charset=UTF-8');
-
-    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    $out = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    $out .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
     foreach (ofx_sitemap_urls() as $u) {
-        echo '  <url><loc>' . ofx_h($u['loc']) . '</loc>'
+        $out .= '  <url><loc>' . ofx_h($u['loc']) . '</loc>'
             . ($u['lastmod'] ? '<lastmod>' . $u['lastmod'] . '</lastmod>' : '')
             . '</url>' . "\n";
     }
-    echo '</urlset>';
+    $out .= '</urlset>';
+    return $out;
+}
+
+function ofx_sitemap_xml(): void
+{
+    header('Content-Type: application/xml; charset=UTF-8');
+    ofx_cache_serve('sitemap.xml', 'ofx_sitemap_xml_content');
+}
+
+function ofx_sitemap_json_content(): string
+{
+    return json_encode([
+        'generated_at' => gmdate('c'),
+        'urls' => ofx_sitemap_urls(),
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
 // GET /sitemap.json - the same URL list as ofx_sitemap_xml(), as JSON.
 function ofx_sitemap_json(): void
 {
     header('Content-Type: application/json');
-    echo json_encode([
-        'generated_at' => gmdate('c'),
-        'urls' => ofx_sitemap_urls(),
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    ofx_cache_serve('sitemap.json', 'ofx_sitemap_json_content');
 }
 
 // Shared by ofx_llms_txt() and ofx_llms_md() - same markdown-formatted

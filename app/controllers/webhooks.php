@@ -23,14 +23,26 @@ function ofx_webhook_sync(): void
     }
 
     $result = ofx_apply_crawl_snapshot(ofx_db(), $snapshot['addons']);
+    ofx_regenerate_public_caches();
     echo json_encode(['status' => 200] + $result);
+}
+
+function ofx_banned_json_content(): string
+{
+    return json_encode(ofx_banned_full_names(ofx_db()), JSON_UNESCAPED_SLASHES);
 }
 
 function ofx_banned_json(): void
 {
     header('Content-Type: application/json');
     header('Cache-Control: no-cache');
-    echo json_encode(ofx_banned_full_names(ofx_db()), JSON_UNESCAPED_SLASHES);
+    ofx_cache_serve('banned.json', 'ofx_banned_json_content');
+}
+
+function ofx_addon_repos_json_content(): string
+{
+    $names = ofx_db()->query("SELECT full_name FROM repos WHERE type = 'Addon'")->fetchAll(PDO::FETCH_COLUMN);
+    return json_encode($names, JSON_UNESCAPED_SLASHES);
 }
 
 // GET /addon-repos.json - full_names the site has actually confirmed
@@ -41,6 +53,5 @@ function ofx_addon_repos_json(): void
 {
     header('Content-Type: application/json');
     header('Cache-Control: no-cache');
-    $names = ofx_db()->query("SELECT full_name FROM repos WHERE type = 'Addon'")->fetchAll(PDO::FETCH_COLUMN);
-    echo json_encode($names, JSON_UNESCAPED_SLASHES);
+    ofx_cache_serve('addon-repos.json', 'ofx_addon_repos_json_content');
 }

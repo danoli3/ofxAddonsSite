@@ -49,6 +49,20 @@ function ofx_require_admin(): array
     return $user;
 }
 
+// A second tier above plain admin - gates the higher-blast-radius tools
+// (bulk import, database backup, raw data export, the AI triage queue)
+// separately from day-to-day categorizing, which any admin can still do.
+function ofx_require_super_admin(): array
+{
+    $user = ofx_current_user();
+    if (!$user || !$user['admin'] || !$user['super_admin']) {
+        http_response_code(403);
+        ofx_render('errors/403', ['title' => 'Forbidden']);
+        exit;
+    }
+    return $user;
+}
+
 function ofx_require_user(): array
 {
     $user = ofx_current_user();

@@ -445,7 +445,7 @@ function ofx_admin_export_banned(): void
 // exec()/shell_exec() enabled or the binary on PATH.
 function ofx_admin_backup_sql(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
     $pdo = ofx_db();
 
     $dbName = $pdo->query('SELECT DATABASE()')->fetchColumn();
@@ -514,7 +514,7 @@ function ofx_admin_backup_sql(): void
 
 function ofx_admin_export(string $format): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
     $pdo = ofx_db();
 
     $stmt = $pdo->query('
@@ -566,7 +566,7 @@ function ofx_admin_export(string $format): void
 // output shape a model actually produces needs to be seen first.
 function ofx_admin_export_triage(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
     $pdo = ofx_db();
 
     $categories = $pdo->query('SELECT name FROM categories ORDER BY LOWER(name) ASC')->fetchAll(PDO::FETCH_COLUMN);
@@ -640,7 +640,7 @@ function ofx_admin_export_triage(): void
 // server-side session state is needed between preview and apply.
 function ofx_admin_import_preview(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
 
     if (!ofx_csrf_verify()) {
         $_SESSION['flash'] = 'Import failed: invalid request, please try again.';
@@ -774,7 +774,7 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
 // individual addons rather than it being all-or-nothing.
 function ofx_admin_import_confirm(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
 
     if (!ofx_csrf_verify()) {
         $_SESSION['flash'] = 'Import failed: invalid request, please try again.';
@@ -825,7 +825,7 @@ function ofx_admin_import_confirm(): void
 // apply changes identically.
 function ofx_admin_ai_queue_review(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
     $pdo = ofx_db();
 
     $rows = $pdo->query('SELECT entry_json FROM ai_triage_queue ORDER BY submitted_at ASC')->fetchAll();
@@ -856,7 +856,7 @@ function ofx_admin_ai_queue_review(): void
 // a future /api/triage/batch call if it's still Unsorted/Incomplete/Spam.
 function ofx_admin_ai_queue_confirm(): void
 {
-    ofx_require_admin();
+    ofx_require_super_admin();
 
     if (!ofx_csrf_verify()) {
         $_SESSION['flash'] = 'Review failed: invalid request, please try again.';
@@ -1174,6 +1174,7 @@ function ofx_admin_sync_now(): void
 
     $pdo = ofx_db();
     $result = ofx_apply_crawl_snapshot($pdo, $snapshot['addons']);
+    ofx_regenerate_public_caches();
 
     ofx_log_admin_action(
         $pdo,
@@ -1184,6 +1185,22 @@ function ofx_admin_sync_now(): void
     );
 
     echo json_encode(['status' => 200] + $result);
+}
+
+// POST /admin/regenerate-caches - rebuilds the cached sitemap.xml/json
+// and addon-repos.json/banned.json feeds (see app/cache.php) without
+// waiting for the next crawl sync - for after a bunch of manual
+// categorizing/banning that a sync-triggered regenerate wouldn't cover.
+function ofx_admin_regenerate_caches(): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    ofx_regenerate_public_caches();
+    ofx_log_admin_action(ofx_db(), $admin['id'], 'regenerate_caches', null, null);
+
+    echo json_encode(['status' => 200]);
 }
 
 function ofx_admin_toggle_featured(string $repoId, string $categoryId): void

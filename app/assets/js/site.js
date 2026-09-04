@@ -571,6 +571,31 @@ $(function () {
     });
   });
 
+  $('#admin-regenerate-caches').on('click', function () {
+    var $btn = $(this);
+    var $status = $('#admin-regenerate-caches-status');
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Regenerating…');
+
+    $.ajax({
+      url: '/admin/regenerate-caches',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $status.text('Done ✓');
+    }).fail(function (xhr) {
+      var msg = 'Regenerate failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $('#admin-add-repo').on('click', function () {
     var $btn = $(this);
     var $input = $('#admin-add-repo-input');

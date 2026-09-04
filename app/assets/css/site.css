@@ -630,6 +630,18 @@ a.addon-card__desc:hover { color: var(--text); }
   font-weight: 600;
 }
 .admin-toolbar__link { margin-left: auto; font-weight: 600; }
+.admin-toolbar--super { background: rgba(245, 182, 56, .07); border-color: rgba(245, 182, 56, .3); }
+.admin-toolbar__super-label {
+  font-size: .74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #f5b638;
+  background: rgba(245, 182, 56, .12);
+  border: 1px solid rgba(245, 182, 56, .35);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
 
 .admin-tabs { display: flex; gap: 6px; margin: 18px 0; }
 .admin-tab {

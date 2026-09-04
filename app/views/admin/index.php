@@ -9,29 +9,11 @@
 
 <div class="admin-toolbar">
   <div class="admin-toolbar__group">
-    <span class="admin-toolbar__label">Export</span>
-    <a href="/admin/export.json">JSON</a>
-    <a href="/admin/export.xml">XML</a>
-  </div>
-  <div class="admin-toolbar__group">
-    <span class="admin-toolbar__label">AI triage</span>
-    <a href="/admin/export-triage.json" title="Full one-shot export of every Unsorted/Incomplete/Spam repo - can be too large for a local model's context">Download</a>
-    <span class="admin-toolbar__hint" title="A small-batch API for a local model: GET /api/triage/batch (readme included per addon) then POST /api/triage/submit, both with an Authorization: Bearer &lt;AI_TRIAGE_API_KEY&gt; header. Submissions land below in the AI triage queue for review.">API docs &darr;</span>
-  </div>
-  <div class="admin-toolbar__group">
-    <span class="admin-toolbar__label">Database</span>
-    <a href="/admin/backup.sql.gz" title="Full schema + data dump of every table, gzipped">Backup .sql.gz</a>
-  </div>
-  <form class="admin-toolbar__group" action="/admin/import/preview" method="post" enctype="multipart/form-data">
-    <span class="admin-toolbar__label">Import</span>
-    <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
-    <input type="file" name="file" accept=".json,.xml" required>
-    <button type="submit" title="Review a diff before anything is saved">Preview</button>
-  </form>
-  <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">Data</span>
     <button type="button" id="admin-sync-now">Pull latest release</button>
     <span id="admin-sync-status" class="admin-row__status"></span>
+    <button type="button" id="admin-regenerate-caches" title="Rebuild the cached sitemap.xml/json and addon-repos.json/banned.json feeds now, instead of waiting for the next sync">Regenerate feeds</button>
+    <span id="admin-regenerate-caches-status" class="admin-row__status"></span>
   </div>
   <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">Add repo</span>
@@ -44,8 +26,34 @@
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/review">Review requests<?= $reviewCount > 0 ? ' (' . $reviewCount . ')' : '' ?> &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/duplicates">Possible duplicates<?= $dupeCount > 0 ? ' (' . $dupeCount . ')' : '' ?> &rarr;</a>
-  <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>
 </div>
+
+<?php if (!empty($admin['super_admin'])): ?>
+  <div class="admin-toolbar admin-toolbar--super">
+    <span class="admin-toolbar__super-label" title="Higher-blast-radius tools: bulk import, database backup, raw data export, AI triage - visible to super admins only">Super Admin</span>
+    <div class="admin-toolbar__group">
+      <span class="admin-toolbar__label">Export</span>
+      <a href="/admin/export.json">JSON</a>
+      <a href="/admin/export.xml">XML</a>
+    </div>
+    <div class="admin-toolbar__group">
+      <span class="admin-toolbar__label">AI triage</span>
+      <a href="/admin/export-triage.json" title="Full one-shot export of every Unsorted/Incomplete/Spam repo - can be too large for a local model's context">Download</a>
+      <span class="admin-toolbar__hint" title="A small-batch API for a local model: GET /api/triage/batch (readme included per addon) then POST /api/triage/submit, both with an Authorization: Bearer &lt;AI_TRIAGE_API_KEY&gt; header. Submissions land below in the AI triage queue for review.">API docs &darr;</span>
+    </div>
+    <div class="admin-toolbar__group">
+      <span class="admin-toolbar__label">Database</span>
+      <a href="/admin/backup.sql.gz" title="Full schema + data dump of every table, gzipped">Backup .sql.gz</a>
+    </div>
+    <form class="admin-toolbar__group" action="/admin/import/preview" method="post" enctype="multipart/form-data">
+      <span class="admin-toolbar__label">Import</span>
+      <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
+      <input type="file" name="file" accept=".json,.xml" required>
+      <button type="submit" title="Review a diff before anything is saved">Preview</button>
+    </form>
+    <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>
+  </div>
+<?php endif; ?>
 
 <?php $qSuffix = $search !== '' ? '&q=' . urlencode($search) : ''; ?>
 
