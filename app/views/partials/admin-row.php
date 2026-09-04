@@ -32,6 +32,15 @@
           &#10024; Generate more
         </button>
       <?php endif; ?>
+      <!-- Github's own Copilot repo-overview chat is a UI-only feature with
+           no public API to call it from here - this just opens the repo
+           page so an admin can click Github's Copilot icon there themselves
+           (useful when there's no README for the AI Generate button above
+           to work from) and paste the result into the box on the left -->
+      <a class="admin-row__ask-copilot" href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener"
+         title="Opens the repo on Github - use Github's own Copilot icon there for an overview, then paste it in">
+        Ask Copilot &rarr;
+      </a>
     </div>
   </td>
   <td>
