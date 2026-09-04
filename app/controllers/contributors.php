@@ -30,9 +30,18 @@ function ofx_contributors_show(string $login): void
         return;
     }
 
+    // Notable addons (over 10 stars or forks) first, ranked by stars then
+    // forks; everything else after, by last Github activity - lets a
+    // contributor's best-known work lead their profile instead of
+    // getting buried alphabetically among smaller/older repos.
     $stmt = $pdo->prepare(
         'SELECT * FROM repos WHERE user_id = ? AND type = "Addon" AND hidden_by_owner = 0
-         AND fork_hidden_by_admin = 0 ORDER BY LOWER(name) ASC'
+         AND fork_hidden_by_admin = 0
+         ORDER BY
+           CASE WHEN stargazers_count > 10 OR forks_count > 10 THEN 0 ELSE 1 END ASC,
+           CASE WHEN stargazers_count > 10 OR forks_count > 10 THEN stargazers_count END DESC,
+           CASE WHEN stargazers_count > 10 OR forks_count > 10 THEN forks_count END DESC,
+           pushed_at DESC'
     );
     $stmt->execute([$user['id']]);
     $addons = $stmt->fetchAll();
