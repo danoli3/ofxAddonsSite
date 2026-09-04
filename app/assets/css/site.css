@@ -662,7 +662,7 @@ a.addon-card__desc:hover { color: var(--text); }
   padding: 6px 8px;
 }
 .admin-row__desc:focus { outline: 2px solid var(--accent-1); outline-offset: 1px; }
-.admin-row__desc-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.admin-row__desc-meta { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; row-gap: 12px; }
 .admin-row__char-count { font-size: .72rem; color: var(--text-muted); }
 .admin-row__char-count.is-near-limit { color: #f0b93b; font-weight: 600; }
 .admin-row__generate-desc {
@@ -777,6 +777,7 @@ a.addon-card__desc:hover { color: var(--text); }
   color: var(--text-muted);
   cursor: pointer;
 }
+.admin-row__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .admin-row__save {
   background: var(--gradient);
   color: #0b0d14;
@@ -797,10 +798,20 @@ a.addon-card__desc:hover { color: var(--text); }
   cursor: pointer;
   font-weight: 600;
   font-size: .85rem;
-  margin-left: 6px;
 }
 .admin-row__ban:hover, .admin-row__unban:hover { background: rgba(255, 107, 107, .1); }
-.admin-row__status { margin-left: 8px; font-size: .8rem; color: var(--text-muted); }
+.admin-row__dismiss-appeal {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .85rem;
+}
+.admin-row__dismiss-appeal:hover { background: var(--surface-hover); color: var(--text); }
+.admin-row__status { font-size: .8rem; color: var(--text-muted); }
 .admin-row.is-saved { background: rgba(56, 225, 198, .06); }
 .admin-row.is-error .admin-row__status { color: #ff6b6b; }
 .admin-row__status.is-error { color: #ff6b6b; }
