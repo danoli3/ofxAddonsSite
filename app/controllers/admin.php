@@ -22,7 +22,14 @@ function ofx_admin_index(): void
     $pdo = ofx_db();
 
     $type = $_GET['type'] ?? 'Unsorted';
-    if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB && $type !== OFX_ADMIN_NO_DESC_TAB) {
+    // "Deleted" is a real repos.type (see OFX_REPO_TYPES) but deliberately
+    // left out of OFX_ADMIN_TYPES - that list also scopes the AI triage
+    // export/API and a repo an owner has removed from Github doesn't need
+    // categorizing, exporting, or re-triaging. It's still a tab here (like
+    // Curated/No Description below) purely so an admin can browse/audit
+    // what's been marked deleted, without it cluttering those other flows.
+    if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB
+        && $type !== OFX_ADMIN_NO_DESC_TAB && $type !== 'Deleted') {
         $type = 'Unsorted';
     }
     $isCuratedTab = $type === OFX_ADMIN_CURATED_TAB;
@@ -88,6 +95,7 @@ function ofx_admin_index(): void
     $counts[OFX_ADMIN_NO_DESC_TAB] = (int)$pdo->query(
         "SELECT COUNT(*) FROM repos WHERE type = 'Addon' AND (description IS NULL OR description = '')"
     )->fetchColumn();
+    $counts['Deleted'] = (int)$pdo->query("SELECT COUNT(*) FROM repos WHERE type = 'Deleted'")->fetchColumn();
     $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
     // confirmed_unique repos are excluded, same as the actual /admin/duplicates
     // query - otherwise this badge count could show a group that page doesn't
