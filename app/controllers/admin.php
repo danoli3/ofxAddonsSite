@@ -224,14 +224,21 @@ function ofx_admin_generate_description(string $id): void
         return;
     }
 
-    $description = ofx_generate_description($repo['name'] ?? $repo['full_name'], $readme);
-    if (!$description) {
+    // The "existing" description comes from the request, not the DB -
+    // this is whatever the admin currently has in the textarea (saved
+    // or not), so the prompt steers away from restating it and a
+    // second click builds on the live draft rather than the last saved
+    // value. The client appends this to what it's showing, not us -
+    // we don't know what unsaved edits are in that textarea.
+    $existing = trim((string)($_POST['existing'] ?? ''));
+    $addition = ofx_generate_description($repo['name'] ?? $repo['full_name'], $readme, $existing ?: null);
+    if (!$addition) {
         http_response_code(502);
         echo json_encode(['status' => 502, 'error' => ['description generation failed']]);
         return;
     }
 
-    echo json_encode(['status' => 200, 'description' => $description]);
+    echo json_encode(['status' => 200, 'description' => $addition]);
 }
 
 function ofx_admin_banned(): void

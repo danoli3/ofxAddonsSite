@@ -179,14 +179,18 @@ function ofx_my_addons_generate_description(string $id): void
         return;
     }
 
-    $description = ofx_generate_description($repo['name'] ?? $repo['full_name'], $readme);
-    if (!$description) {
+    // "existing" comes from the request (whatever's currently in the
+    // textarea, saved or not), not the DB - see the matching comment in
+    // ofx_admin_generate_description
+    $existing = trim((string)($_POST['existing'] ?? ''));
+    $addition = ofx_generate_description($repo['name'] ?? $repo['full_name'], $readme, $existing ?: null);
+    if (!$addition) {
         http_response_code(502);
         echo json_encode(['status' => 502, 'error' => ['description generation failed']]);
         return;
     }
 
-    echo json_encode(['status' => 200, 'description' => $description]);
+    echo json_encode(['status' => 200, 'description' => $addition]);
 }
 
 function ofx_my_addons_owned_repo(PDO $pdo, string $repoId, int $userId): ?array

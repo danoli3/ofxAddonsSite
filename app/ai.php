@@ -170,7 +170,13 @@ function ofx_fetch_repo_snapshot(string $fullName): ?array
     ];
 }
 
-function ofx_generate_description(string $repoName, string $readme): ?string
+// With $existingDescription: writes an ADDITIONAL sentence covering
+// something the existing text doesn't already say (platform, dependencies,
+// what problem it solves, ...) instead of restating it - the caller
+// appends this to the existing description rather than replacing it,
+// for a repo that already has a short description (e.g. synced from
+// Github's own repo description field) and just needs more detail.
+function ofx_generate_description(string $repoName, string $readme, ?string $existingDescription = null): ?string
 {
     $apiKey = ofx_env('OPENAI_API_KEY');
     if (!$apiKey) {
@@ -179,19 +185,25 @@ function ofx_generate_description(string $repoName, string $readme): ?string
 
     $excerpt = mb_substr($readme, 0, 6000);
 
+    if ($existingDescription) {
+        $systemPrompt = 'You write a single concise, factual sentence (max ~20 words) that ADDS a new, '
+            . 'specific detail about a piece of software, based on its README - something not already '
+            . 'covered by the existing description you are given (platform/dependencies, what problem it '
+            . 'solves, a notable feature, etc). Do not restate the existing description. No marketing '
+            . 'language, no "This repo/addon is..." preamble - just state the new fact. Plain text only, no markdown.';
+        $userContent = "Repo name: {$repoName}\n\nExisting description: {$existingDescription}\n\nREADME:\n{$excerpt}";
+    } else {
+        $systemPrompt = 'You write a single concise, factual sentence (max ~25 words) describing what a '
+            . 'piece of software does, based on its README. No marketing language, no "This repo/addon '
+            . 'is..." preamble - just state what it does. Plain text only, no markdown.';
+        $userContent = "Repo name: {$repoName}\n\nREADME:\n{$excerpt}";
+    }
+
     $payload = [
         'model' => 'gpt-4o-mini',
         'messages' => [
-            [
-                'role' => 'system',
-                'content' => 'You write a single concise, factual sentence (max ~25 words) describing what a '
-                    . 'piece of software does, based on its README. No marketing language, no "This repo/addon '
-                    . 'is..." preamble - just state what it does. Plain text only, no markdown.',
-            ],
-            [
-                'role' => 'user',
-                'content' => "Repo name: {$repoName}\n\nREADME:\n{$excerpt}",
-            ],
+            ['role' => 'system', 'content' => $systemPrompt],
+            ['role' => 'user', 'content' => $userContent],
         ],
         'temperature' => 0.3,
         'max_tokens' => 80,

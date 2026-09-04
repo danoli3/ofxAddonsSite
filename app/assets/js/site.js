@@ -315,16 +315,23 @@ $(function () {
     var repoId = $row.data('repo-id');
     var $desc = $row.find('.admin-row__desc');
     var $status = $row.find('.admin-row__status');
+    // whatever's currently shown, saved or not - a second click builds
+    // on this rather than the last saved value, and the server uses it
+    // to steer the prompt away from repeating what's already there
+    var existing = $desc.val().trim();
+    var maxLength = parseInt($desc.attr('maxlength'), 10) || 350;
 
     $btn.prop('disabled', true);
-    $status.text('Generating…');
+    $status.text(existing ? 'Generating more…' : 'Generating…');
 
     $.ajax({
       url: rowEndpoint($row) + '/' + repoId + '/generate-description',
       method: 'POST',
+      data: { existing: existing },
       dataType: 'json'
     }).done(function (res) {
-      $desc.val(res.description);
+      var combined = existing ? existing + ' - ' + res.description : res.description;
+      $desc.val(combined.slice(0, maxLength));
       $row.find('.admin-row__desc-generated').val('1');
       updateCharCount($desc);
       $status.text('Suggested - review & Save');

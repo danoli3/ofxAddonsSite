@@ -27,6 +27,10 @@
         <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
           &#10024; Generate
         </button>
+      <?php else: ?>
+        <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
+          &#10024; Generate more
+        </button>
       <?php endif; ?>
     </div>
   </td>
