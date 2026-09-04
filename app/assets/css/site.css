@@ -266,6 +266,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .addon-card__name:hover { color: var(--accent-3); text-decoration: none; }
 .addon-card__owner { font-size: .76rem; color: var(--text-muted); }
 .addon-card__owner:hover { color: var(--accent-3); text-decoration: none; }
+.addon-card__head-tags { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .addon-card__desc {
   margin: 0;
   color: var(--text-muted);
@@ -276,6 +277,10 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* an <a> for Addon-type cards (click the description to open More info),
+   a plain <p> otherwise - reset link styling either way */
+a.addon-card__desc { text-decoration: none; }
+a.addon-card__desc:hover { color: var(--text); }
 .addon-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag {
   font-size: .7rem;
@@ -297,6 +302,10 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .tag--version-guess { color: var(--text-muted); background: transparent; border-style: dashed; font-weight: 600; }
 
 .addon-card-wrap { position: relative; }
+/* reserves clear space above the header row for the absolutely-positioned
+   .feature-toggle button below, so it never sits on top of the card's own
+   featured/archived/releases badges in that same top-right corner */
+.addon-card-wrap .addon-card { padding-top: 38px; }
 .addon-card-wrap.is-featured .addon-card { border-color: rgba(245, 182, 56, .5); }
 .feature-toggle {
   position: absolute;
@@ -308,7 +317,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: transparent;
   color: var(--text-muted);
   cursor: pointer;
 }

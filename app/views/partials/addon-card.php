@@ -33,19 +33,30 @@ $cardOfVersion = ofx_addon_of_version($addon);
         <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($addon['full_name'])) ?>">More info &rarr;</a>
       <?php endif; ?>
     </div>
-    <?php if (!empty($addon['featured'])): ?>
-      <span class="tag tag--featured" title="Featured in this category">★ Featured</span>
-    <?php endif; ?>
-    <?php if (!empty($addon['archived'])): ?>
-      <span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>
-    <?php endif; ?>
-    <?php if (!empty($addon['has_releases'])): ?>
-      <a class="tag tag--releases" href="https://github.com/<?= ofx_h($addon['full_name'] ?? '') ?>/releases"
-         target="_blank" rel="noopener" title="Has tagged Github releases">Releases</a>
+    <?php if (!empty($addon['featured']) || !empty($addon['archived']) || !empty($addon['has_releases'])): ?>
+      <!-- stacked vertically (not inline with the other head tags) so two
+           badges at once - e.g. Featured + Releases - don't fight the
+           title for horizontal space and squeeze/wrap the name -->
+      <div class="addon-card__head-tags">
+        <?php if (!empty($addon['featured'])): ?>
+          <span class="tag tag--featured" title="Featured in this category">★ Featured</span>
+        <?php endif; ?>
+        <?php if (!empty($addon['archived'])): ?>
+          <span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>
+        <?php endif; ?>
+        <?php if (!empty($addon['has_releases'])): ?>
+          <a class="tag tag--releases" href="https://github.com/<?= ofx_h($addon['full_name'] ?? '') ?>/releases"
+             target="_blank" rel="noopener" title="Has tagged Github releases">Releases</a>
+        <?php endif; ?>
+      </div>
     <?php endif; ?>
   </div>
 
-  <p class="addon-card__desc"><?= ofx_h($addon['description'] ?: 'No description.') ?></p>
+  <?php if (($addon['type'] ?? null) === 'Addon'): ?>
+    <a class="addon-card__desc" href="<?= ofx_h(ofx_addon_url($addon['full_name'])) ?>"><?= ofx_h($addon['description'] ?: 'No description.') ?></a>
+  <?php else: ?>
+    <p class="addon-card__desc"><?= ofx_h($addon['description'] ?: 'No description.') ?></p>
+  <?php endif; ?>
 
   <?php if (!empty($categories) || $cardOfVersion): ?>
     <div class="addon-card__tags">
