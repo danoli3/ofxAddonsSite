@@ -3,9 +3,16 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
 $detailUser = ofx_current_user();
 $detailIsAdmin = !empty($detailUser['admin']);
 $detailOfVersion = ofx_addon_of_version($addon);
+$detailThumb = ofx_addon_thumbnail_url($addon);
 ?>
 <a href="/categories" class="addon-detail__back"
    onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Back</a>
+
+<?php if ($detailThumb): ?>
+  <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">
+    <img class="addon-detail__thumb" src="<?= ofx_h($detailThumb) ?>" alt="" loading="lazy" onerror="this.closest('a').remove()">
+  </a>
+<?php endif; ?>
 
 <div class="page-head contributor-head">
   <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($addon['user_avatar_url'] ?? null)) ?>" alt="">

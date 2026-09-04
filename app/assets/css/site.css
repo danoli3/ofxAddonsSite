@@ -397,6 +397,16 @@ a.addon-card__desc:hover { color: var(--text); }
 
 .contributor-head { align-items: center; gap: 16px; }
 .contributor-head__avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+.addon-detail__thumb {
+  display: block;
+  width: 100%;
+  max-width: 540px;
+  aspect-ratio: 27 / 7;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--bg-alt);
+  margin: 14px 0;
+}
 .addon-detail__admin-btn {
   margin-left: auto;
   flex-shrink: 0;
