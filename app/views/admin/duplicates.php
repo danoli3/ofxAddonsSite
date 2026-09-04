@@ -22,6 +22,9 @@
           </a>
           <span class="dupe-item__meta">
             created <?= ofx_h(ofx_time_ago($repo['created_at'] ?? null)) ?>
+            &middot; updated <?= ofx_h(ofx_time_ago($repo['pushed_at'] ?? null)) ?>
+            &middot; &#9733; <?= (int)($repo['stargazers_count'] ?? 0) ?> stars
+            &middot; <?= (int)($repo['forks_count'] ?? 0) ?> forks
             <?= $i === 0 ? '&middot; presumed original' : '' ?>
           </span>
         </div>
