@@ -7,6 +7,15 @@ $(function () {
     }
   });
 
+  // footer "ofxAddons" -> back to top. href="#top" already works on its
+  // own via the browser's native anchor scroll (progressive enhancement
+  // for no-JS), but that native behavior isn't reliable in every
+  // context, so this makes it explicit and guaranteed either way.
+  $(document).on('click', '.site-footer__brand', function (e) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   // copy-to-clipboard buttons next to the clone URL fields on the addon
   // detail page - purely client-side, nothing sent anywhere
   $(document).on('click', '.copy-field__btn', function () {

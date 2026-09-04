@@ -17,6 +17,8 @@
 
 * { box-sizing: border-box; }
 
+html { scroll-behavior: smooth; }
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
@@ -852,6 +854,8 @@ a.addon-card__desc:hover { color: var(--text); }
 
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; }
 .site-footer .wrap { padding: 24px 20px; color: var(--text-muted); font-size: .84rem; }
+.site-footer__brand { color: inherit; font-weight: 700; }
+.site-footer__brand:hover { color: var(--accent-3); text-decoration: none; }
 
 @media (max-width: 600px) {
   .site-nav { gap: 14px; }

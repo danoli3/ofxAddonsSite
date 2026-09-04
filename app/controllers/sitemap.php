@@ -1,21 +1,36 @@
 <?php
 declare(strict_types=1);
 
-// GET /sitemap.xml - every public page: static routes, categories,
-// every non-hidden confirmed Addon (using pushed_at as <lastmod>),
-// and every contributor with at least one listed addon.
-function ofx_sitemap_xml(): void
+// Shared by ofx_sitemap_xml() and ofx_sitemap_json() so the two formats
+// can never drift apart - every entry is ['loc' => full URL, 'lastmod'
+// => 'Y-m-d' or null].
+function ofx_sitemap_urls(): array
 {
-    header('Content-Type: application/xml; charset=UTF-8');
     $pdo = ofx_db();
     $base = ofx_base_url();
+    $urls = [];
 
-    $staticPaths = ['/categories', '/addons', '/freshest', '/popular', '/unsorted', '/contributors', '/pages/howto'];
+    $staticPaths = ['/categories', '/addons', '/freshest', '/popular', '/unsorted', '/contributors', '/pages/howto', '/sitemap'];
+    foreach ($staticPaths as $path) {
+        $urls[] = ['loc' => $base . $path, 'lastmod' => null];
+    }
+
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY id')->fetchAll();
+    foreach ($categories as $c) {
+        $urls[] = ['loc' => $base . ofx_category_url($c), 'lastmod' => null];
+    }
+
     $addons = $pdo->query("
         SELECT full_name, pushed_at FROM repos
         WHERE type = 'Addon' AND hidden_by_owner = 0 AND fork_hidden_by_admin = 0
     ")->fetchAll();
+    foreach ($addons as $a) {
+        $urls[] = [
+            'loc' => $base . ofx_addon_url($a['full_name']),
+            'lastmod' => $a['pushed_at'] ? gmdate('Y-m-d', strtotime($a['pushed_at'])) : null,
+        ];
+    }
+
     $contributors = $pdo->query("
         SELECT u.login, MAX(r.pushed_at) AS last_pushed
         FROM users u
@@ -23,31 +38,41 @@ function ofx_sitemap_xml(): void
         WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY u.id
     ")->fetchAll();
-
-    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-
-    foreach ($staticPaths as $path) {
-        echo '  <url><loc>' . ofx_h($base . $path) . '</loc></url>' . "\n";
-    }
-    foreach ($categories as $c) {
-        echo '  <url><loc>' . ofx_h($base . ofx_category_url($c)) . '</loc></url>' . "\n";
-    }
-    foreach ($addons as $a) {
-        $loc = $base . ofx_addon_url($a['full_name']);
-        $lastmod = $a['pushed_at'] ? gmdate('Y-m-d', strtotime($a['pushed_at'])) : null;
-        echo '  <url><loc>' . ofx_h($loc) . '</loc>'
-            . ($lastmod ? '<lastmod>' . $lastmod . '</lastmod>' : '')
-            . '</url>' . "\n";
-    }
     foreach ($contributors as $c) {
         if (!$c['login']) {
             continue;
         }
-        echo '  <url><loc>' . ofx_h($base . '/contributors/' . rawurlencode($c['login'])) . '</loc></url>' . "\n";
+        $urls[] = ['loc' => $base . '/contributors/' . rawurlencode($c['login']), 'lastmod' => null];
     }
 
+    return $urls;
+}
+
+// GET /sitemap.xml - every public page: static routes, categories,
+// every non-hidden confirmed Addon (using pushed_at as <lastmod>),
+// and every contributor with at least one listed addon.
+function ofx_sitemap_xml(): void
+{
+    header('Content-Type: application/xml; charset=UTF-8');
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+    foreach (ofx_sitemap_urls() as $u) {
+        echo '  <url><loc>' . ofx_h($u['loc']) . '</loc>'
+            . ($u['lastmod'] ? '<lastmod>' . $u['lastmod'] . '</lastmod>' : '')
+            . '</url>' . "\n";
+    }
     echo '</urlset>';
+}
+
+// GET /sitemap.json - the same URL list as ofx_sitemap_xml(), as JSON.
+function ofx_sitemap_json(): void
+{
+    header('Content-Type: application/json');
+    echo json_encode([
+        'generated_at' => gmdate('c'),
+        'urls' => ofx_sitemap_urls(),
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
 // GET /llms.txt - the emerging llms.txt convention: a short,

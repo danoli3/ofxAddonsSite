@@ -13,7 +13,11 @@ $flash = ofx_flash_get();
   <link rel="icon" href="/app/assets/img/ofxlogo-small.png">
   <link rel="stylesheet" href="<?= ofx_h(ofx_asset_url('/app/assets/css/site.css')) ?>">
 </head>
-<body>
+<body id="top">
+  <!-- the anchor target is <body>, not .site-header - the header is
+       position: sticky and already visually pinned at the viewport top
+       at any scroll position, so the browser treats it as "already in
+       view" and never actually scrolls when #top points at it -->
   <header class="site-header">
     <div class="wrap">
       <a class="brand" href="/categories">
@@ -35,6 +39,10 @@ $flash = ofx_flash_get();
           <?php endif; ?>
           <a href="/logout">Sign out (<?= ofx_h($user['login']) ?>)</a>
         <?php else: ?>
+          <!-- shown only while logged out - once signed in, My Addons
+               links out to the same guide (see my_addons/index.php) so
+               it isn't competing for space in the nav bar too -->
+          <a href="/pages/howto">How To</a>
           <a href="/auth/github">Sign in with GitHub</a>
         <?php endif; ?>
       </nav>
@@ -49,9 +57,10 @@ $flash = ofx_flash_get();
 
   <footer class="site-footer">
     <div class="wrap">
-      <p>ofxAddons &mdash; the central place to discover
+      <p><a href="#top" class="site-footer__brand" title="Back to top">ofxAddons</a> &mdash; the central place to discover
         <a href="https://openframeworks.cc" target="_blank" rel="noopener">openFrameworks</a> addons.
-        <a href="/pages/howto">How To</a></p>
+        <a href="/pages/howto">How To</a>
+        &middot; <a href="/sitemap">Sitemap</a></p>
     </div>
   </footer>
 
