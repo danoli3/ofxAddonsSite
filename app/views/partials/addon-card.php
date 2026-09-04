@@ -8,6 +8,7 @@ if (!empty($addon['newer_forks'])) {
 }
 $cardUser = ofx_current_user();
 $cardIsAdmin = !empty($cardUser['admin']);
+$cardOfVersion = ofx_addon_of_version($addon);
 ?>
 <article class="addon-card" data-name="<?= ofx_h(strtolower($addon['name'] ?? '')) ?>" data-desc="<?= ofx_h(strtolower($addon['description'] ?? '')) ?>">
   <?php if ((!empty($addon['has_thumbnail']) || !empty($addon['thumbnail_url_override'])) && !empty($addon['full_name'])): ?>
@@ -46,8 +47,15 @@ $cardIsAdmin = !empty($cardUser['admin']);
 
   <p class="addon-card__desc"><?= ofx_h($addon['description'] ?: 'No description.') ?></p>
 
-  <?php if (!empty($categories)): ?>
+  <?php if (!empty($categories) || $cardOfVersion): ?>
     <div class="addon-card__tags">
+      <?php if ($cardOfVersion): ?>
+        <a class="tag tag--version<?= $cardOfVersion['curated'] ? '' : ' tag--version-guess' ?>"
+           href="<?= ofx_h(ofx_version_url($cardOfVersion['version'])) ?>"
+           title="<?= $cardOfVersion['curated'] ? 'Version read from the README' : 'Guessed from the last commit date' ?>">
+          OF <?= ofx_h($cardOfVersion['version']) ?><?= $cardOfVersion['curated'] ? '' : '?' ?>
+        </a>
+      <?php endif; ?>
       <?php foreach ($categories as $cat): ?>
         <span class="tag"><?= ofx_h($cat) ?></span>
       <?php endforeach; ?>

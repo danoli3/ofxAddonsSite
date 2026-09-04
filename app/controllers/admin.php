@@ -373,8 +373,9 @@ function ofx_admin_export_triage(): void
 
     $placeholders = implode(',', array_fill(0, count(OFX_ADMIN_TYPES), '?'));
     $stmt = $pdo->prepare("
-        SELECT id, full_name, name, description, type, stargazers_count,
-               has_makefile, example_count, has_correct_folder_structure, has_thumbnail, archived
+        SELECT id, full_name, name, description, type, stargazers_count, pushed_at,
+               has_makefile, example_count, has_correct_folder_structure, has_thumbnail, archived,
+               of_version, of_version_curated
         FROM repos
         WHERE type IN ({$placeholders})
         ORDER BY LOWER(full_name) ASC
@@ -393,12 +394,24 @@ function ofx_admin_export_triage(): void
             'has_correct_folder_structure' => (bool)$row['has_correct_folder_structure'],
             'has_thumbnail' => (bool)$row['has_thumbnail'],
             'archived' => (bool)$row['archived'],
+            // of_version: current curated value, if any - read this
+            // addon's README for an explicit openFrameworks version
+            // requirement and set "of_version" in your output (one of:
+            // 0.7, 0.8, 0.9, 0.10, 0.11, 0.12) to override it. Leave
+            // unset/null to keep the guess below, which is already
+            // based on when this addon was last pushed.
+            'of_version' => $row['of_version_curated'] ? $row['of_version'] : null,
+            'of_version_inferred' => ofx_infer_of_version($row['pushed_at']),
         ];
     }, $stmt->fetchAll());
 
     header('Content-Type: application/json');
     header('Content-Disposition: attachment; filename="ofxaddons-triage.json"');
-    echo json_encode(['categories' => $categories, 'addons' => $addons], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    echo json_encode([
+        'categories' => $categories,
+        'of_versions' => array_column(OFX_VERSIONS, 'version'),
+        'addons' => $addons,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
 function ofx_admin_import(): void
@@ -469,20 +482,29 @@ function ofx_parse_import_xml(string $contents): array
         foreach ($addon->category as $cat) {
             $categories[] = (string)$cat;
         }
-        $entries[] = ['full_name' => (string)$addon['full_name'], 'categories' => $categories];
+        $entries[] = [
+            'full_name' => (string)$addon['full_name'],
+            'categories' => $categories,
+            'of_version' => isset($addon['of_version']) ? (string)$addon['of_version'] : null,
+        ];
     }
     return $entries;
 }
 
+// Each entry can carry categories, of_version, or both - a version-only
+// pass (e.g. a Qwen run reading READMEs for an explicit openFrameworks
+// requirement) doesn't need to touch type/categorization at all.
 function ofx_apply_addon_import(PDO $pdo, array $entries): array
 {
     $updated = 0;
     $notFound = 0;
+    $validVersions = array_column(OFX_VERSIONS, 'version');
 
     foreach ($entries as $entry) {
         $fullName = $entry['full_name'] ?? null;
         $categoryNames = array_filter(array_map('trim', $entry['categories'] ?? []));
-        if (!$fullName || empty($categoryNames)) {
+        $ofVersion = isset($entry['of_version']) ? trim((string)$entry['of_version']) : '';
+        if (!$fullName || (empty($categoryNames) && $ofVersion === '')) {
             continue;
         }
 
@@ -494,26 +516,33 @@ function ofx_apply_addon_import(PDO $pdo, array $entries): array
             continue;
         }
 
-        $categoryIds = [];
-        foreach ($categoryNames as $name) {
-            $stmt = $pdo->prepare('SELECT id FROM categories WHERE name = ? LIMIT 1');
-            $stmt->execute([$name]);
-            $categoryId = $stmt->fetchColumn();
-            if (!$categoryId) {
-                $pdo->prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, NOW(), NOW())')
-                    ->execute([$name]);
-                $categoryId = $pdo->lastInsertId();
+        if (!empty($categoryNames)) {
+            $categoryIds = [];
+            foreach ($categoryNames as $name) {
+                $stmt = $pdo->prepare('SELECT id FROM categories WHERE name = ? LIMIT 1');
+                $stmt->execute([$name]);
+                $categoryId = $stmt->fetchColumn();
+                if (!$categoryId) {
+                    $pdo->prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, NOW(), NOW())')
+                        ->execute([$name]);
+                    $categoryId = $pdo->lastInsertId();
+                }
+                $categoryIds[] = $categoryId;
             }
-            $categoryIds[] = $categoryId;
+
+            $pdo->prepare('UPDATE repos SET type = "Addon", updated_at = NOW() WHERE id = ?')->execute([$repoId]);
+            $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$repoId]);
+            $insert = $pdo->prepare(
+                'INSERT INTO categorizations (category_id, repo_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())'
+            );
+            foreach ($categoryIds as $categoryId) {
+                $insert->execute([$categoryId, $repoId]);
+            }
         }
 
-        $pdo->prepare('UPDATE repos SET type = "Addon", updated_at = NOW() WHERE id = ?')->execute([$repoId]);
-        $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$repoId]);
-        $insert = $pdo->prepare(
-            'INSERT INTO categorizations (category_id, repo_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())'
-        );
-        foreach ($categoryIds as $categoryId) {
-            $insert->execute([$categoryId, $repoId]);
+        if ($ofVersion !== '' && in_array($ofVersion, $validVersions, true)) {
+            $pdo->prepare('UPDATE repos SET of_version = ?, of_version_curated = 1, updated_at = NOW() WHERE id = ?')
+                ->execute([$ofVersion, $repoId]);
         }
 
         $updated++;
@@ -780,10 +809,14 @@ function ofx_admin_duplicates(): void
     ofx_require_admin();
     $pdo = ofx_db();
 
+    // confirmed_unique repos (an admin decided these are unrelated
+    // projects that just happen to share a name) are excluded from
+    // detection entirely - if that leaves only one repo with a given
+    // name, it's no longer a "duplicate" group at all
     $dupeNames = $pdo->query("
         SELECT LOWER(name) AS name_key
         FROM repos
-        WHERE type = 'Addon' AND hidden_by_owner = 0
+        WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
         GROUP BY LOWER(name)
         HAVING COUNT(*) > 1
     ")->fetchAll(PDO::FETCH_COLUMN);
@@ -795,7 +828,8 @@ function ofx_admin_duplicates(): void
             SELECT r.*, u.login AS user_login
             FROM repos r
             LEFT JOIN users u ON u.id = r.user_id
-            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND LOWER(r.name) IN ({$placeholders})
+            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.confirmed_unique = 0
+              AND LOWER(r.name) IN ({$placeholders})
             ORDER BY LOWER(r.name) ASC, r.created_at ASC
         ");
         $stmt->execute($dupeNames);
@@ -850,13 +884,51 @@ function ofx_admin_confirm_fork(string $id): void
 
     $pdo->prepare('
         UPDATE repos
-        SET confirmed_fork_of = ?, fork_hidden_by_admin = ?, confirmed_fork_stats = ?, updated_at = NOW()
+        SET confirmed_fork_of = ?, fork_hidden_by_admin = ?, confirmed_fork_stats = ?, confirmed_unique = 0, updated_at = NOW()
         WHERE id = ?
     ')->execute([$parentId, $hide ? 1 : 0, $stats ? json_encode($stats) : null, $id]);
 
     ofx_log_admin_action($pdo, $admin['id'], 'confirm_fork', (int)$id, "fork of repo #{$parentId}");
 
     echo json_encode(['status' => 200, 'stats' => $stats]);
+}
+
+// POST /admin/repos/{id}/confirm-unique - the name match is a
+// coincidence, not a fork/duplicate: two unrelated addons that happen
+// to share a name. Removes it from the /admin/duplicates queue (unless
+// a *different* repo still shares its name).
+function ofx_admin_confirm_unique(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $pdo->prepare('
+        UPDATE repos
+        SET confirmed_unique = 1, confirmed_fork_of = NULL, fork_hidden_by_admin = 0,
+            confirmed_fork_stats = NULL, updated_at = NOW()
+        WHERE id = ?
+    ')->execute([$id]);
+
+    ofx_log_admin_action($pdo, $admin['id'], 'confirm_unique', (int)$id, null);
+
+    echo json_encode(['status' => 200]);
+}
+
+// POST /admin/repos/{id}/unconfirm-unique - undoes confirm-unique.
+function ofx_admin_unconfirm_unique(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $pdo->prepare('UPDATE repos SET confirmed_unique = 0, updated_at = NOW() WHERE id = ?')->execute([$id]);
+
+    ofx_log_admin_action($pdo, $admin['id'], 'unconfirm_unique', (int)$id, null);
+
+    echo json_encode(['status' => 200]);
 }
 
 // POST /admin/repos/{id}/unconfirm-fork - undoes confirm-fork.

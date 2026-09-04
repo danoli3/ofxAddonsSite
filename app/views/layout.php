@@ -26,6 +26,7 @@ $flash = ofx_flash_get();
         <a href="/freshest">Freshest</a>
         <a href="/popular">Popular</a>
         <a href="/unsorted">Unsorted</a>
+        <a href="/versions">Versions</a>
         <a href="/contributors">Contributors</a>
         <?php if ($user): ?>
           <a href="/my/addons">My Addons</a>

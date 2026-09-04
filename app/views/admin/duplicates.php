@@ -25,14 +25,17 @@
             <?= $i === 0 ? '&middot; presumed original' : '' ?>
           </span>
         </div>
-        <?php if ($i > 0): ?>
-          <?php if (!empty($repo['confirmed_fork_of'])): ?>
-            <span class="tag tag--curated">Confirmed fork of <?= ofx_h($members[0]['full_name']) ?></span>
-            <?php if (!empty($repo['fork_hidden_by_admin'])): ?>
-              <span class="tag tag--archived">Hidden from public</span>
-            <?php endif; ?>
-            <button type="button" class="dupe-item__unconfirm" data-repo-id="<?= (int)$repo['id'] ?>">Undo</button>
-          <?php else: ?>
+        <?php if (!empty($repo['confirmed_fork_of'])): ?>
+          <span class="tag tag--curated">Confirmed fork of <?= ofx_h($members[0]['full_name']) ?></span>
+          <?php if (!empty($repo['fork_hidden_by_admin'])): ?>
+            <span class="tag tag--archived">Hidden from public</span>
+          <?php endif; ?>
+          <button type="button" class="dupe-item__unconfirm" data-repo-id="<?= (int)$repo['id'] ?>">Undo</button>
+        <?php elseif (!empty($repo['confirmed_unique'])): ?>
+          <span class="tag tag--curated">Not a duplicate</span>
+          <button type="button" class="dupe-item__unconfirm-unique" data-repo-id="<?= (int)$repo['id'] ?>">Undo</button>
+        <?php else: ?>
+          <?php if ($i > 0): ?>
             <button type="button" class="dupe-item__confirm" data-repo-id="<?= (int)$repo['id'] ?>"
                     data-parent-id="<?= (int)$members[0]['id'] ?>" data-hide="0">
               Confirm fork of original
@@ -42,6 +45,10 @@
               Confirm + hide from public
             </button>
           <?php endif; ?>
+          <button type="button" class="dupe-item__confirm-unique" data-repo-id="<?= (int)$repo['id'] ?>"
+                  title="These are unrelated addons that just happen to share a name">
+            Not a duplicate
+          </button>
         <?php endif; ?>
         <span class="dupe-item__status"></span>
       </div>

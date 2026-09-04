@@ -341,6 +341,58 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.dupe-item__confirm-unique', function () {
+    var $btn = $(this);
+    var $item = $btn.closest('.dupe-item');
+    var $status = $item.find('.dupe-item__status');
+    var repoId = $btn.data('repo-id');
+
+    $item.find('.dupe-item__confirm, .dupe-item__confirm-unique').prop('disabled', true);
+    $status.removeClass('is-error').text('Saving…');
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/confirm-unique',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+      $item.find('.dupe-item__confirm, .dupe-item__confirm-unique').prop('disabled', false);
+    });
+  });
+
+  $(document).on('click', '.dupe-item__unconfirm-unique', function () {
+    var $btn = $(this);
+    var $item = $btn.closest('.dupe-item');
+    var $status = $item.find('.dupe-item__status');
+    var repoId = $btn.data('repo-id');
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Saving…');
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/unconfirm-unique',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+      $btn.prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.my-addon-row__appeal-ban', function () {
     var $btn = $(this);
     var repoId = $btn.data('repo-id');

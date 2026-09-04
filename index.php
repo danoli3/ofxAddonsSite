@@ -24,6 +24,7 @@ require_once __DIR__ . '/app/audit.php';
 require_once __DIR__ . '/app/controllers/categories.php';
 require_once __DIR__ . '/app/controllers/addons.php';
 require_once __DIR__ . '/app/controllers/unsorted.php';
+require_once __DIR__ . '/app/controllers/versions.php';
 require_once __DIR__ . '/app/controllers/contributors.php';
 require_once __DIR__ . '/app/controllers/pages.php';
 require_once __DIR__ . '/app/controllers/sitemap.php';

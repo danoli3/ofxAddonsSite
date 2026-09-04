@@ -4,6 +4,70 @@ declare(strict_types=1);
 const OFX_PAGE_SIZE = 24;
 const OFX_DESCRIPTION_MAX_LENGTH = 350;
 
+// Real openFrameworks major-version release dates (first commit/tag of
+// each x.y.0 series, oldest catch-all bucket at the end), used to guess
+// which version an addon targets from its last-pushed date when no
+// version has been curated from its README. Newest first, since
+// ofx_infer_of_version() takes the first bucket a date qualifies for.
+// Update this list when a new openFrameworks version ships.
+const OFX_VERSIONS = [
+    ['version' => '0.12', 'released' => '2023-08-30'],
+    ['version' => '0.11', 'released' => '2019-11-30'],
+    ['version' => '0.10', 'released' => '2018-05-07'],
+    ['version' => '0.9', 'released' => '2015-11-08'],
+    ['version' => '0.8', 'released' => '2013-08-11'],
+    ['version' => '0.7', 'released' => '2010-01-01'],
+];
+
+// String comparison works here because both sides are Y-m-d-prefixed
+// (repos.pushed_at is a full "Y-m-d H:i:s" DATETIME, $released is a
+// plain date) - lexicographic order matches chronological order.
+function ofx_infer_of_version(?string $pushedAt): ?string
+{
+    if (!$pushedAt) {
+        return null;
+    }
+    foreach (OFX_VERSIONS as $v) {
+        if ($pushedAt >= $v['released']) {
+            return $v['version'];
+        }
+    }
+    return null;
+}
+
+// The version actually shown for an addon: a curated value (set by an
+// admin, e.g. from README text a Qwen pass extracted) takes priority
+// over the inferred guess from pushed_at. Returns null with nothing to
+// show at all (no curated value and no pushed_at to infer from).
+function ofx_addon_of_version(array $addon): ?array
+{
+    if (!empty($addon['of_version_curated']) && !empty($addon['of_version'])) {
+        return ['version' => $addon['of_version'], 'curated' => true];
+    }
+    $inferred = ofx_infer_of_version($addon['pushed_at'] ?? null);
+    return $inferred ? ['version' => $inferred, 'curated' => false] : null;
+}
+
+// SQL CASE expression computing the same inference as
+// ofx_infer_of_version(), for use in a query's SELECT/HAVING - the
+// version-browse pages need this to filter/group on a value most rows
+// don't have curated, without loading every repo into PHP first.
+// OFX_VERSIONS is a fixed constant, not user input, so interpolating
+// it directly into SQL here is safe.
+function ofx_of_version_sql_case(string $column): string
+{
+    $cases = [];
+    foreach (OFX_VERSIONS as $v) {
+        $cases[] = "WHEN {$column} >= '{$v['released']}' THEN '{$v['version']}'";
+    }
+    return 'CASE ' . implode(' ', $cases) . ' ELSE NULL END';
+}
+
+function ofx_version_url(string $version): string
+{
+    return '/versions/' . rawurlencode($version);
+}
+
 function ofx_render(string $template, array $vars = []): void
 {
     extract($vars, EXTR_SKIP);

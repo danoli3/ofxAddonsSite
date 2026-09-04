@@ -2,6 +2,7 @@
 $categories = !empty($addon['categories']) ? explode('||', $addon['categories']) : [];
 $detailUser = ofx_current_user();
 $detailIsAdmin = !empty($detailUser['admin']);
+$detailOfVersion = ofx_addon_of_version($addon);
 ?>
 <a href="/categories" class="addon-detail__back"
    onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Back</a>
@@ -33,6 +34,13 @@ $detailIsAdmin = !empty($detailUser['admin']);
 <?php endif; ?>
 
 <div class="addon-detail__tags">
+  <?php if ($detailOfVersion): ?>
+    <a class="tag tag--version<?= $detailOfVersion['curated'] ? '' : ' tag--version-guess' ?>"
+       href="<?= ofx_h(ofx_version_url($detailOfVersion['version'])) ?>"
+       title="<?= $detailOfVersion['curated'] ? 'Version read from the README' : 'Guessed from the last commit date' ?>">
+      OF <?= ofx_h($detailOfVersion['version']) ?><?= $detailOfVersion['curated'] ? '' : '?' ?>
+    </a>
+  <?php endif; ?>
   <?php if (!empty($addon['archived'])): ?>
     <span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>
   <?php endif; ?>
