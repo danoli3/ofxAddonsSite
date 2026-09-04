@@ -314,15 +314,23 @@ function ofx_generate_thumbnail_image(string $repoName, string $description, ?st
     // centered band across the full width (see ofx_thumbnail_crop_resize
     // below), so the addon name has to stay inside that middle band or
     // it gets sliced off the top/bottom.
-    $prompt = "A wide landscape flat-vector icon/illustration representing what this openFrameworks (C++ "
-        . "creative coding) addon does, based on: " . mb_substr($context, 0, 800) . ". "
-        . 'The icon must fill the entire frame edge-to-edge, full-bleed, no empty margins or padding around it. '
-        . "Render the addon's name, \"{$repoName}\", once as bold, clean, legible sans-serif typography "
-        . 'integrated into the composition - spelled exactly as given, nothing added, removed, or changed - '
-        . 'and keep it fully within the vertical middle third of the frame so it survives a center crop. Do '
-        . 'not render any other text, letters, words, numbers, or acronyms anywhere else in the image. Simple '
-        . 'bold geometric shapes, clean modern flat illustration style, dark background, wide landscape '
-        . 'composition.';
+    //
+    // Asking for the name "integrated into" the icon was unreliable -
+    // in testing the model sometimes dropped the text altogether rather
+    // than blend it into the artwork. Describing it as a separate
+    // caption/banner element next to the icon (like a logotype next to
+    // a mark, not text woven into a scene) got a far more consistent
+    // hit rate.
+    $prompt = "A wide landscape banner for an openFrameworks (C++ creative coding) addon, made of two clearly "
+        . "separate parts side by side: on one side, a small abstract flat-vector icon representing what the "
+        . "addon does, based on: " . mb_substr($context, 0, 800) . "; on the other side, a bold, large, clean "
+        . "sans-serif caption/logotype - not blended into any artwork, just plain bold text on the flat "
+        . "background - reading exactly \"{$repoName}\", spelled exactly as given, nothing added, removed, or "
+        . 'changed. Both the icon and the caption text must fill the entire frame edge-to-edge, full-bleed, no '
+        . 'empty margins, and stay fully within the vertical middle third of the frame so nothing is cropped '
+        . 'off top or bottom. Do not render any other text, letters, words, numbers, or acronyms anywhere else '
+        . 'in the image. Simple bold geometric shapes, clean modern flat illustration style, dark background, '
+        . 'wide landscape composition.';
 
     $payload = [
         'model' => 'gpt-image-1',
