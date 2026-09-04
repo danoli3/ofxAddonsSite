@@ -6,6 +6,8 @@ if (!empty($addon['newer_forks'])) {
     $decodedForks = json_decode($addon['newer_forks'], true);
     $newerForkCount = is_array($decodedForks) ? count($decodedForks) : 0;
 }
+$cardUser = ofx_current_user();
+$cardIsAdmin = !empty($cardUser['admin']);
 ?>
 <article class="addon-card" data-name="<?= ofx_h(strtolower($addon['name'] ?? '')) ?>" data-desc="<?= ofx_h(strtolower($addon['description'] ?? '')) ?>">
   <?php if ((!empty($addon['has_thumbnail']) || !empty($addon['thumbnail_url_override'])) && !empty($addon['full_name'])): ?>
@@ -28,6 +30,9 @@ if (!empty($addon['newer_forks'])) {
       <?php endif; ?>
       <?php if (($addon['type'] ?? null) === 'Addon'): ?>
         <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($addon['full_name'])) ?>">More info &rarr;</a>
+      <?php endif; ?>
+      <?php if ($cardIsAdmin): ?>
+        <a class="addon-card__admin" href="/admin/repos?type=<?= ofx_h($addon['type'] ?? 'Addon') ?>&q=<?= ofx_h(rawurlencode($addon['full_name'] ?? '')) ?>">Admin &rarr;</a>
       <?php endif; ?>
     </div>
     <?php if (!empty($addon['featured'])): ?>

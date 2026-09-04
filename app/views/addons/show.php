@@ -1,5 +1,7 @@
 <?php
 $categories = !empty($addon['categories']) ? explode('||', $addon['categories']) : [];
+$detailUser = ofx_current_user();
+$detailIsAdmin = !empty($detailUser['admin']);
 ?>
 <a href="/categories" class="addon-detail__back"
    onclick="if (window.history.length > 1) { history.back(); return false; }">&larr; Back</a>
@@ -15,6 +17,12 @@ $categories = !empty($addon['categories']) ? explode('||', $addon['categories'])
       &middot; <a href="/contributors/<?= ofx_h(rawurlencode($addon['user_login'])) ?>">@<?= ofx_h($addon['user_login']) ?></a>
     <?php endif; ?>
   </div>
+  <?php if ($detailIsAdmin): ?>
+    <a class="addon-detail__admin-btn"
+       href="/admin/repos?type=<?= ofx_h($addon['type'] ?? 'Addon') ?>&q=<?= ofx_h(rawurlencode($addon['full_name'])) ?>">
+      Edit in admin &rarr;
+    </a>
+  <?php endif; ?>
 </div>
 
 <div class="addon-detail__tags">
