@@ -32,18 +32,36 @@ function ofx_categories_index(): void
     ]);
 }
 
-function ofx_categories_show(string $id): void
+// $slugOrId is the plain name slug (e.g. "gui", the current URL
+// shape), or a legacy "{id}" / "{id}-{oldslug}" link from before URLs
+// dropped the numeric id - a leading-digits match covers both of
+// those old shapes in one branch. Category rows are few, so scanning
+// them in PHP for a slug match is cheap and needs no stored/indexed
+// slug column.
+function ofx_categories_show(string $slugOrId): void
 {
     $pdo = ofx_db();
     $isAdmin = !empty(ofx_current_user()['admin'] ?? false);
 
-    $stmt = $pdo->prepare('SELECT * FROM categories WHERE id = ? LIMIT 1');
-    $stmt->execute([$id]);
-    $category = $stmt->fetch();
+    $category = null;
+    if (preg_match('/^(\d+)/', $slugOrId, $m)) {
+        $stmt = $pdo->prepare('SELECT * FROM categories WHERE id = ? LIMIT 1');
+        $stmt->execute([$m[1]]);
+        $category = $stmt->fetch();
+    }
+    if (!$category) {
+        foreach ($pdo->query('SELECT * FROM categories')->fetchAll() as $c) {
+            if (ofx_slugify($c['name']) === $slugOrId) {
+                $category = $c;
+                break;
+            }
+        }
+    }
     if (!$category) {
         ofx_not_found();
         return;
     }
+    $id = $category['id'];
 
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * OFX_PAGE_SIZE;
