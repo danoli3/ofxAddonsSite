@@ -1,4 +1,8 @@
 <div class="hero">
+  <a class="of-badge" href="/about-openframeworks" title="What is openFrameworks?">
+    <span class="of-badge__logo" aria-hidden="true"></span>
+    Built for openFrameworks
+  </a>
   <h1>Discover openFrameworks addons</h1>
   <p>The central place to find, browse and categorize the openFrameworks addon ecosystem.</p>
   <div class="filter-wrap filter-wrap--hero">

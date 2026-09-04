@@ -80,6 +80,36 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   padding: 56px 12px 44px;
   margin-bottom: 10px;
 }
+.of-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px 5px 10px;
+  margin-bottom: 18px;
+}
+.of-badge:hover { color: var(--accent-3); border-color: var(--accent-3); text-decoration: none; }
+.of-badge__logo {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-image: url('/app/assets/img/openframeworks-logo.svg');
+  mask-image: url('/app/assets/img/openframeworks-logo.svg');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.about-of__hero-logo { width: 96px; height: 96px; margin: 0 auto 18px; }
+.about-of__hero-logo .of-badge__logo { width: 100%; height: 100%; }
+.of-badge--footer { margin: 0 0 0 8px; vertical-align: middle; }
 .hero h1 {
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
@@ -917,6 +947,7 @@ a.addon-card__desc:hover { color: var(--text); }
 .site-footer .wrap { padding: 24px 20px; color: var(--text-muted); font-size: .84rem; }
 .site-footer__brand { color: inherit; font-weight: 700; }
 .site-footer__brand:hover { color: var(--accent-3); text-decoration: none; }
+.site-footer__credit { margin-top: 8px; font-size: .78rem; opacity: .8; }
 
 @media (max-width: 600px) {
   .site-nav { gap: 14px; }

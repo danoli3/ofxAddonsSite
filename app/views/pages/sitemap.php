@@ -23,6 +23,7 @@
 <h2>About</h2>
 <ul>
   <li><a href="/pages/howto">How To</a> &mdash; what an addon is, how to get listed, and how this site finds addons.</li>
+  <li><a href="/about-openframeworks">About openFrameworks</a> &mdash; what openFrameworks is and how addons fit into it.</li>
 </ul>
 
 <h2>For machines</h2>

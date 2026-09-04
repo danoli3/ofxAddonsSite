@@ -6,6 +6,11 @@ function ofx_pages_howto(): void
     ofx_render('pages/howto', ['title' => 'How To']);
 }
 
+function ofx_pages_about_openframeworks(): void
+{
+    ofx_render('pages/about-openframeworks', ['title' => 'About openFrameworks']);
+}
+
 // GET /sitemap - human-readable index of every page/section on the
 // site, each with a one-line description of what it's for. The
 // machine-readable /sitemap.xml and /sitemap.json cover URLs for every

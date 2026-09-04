@@ -60,7 +60,16 @@ $flash = ofx_flash_get();
       <p><a href="#top" class="site-footer__brand" title="Back to top">ofxAddons</a> &mdash; the central place to discover
         <a href="https://openframeworks.cc" target="_blank" rel="noopener">openFrameworks</a> addons.
         <a href="/pages/howto">How To</a>
+        &middot; <a href="/about-openframeworks">About openFrameworks</a>
         &middot; <a href="/sitemap">Sitemap</a></p>
+      <p class="site-footer__credit">
+        <a class="of-badge of-badge--footer" href="/about-openframeworks">
+          <span class="of-badge__logo" aria-hidden="true"></span>
+          openFrameworks
+        </a>
+        is an independent, community-maintained toolkit &mdash; ofxAddons is a fan-run directory and isn&rsquo;t
+        officially affiliated with the openFrameworks project.
+      </p>
     </div>
   </footer>
 

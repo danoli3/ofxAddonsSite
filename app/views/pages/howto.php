@@ -5,7 +5,7 @@
 <div class="prose">
 
 <h2>What's an openFrameworks addon?</h2>
-<p>An addon is code that extends <a href="https://openframeworks.cc" target="_blank" rel="noopener">openFrameworks</a>, usually one of two ways: wrapping an external library so it's easy to use from OF (e.g. a Kinect or MIDI wrapper), or packaging up a reusable piece of your own OF code so other people don't have to solve the same problem twice.</p>
+<p>An addon is code that extends <a href="https://openframeworks.cc" target="_blank" rel="noopener">openFrameworks</a>, usually one of two ways: wrapping an external library so it's easy to use from OF (e.g. a Kinect or MIDI wrapper), or packaging up a reusable piece of your own OF code so other people don't have to solve the same problem twice. New to openFrameworks itself? See <a href="/about-openframeworks">About openFrameworks</a>.</p>
 
 <h2>Installing an addon</h2>
 <p>Every addon on this site links straight to its GitHub repo. Clone it into your OF install's <code>addons/</code> folder:</p>
