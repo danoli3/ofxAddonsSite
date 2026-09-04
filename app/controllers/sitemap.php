@@ -11,7 +11,7 @@ function ofx_sitemap_xml(): void
     $base = ofx_base_url();
 
     $staticPaths = ['/categories', '/addons', '/freshest', '/popular', '/unsorted', '/contributors', '/pages/howto'];
-    $categories = $pdo->query('SELECT id FROM categories ORDER BY id')->fetchAll();
+    $categories = $pdo->query('SELECT id, name FROM categories ORDER BY id')->fetchAll();
     $addons = $pdo->query("SELECT full_name, pushed_at FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0")->fetchAll();
     $contributors = $pdo->query("
         SELECT u.login, MAX(r.pushed_at) AS last_pushed
@@ -28,7 +28,7 @@ function ofx_sitemap_xml(): void
         echo '  <url><loc>' . ofx_h($base . $path) . '</loc></url>' . "\n";
     }
     foreach ($categories as $c) {
-        echo '  <url><loc>' . ofx_h($base . '/categories/' . (int)$c['id']) . '</loc></url>' . "\n";
+        echo '  <url><loc>' . ofx_h($base . ofx_category_url($c)) . '</loc></url>' . "\n";
     }
     foreach ($addons as $a) {
         $loc = $base . ofx_addon_url($a['full_name']);

@@ -150,6 +150,18 @@ function ofx_addon_url(string $fullName): string
     return '/addons/' . rawurlencode($owner) . '/' . rawurlencode($repo);
 }
 
+// The route (#^/categories/(\d+)(?:-[^/]*)?$#) only ever captures the
+// numeric id - the slug after it is just for a readable URL/title in
+// the browser bar and is ignored on the way in, so there's no need to
+// keep it in sync with renames or worry about collisions.
+function ofx_category_url(array $category): string
+{
+    $slug = strtolower((string)($category['name'] ?? ''));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return '/categories/' . (int)$category['id'] . ($slug !== '' ? '-' . $slug : '');
+}
+
 function ofx_thumbnail_url(string $fullName, ?string $override = null): string
 {
     if ($override) {

@@ -119,11 +119,15 @@ function ofx_addons_search(): void
 function ofx_render_addons_sorted(?string $sort): void
 {
 
-    $order = 'LOWER(r.name) ASC';
+    // r.id as a final tiebreaker keeps pagination stable across pages -
+    // without it, rows tied on the sort column (e.g. two repos with the
+    // same stargazers_count) can come back in a different relative order
+    // between the page-1 and page-2 queries, showing up twice or not at all
+    $order = 'LOWER(r.name) ASC, r.id ASC';
     if ($sort === 'freshest') {
-        $order = 'r.pushed_at DESC';
+        $order = 'r.pushed_at DESC, r.id ASC';
     } elseif ($sort === 'popular') {
-        $order = 'r.stargazers_count DESC';
+        $order = 'r.stargazers_count DESC, r.id ASC';
     }
 
     $page = max(1, (int)($_GET['page'] ?? 1));

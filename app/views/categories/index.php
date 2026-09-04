@@ -18,10 +18,10 @@
     <?php $all = $addonsByCategory[$category['id']] ?? []; ?>
     <section class="category-section" id="category-<?= (int)$category['id'] ?>">
       <h2 class="category-section__title">
-        <a href="/categories/<?= (int)$category['id'] ?>"><?= ofx_h($category['name']) ?></a>
+        <a href="<?= ofx_h(ofx_category_url($category)) ?>"><?= ofx_h($category['name']) ?></a>
         <span class="count"><?= count($all) ?></span>
         <?php if (count($all) > OFX_CATEGORY_PREVIEW_SIZE): ?>
-          <a class="view-all" href="/categories/<?= (int)$category['id'] ?>">View all &rarr;</a>
+          <a class="view-all" href="<?= ofx_h(ofx_category_url($category)) ?>">View all &rarr;</a>
         <?php endif; ?>
       </h2>
       <div class="addon-grid">

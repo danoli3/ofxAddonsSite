@@ -13,7 +13,7 @@ function ofx_unsorted_index(): void
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
         WHERE r.type IN ('Unsorted', 'Incomplete') AND r.hidden_by_owner = 0
-        ORDER BY r.stargazers_count DESC, r.example_count DESC, r.pushed_at DESC, LOWER(r.name) ASC
+        ORDER BY r.stargazers_count DESC, r.example_count DESC, r.pushed_at DESC, LOWER(r.name) ASC, r.id ASC
         LIMIT {$fetch} OFFSET {$offset}
     ");
     $stmt->execute();

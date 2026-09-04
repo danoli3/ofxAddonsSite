@@ -49,7 +49,7 @@ function ofx_admin_index(): void
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
         WHERE {$where}
-        ORDER BY {$orderColumn} DESC
+        ORDER BY {$orderColumn} DESC, r.id ASC
         LIMIT {$fetch} OFFSET {$offset}
     ");
     $stmt->execute($params);

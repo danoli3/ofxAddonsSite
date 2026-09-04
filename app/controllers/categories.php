@@ -55,7 +55,7 @@ function ofx_categories_show(string $id): void
         JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN users u ON u.id = r.user_id
         WHERE cz.category_id = ? AND r.type = 'Addon' AND r.hidden_by_owner = 0
-        ORDER BY cz.featured DESC, LOWER(r.name) ASC
+        ORDER BY cz.featured DESC, LOWER(r.name) ASC, r.id ASC
         LIMIT {$fetch} OFFSET {$offset}
     ");
     $stmt->execute([$id]);
