@@ -54,6 +54,9 @@
   </td>
   <td>
     <?php ofx_category_picker($categories, $selectedCategoryIds); ?>
+    <?php if (!empty($repo['categories_ai_curated'])): ?>
+      <span class="tag tag--curated" title="These categories were AI-assigned and admin-confirmed via the review screen">AI Curated</span>
+    <?php endif; ?>
   </td>
   <td class="admin-row__actions">
     <button type="button" class="admin-row__save">Save</button>

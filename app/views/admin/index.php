@@ -21,11 +21,11 @@
     <span class="admin-toolbar__label">Database</span>
     <a href="/admin/backup.sql.gz" title="Full schema + data dump of every table, gzipped">Backup .sql.gz</a>
   </div>
-  <form class="admin-toolbar__group" action="/admin/import" method="post" enctype="multipart/form-data">
+  <form class="admin-toolbar__group" action="/admin/import/preview" method="post" enctype="multipart/form-data">
     <span class="admin-toolbar__label">Import</span>
     <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
     <input type="file" name="file" accept=".json,.xml" required>
-    <button type="submit">Upload</button>
+    <button type="submit" title="Review a diff before anything is saved">Preview</button>
   </form>
   <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">Data</span>

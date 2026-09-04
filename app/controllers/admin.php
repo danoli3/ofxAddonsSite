@@ -461,7 +461,7 @@ function ofx_admin_export_triage(): void
     $stmt = $pdo->prepare("
         SELECT id, full_name, name, description, type, stargazers_count, pushed_at,
                has_makefile, example_count, has_correct_folder_structure, has_thumbnail, archived,
-               of_version, of_version_curated
+               of_version, of_version_curated, categories_ai_curated
         FROM repos
         WHERE type IN ({$placeholders})
         ORDER BY LOWER(full_name) ASC
@@ -488,6 +488,11 @@ function ofx_admin_export_triage(): void
             // pushed date against openFrameworks' real release history -
             // not read from anything the addon itself says.
             'of_version_approximate' => ofx_infer_of_version($row['pushed_at']),
+            // categories_ai_curated: this addon's current categories were
+            // already assigned by a previous AI pass and confirmed by an
+            // admin through the review screen - re-categorizing it is
+            // optional, not required, on this run.
+            'categories_ai_curated' => (bool)$row['categories_ai_curated'],
         ];
     }, $stmt->fetchAll());
 
@@ -503,6 +508,9 @@ function ofx_admin_export_triage(): void
                 . 'README says nothing explicit, leave "of_version" out of your output entirely - don\'t guess; '
                 . 'of_version_approximate already has a date-based guess for that case and doesn\'t need to be '
                 . 'repeated or confirmed.',
+            'categories_ai_curated' => 'true means an admin already reviewed and confirmed AI-assigned categories '
+                . 'for this addon in a previous run - feel free to skip it unless you have a specific correction. '
+                . 'false/absent means it still needs a first categorization pass.',
         ],
         'categories' => $categories,
         'of_versions' => array_column(OFX_VERSIONS, 'version'),
@@ -510,7 +518,13 @@ function ofx_admin_export_triage(): void
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
-function ofx_admin_import(): void
+// POST /admin/import/preview - upload a .json or .xml file in the same
+// shape ofx_admin_export/ofx_admin_export_triage produce and show a
+// current-vs-proposed diff per addon before anything touches the
+// database. Nothing is applied here - each row's own parsed data
+// round-trips through the confirm form below as a hidden field, so no
+// server-side session state is needed between preview and apply.
+function ofx_admin_import_preview(): void
 {
     ofx_require_admin();
 
@@ -538,18 +552,140 @@ function ofx_admin_import(): void
         return;
     }
 
+    if (empty($entries)) {
+        $_SESSION['flash'] = 'Import failed: file contained no entries.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
+
+    $diffs = ofx_admin_import_diff(ofx_db(), $entries);
+
+    ofx_render('admin/import-preview', [
+        'diffs' => $diffs,
+        'filename' => $name,
+        'title' => 'Review import',
+    ]);
+}
+
+// Read-only: computes what ofx_apply_addon_import() would do for each
+// entry (found/not-found, category adds/removes, of_version change)
+// against the database as it stands right now, for the review screen.
+function ofx_admin_import_diff(PDO $pdo, array $entries): array
+{
+    $validVersions = array_column(OFX_VERSIONS, 'version');
+    $diffs = [];
+
+    foreach ($entries as $i => $entry) {
+        $fullName = trim((string)($entry['full_name'] ?? ''));
+        if ($fullName === '') {
+            continue;
+        }
+        $proposedCategories = array_values(array_unique(array_filter(
+            array_map('trim', $entry['categories'] ?? [])
+        )));
+        $proposedVersion = isset($entry['of_version']) ? trim((string)$entry['of_version']) : '';
+        if ($proposedVersion !== '' && !in_array($proposedVersion, $validVersions, true)) {
+            $proposedVersion = '';
+        }
+
+        // re-encoded from the normalized values above (not the raw
+        // upload) so a confirmed row can only ever apply what this same
+        // diff actually showed the admin, not whatever else the file said
+        $normalizedEntry = ['full_name' => $fullName, 'categories' => $proposedCategories];
+        if ($proposedVersion !== '') {
+            $normalizedEntry['of_version'] = $proposedVersion;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT id, full_name, name, of_version, of_version_curated FROM repos WHERE LOWER(full_name) = LOWER(?) LIMIT 1'
+        );
+        $stmt->execute([$fullName]);
+        $repo = $stmt->fetch();
+
+        if (!$repo) {
+            $diffs[] = [
+                'index' => $i,
+                'entry_json' => json_encode($normalizedEntry),
+                'found' => false,
+                'full_name' => $fullName,
+            ];
+            continue;
+        }
+
+        $catStmt = $pdo->prepare('
+            SELECT c.name FROM categorizations cz JOIN categories c ON c.id = cz.category_id
+            WHERE cz.repo_id = ? ORDER BY LOWER(c.name)
+        ');
+        $catStmt->execute([$repo['id']]);
+        $currentCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $currentVersion = $repo['of_version_curated'] ? $repo['of_version'] : null;
+
+        $diffs[] = [
+            'index' => $i,
+            'entry_json' => json_encode($normalizedEntry),
+            'found' => true,
+            'full_name' => $repo['full_name'],
+            'name' => $repo['name'],
+            'added_categories' => array_values(array_diff($proposedCategories, $currentCategories)),
+            'removed_categories' => array_values(array_diff($currentCategories, $proposedCategories)),
+            'unchanged_categories' => array_values(array_intersect($currentCategories, $proposedCategories)),
+            'current_version' => $currentVersion,
+            'proposed_version' => $proposedVersion !== '' ? $proposedVersion : null,
+            'version_changed' => $proposedVersion !== '' && $proposedVersion !== $currentVersion,
+        ];
+    }
+
+    return $diffs;
+}
+
+// POST /admin/import/confirm - applies only the checked rows from the
+// preview screen above. Each row's own normalized entry data travels as
+// a hidden field (entry_data[i]); only indexes present in confirm[]
+// (the checked boxes) get applied, so an admin can review-and-uncheck
+// individual addons rather than it being all-or-nothing.
+function ofx_admin_import_confirm(): void
+{
+    ofx_require_admin();
+
+    if (!ofx_csrf_verify()) {
+        $_SESSION['flash'] = 'Import failed: invalid request, please try again.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
+
+    $confirmedIndexes = array_map('intval', $_POST['confirm'] ?? []);
+    $entryData = $_POST['entry_data'] ?? [];
+
+    $entries = [];
+    foreach ($confirmedIndexes as $i) {
+        if (!isset($entryData[$i])) {
+            continue;
+        }
+        $decoded = json_decode((string)$entryData[$i], true);
+        if (is_array($decoded) && !empty($decoded['full_name'])) {
+            $entries[] = $decoded;
+        }
+    }
+
+    if (empty($entries)) {
+        $_SESSION['flash'] = 'Nothing confirmed - no changes applied.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
+
     $pdo = ofx_db();
-    $result = ofx_apply_addon_import($pdo, $entries);
+    $result = ofx_apply_addon_import($pdo, $entries, true);
 
     ofx_log_admin_action(
         $pdo,
         ofx_current_user()['id'] ?? null,
         'bulk_import',
         null,
-        "{$name}: {$result['updated']} categorized, {$result['notFound']} not found"
+        count($entries) . " confirmed via review: {$result['updated']} applied, {$result['notFound']} not found"
     );
 
-    $_SESSION['flash'] = "Import done: {$result['updated']} addon(s) categorized, "
+    $_SESSION['flash'] = "Import done: {$result['updated']} addon(s) updated, "
         . "{$result['notFound']} not found in this database.";
     ofx_redirect('/admin/repos');
 }
@@ -590,7 +726,11 @@ function ofx_parse_import_xml(string $contents): array
 // Each entry can carry categories, of_version, or both - a version-only
 // pass (e.g. a Qwen run reading READMEs for an explicit openFrameworks
 // requirement) doesn't need to touch type/categorization at all.
-function ofx_apply_addon_import(PDO $pdo, array $entries): array
+// $aiCurated marks any categories touched here as repos.categories_ai_curated
+// = 1 - set only by the AI-triage preview/confirm flow, never by a human
+// hand-editing categories through the picker, so a future triage export
+// can tell an admin/model which addons were already AI-sorted.
+function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = false): array
 {
     $updated = 0;
     $notFound = 0;
@@ -626,7 +766,9 @@ function ofx_apply_addon_import(PDO $pdo, array $entries): array
                 $categoryIds[] = $categoryId;
             }
 
-            $pdo->prepare('UPDATE repos SET type = "Addon", updated_at = NOW() WHERE id = ?')->execute([$repoId]);
+            $pdo->prepare(
+                'UPDATE repos SET type = "Addon", categories_ai_curated = ?, updated_at = NOW() WHERE id = ?'
+            )->execute([$aiCurated ? 1 : 0, $repoId]);
             $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$repoId]);
             $insert = $pdo->prepare(
                 'INSERT INTO categorizations (category_id, repo_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())'
