@@ -230,6 +230,13 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   background: var(--surface-hover);
 }
 .addon-card--view-all {
+  /* real addon-cards run ~240-355px tall depending on whether they have
+     a thumbnail; this card almost always lands alone in a trailing grid
+     row (preview size is a clean multiple of the usual column counts),
+     so grid's own row-stretch never kicks in to match it against the
+     row above - without a comparable min-height it reads as a stray
+     short box instead of a card that belongs in this grid. */
+  min-height: 260px;
   align-items: center;
   justify-content: center;
   text-align: center;
