@@ -286,12 +286,12 @@ function ofx_generate_description(string $repoName, string $readme, ?string $exi
 // static asset under /app/assets.
 const OFX_GENERATED_THUMBNAIL_DIR = __DIR__ . '/assets/generated-thumbnails';
 
-// Asks DALL-E 3 for a 270x70-ish banner image for an addon, using its
-// name/description/README as the prompt. Returns raw PNG bytes on
-// success, null on any failure (no key configured, API error, etc) -
-// callers treat null as "nothing to save", not an exception, since a
-// failed generation shouldn't be surprising or need special handling
-// beyond "the button didn't work, try again."
+// Asks the configured image model for a 270x70-ish banner image for an
+// addon, using its name/description/README as the prompt. Returns raw
+// PNG bytes on success, null on any failure (no key configured, API
+// error, etc) - callers treat null as "nothing to save", not an
+// exception, since a failed generation shouldn't be surprising or need
+// special handling beyond "the button didn't work, try again."
 function ofx_generate_thumbnail_image(string $repoName, string $description, ?string $readme): ?string
 {
     $apiKey = ofx_env('OPENAI_IMAGE_API_KEY') ?: ofx_env('OPENAI_API_KEY');
@@ -304,19 +304,25 @@ function ofx_generate_thumbnail_image(string $repoName, string $description, ?st
         $context .= "\n\n" . mb_substr($readme, 0, 2000);
     }
 
-    // "no text" alone wasn't enough - the model rendered a literal
-    // "C++" logo the first time this was tried, and left large empty
-    // margins around a small centered icon, which the crop below would
-    // have mostly wasted (it takes the full source width). Naming the
-    // language/toolkit only as background context, forbidding text more
-    // emphatically, and asking explicitly for edge-to-edge/full-bleed
-    // fixed both in testing.
-    $prompt = "A single abstract flat-vector icon/symbol representing what this openFrameworks (C++ creative "
-        . "coding) addon does, based on: " . mb_substr($context, 0, 800) . ". "
+    // "no text" alone wasn't enough the first time this was tried - the
+    // model rendered a literal "C++" logo and left large empty margins
+    // around a small centered icon, which the crop below would have
+    // mostly wasted (it takes the full source width). Naming the
+    // language/toolkit only as background context, forbidding stray
+    // text more emphatically, and asking explicitly for edge-to-edge/
+    // full-bleed fixed both. The crop also only keeps a vertically-
+    // centered band across the full width (see ofx_thumbnail_crop_resize
+    // below), so the addon name has to stay inside that middle band or
+    // it gets sliced off the top/bottom.
+    $prompt = "A wide landscape flat-vector icon/illustration representing what this openFrameworks (C++ "
+        . "creative coding) addon does, based on: " . mb_substr($context, 0, 800) . ". "
         . 'The icon must fill the entire frame edge-to-edge, full-bleed, no empty margins or padding around it. '
-        . 'Absolutely no text, letters, words, numbers, or acronyms anywhere in the image - symbol/iconography '
-        . 'only. Simple bold geometric shapes, clean modern flat illustration style, dark background, wide '
-        . 'landscape composition.';
+        . "Render the addon's name, \"{$repoName}\", once as bold, clean, legible sans-serif typography "
+        . 'integrated into the composition - spelled exactly as given, nothing added, removed, or changed - '
+        . 'and keep it fully within the vertical middle third of the frame so it survives a center crop. Do '
+        . 'not render any other text, letters, words, numbers, or acronyms anywhere else in the image. Simple '
+        . 'bold geometric shapes, clean modern flat illustration style, dark background, wide landscape '
+        . 'composition.';
 
     $payload = [
         'model' => 'gpt-image-1',
