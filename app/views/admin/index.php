@@ -50,9 +50,9 @@
 <input type="text" class="filter-box" id="admin-search" placeholder="Search by repo name&hellip;" value="<?= ofx_h($search) ?>">
 
 <div class="admin-tabs">
-  <?php foreach ([...OFX_ADMIN_TYPES, OFX_ADMIN_CURATED_TAB] as $t): ?>
+  <?php foreach ([...OFX_ADMIN_TYPES, OFX_ADMIN_CURATED_TAB, OFX_ADMIN_NO_DESC_TAB] as $t): ?>
     <a href="/admin/repos?type=<?= ofx_h($t) ?>&sort=<?= ofx_h($sort) ?><?= $qSuffix ?>" class="admin-tab <?= $type === $t ? 'active' : '' ?>" data-type="<?= ofx_h($t) ?>">
-      <?= ofx_h($t) ?> <span class="count"><?= $counts[$t] ?></span>
+      <?= $t === OFX_ADMIN_NO_DESC_TAB ? 'No Description' : ofx_h($t) ?> <span class="count"><?= $counts[$t] ?></span>
     </a>
   <?php endforeach; ?>
 </div>

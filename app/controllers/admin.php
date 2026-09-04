@@ -7,6 +7,10 @@ const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam', 'Addon'];
 // description_curated=1 (any type), so admins can review/audit every
 // hand-written or AI-generated-then-approved description in one place.
 const OFX_ADMIN_CURATED_TAB = 'Curated';
+// Also not a repos.type value - Addon-type repos with a blank/null
+// description, regardless of type tab, so an admin can batch-fill them
+// (by hand or via the AI triage export) without hunting across tabs.
+const OFX_ADMIN_NO_DESC_TAB = 'NoDescription';
 const OFX_ADMIN_PAGE_SIZE = 25;
 
 function ofx_admin_index(): void
@@ -15,10 +19,11 @@ function ofx_admin_index(): void
     $pdo = ofx_db();
 
     $type = $_GET['type'] ?? 'Unsorted';
-    if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB) {
+    if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB && $type !== OFX_ADMIN_NO_DESC_TAB) {
         $type = 'Unsorted';
     }
     $isCuratedTab = $type === OFX_ADMIN_CURATED_TAB;
+    $isNoDescTab = $type === OFX_ADMIN_NO_DESC_TAB;
 
     $sort = $_GET['sort'] ?? 'pushed';
     if (!in_array($sort, ['pushed', 'updated'], true)) {
@@ -37,8 +42,10 @@ function ofx_admin_index(): void
     // Banned page, not cluttering this review tab
     $where = $isCuratedTab
         ? "r.description_curated = 1 AND r.type NOT IN ('NonAddon', 'Deleted')"
-        : 'r.type = ?';
-    $params = $isCuratedTab ? [] : [$type];
+        : ($isNoDescTab
+            ? "r.type = 'Addon' AND (r.description IS NULL OR r.description = '')"
+            : 'r.type = ?');
+    $params = ($isCuratedTab || $isNoDescTab) ? [] : [$type];
     if ($search !== '') {
         $where .= ' AND (r.full_name LIKE ? OR r.name LIKE ?)';
         $params[] = "%{$search}%";
@@ -74,6 +81,9 @@ function ofx_admin_index(): void
     }
     $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query(
         "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
+    )->fetchColumn();
+    $counts[OFX_ADMIN_NO_DESC_TAB] = (int)$pdo->query(
+        "SELECT COUNT(*) FROM repos WHERE type = 'Addon' AND (description IS NULL OR description = '')"
     )->fetchColumn();
     $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
     // confirmed_unique repos are excluded, same as the actual /admin/duplicates
