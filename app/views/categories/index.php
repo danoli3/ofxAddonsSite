@@ -25,7 +25,10 @@
   <?php endif; ?>
 
   <?php foreach ($categories as $category): ?>
-    <?php $all = $addonsByCategory[$category['id']] ?? []; ?>
+    <?php
+      $all = $addonsByCategory[$category['id']] ?? [];
+      $preview = $previewByCategory[$category['id']] ?? array_slice($all, 0, OFX_CATEGORY_PREVIEW_SIZE);
+    ?>
     <section class="category-section" id="category-<?= (int)$category['id'] ?>">
       <h2 class="category-section__title">
         <a href="<?= ofx_h(ofx_category_url($category)) ?>"><?= ofx_h($category['name']) ?></a>
@@ -35,7 +38,7 @@
         <?php endif; ?>
       </h2>
       <div class="addon-grid">
-        <?php foreach (array_slice($all, 0, OFX_CATEGORY_PREVIEW_SIZE) as $addon): ?>
+        <?php foreach ($preview as $addon): ?>
           <?php ofx_addon_partial($addon); ?>
         <?php endforeach; ?>
         <?php if (count($all) > OFX_CATEGORY_PREVIEW_SIZE): ?>

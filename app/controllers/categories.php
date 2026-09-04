@@ -12,7 +12,7 @@ function ofx_categories_index(): void
         FROM repos r
         JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN users u ON u.id = r.user_id
-        WHERE r.type = "Addon" AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
+        WHERE r.type = "Addon" AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0 AND r.archived = 0
         ORDER BY cz.featured DESC, LOWER(r.name) ASC
     ');
 
@@ -25,11 +25,73 @@ function ofx_categories_index(): void
 
     $categories = array_values(array_filter($categories, fn($c) => !empty($addonsByCategory[$c['id']])));
 
+    // A varied preview per category instead of just the first
+    // OFX_CATEGORY_PREVIEW_SIZE alphabetically, so the same handful of
+    // "a"-named addons don't dominate every category's preview forever.
+    $previewByCategory = [];
+    foreach ($addonsByCategory as $categoryId => $all) {
+        $previewByCategory[$categoryId] = ofx_category_preview_mix($all, OFX_CATEGORY_PREVIEW_SIZE);
+    }
+
     ofx_render('categories/index', [
         'categories' => $categories,
         'addonsByCategory' => $addonsByCategory,
+        'previewByCategory' => $previewByCategory,
         'title' => 'Categories',
     ]);
+}
+
+// Picks a varied preview of at most $limit addons from $all (which is
+// already featured-first, alphabetical): featured ones always lead,
+// then a mix of most-starred, most-forked, most-recently-updated, and
+// random picks fill the rest - each de-duped against what's already
+// chosen, so nothing appears twice in one category's preview. Used only
+// for the /categories preview grid; the paginated /categories/{slug}
+// page stays plain alphabetical, since re-randomizing every page load
+// there would duplicate/skip addons across infinite-scroll pages.
+function ofx_category_preview_mix(array $all, int $limit): array
+{
+    $featured = array_values(array_filter($all, fn($a) => !empty($a['featured'])));
+    $rest = array_values(array_filter($all, fn($a) => empty($a['featured'])));
+
+    $picked = array_slice($featured, 0, $limit);
+    $pickedIds = array_column($picked, 'id');
+
+    $take = function (array $candidates) use (&$picked, &$pickedIds, $limit): void {
+        foreach ($candidates as $addon) {
+            if (count($picked) >= $limit) {
+                return;
+            }
+            if (in_array($addon['id'], $pickedIds, true)) {
+                continue;
+            }
+            $picked[] = $addon;
+            $pickedIds[] = $addon['id'];
+        }
+    };
+
+    if (count($picked) < $limit) {
+        $byStars = $rest;
+        usort($byStars, fn($a, $b) => ($b['stargazers_count'] ?? 0) <=> ($a['stargazers_count'] ?? 0));
+        $take(array_slice($byStars, 0, 3));
+    }
+    if (count($picked) < $limit) {
+        $byForks = $rest;
+        usort($byForks, fn($a, $b) => ($b['forks_count'] ?? 0) <=> ($a['forks_count'] ?? 0));
+        $take(array_slice($byForks, 0, 2));
+    }
+    if (count($picked) < $limit) {
+        $byUpdated = $rest;
+        usort($byUpdated, fn($a, $b) => strtotime($b['pushed_at'] ?? '') <=> strtotime($a['pushed_at'] ?? ''));
+        $take(array_slice($byUpdated, 0, 2));
+    }
+    if (count($picked) < $limit) {
+        $shuffled = $rest;
+        shuffle($shuffled);
+        $take($shuffled);
+    }
+
+    return $picked;
 }
 
 // $slugOrId is the plain name slug (e.g. "gui", the current URL
