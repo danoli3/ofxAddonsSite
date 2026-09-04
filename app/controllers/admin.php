@@ -1060,6 +1060,7 @@ function ofx_admin_admins(): void
     ofx_render('admin/admins', [
         'users' => $stmt->fetchAll(),
         'currentUserId' => (int)$admin['id'],
+        'isSuperAdmin' => !empty($admin['super_admin']),
         'title' => 'Users',
     ]);
 }
@@ -1098,6 +1099,47 @@ function ofx_admin_toggle_admin(string $id): void
     );
 
     echo json_encode(['status' => 200, 'admin' => (bool)$newAdmin]);
+}
+
+// POST /admin/admins/{id}/toggle-super - grant or revoke super admin
+// access (bulk import, database backup, raw data export, AI triage
+// queue). Only a super admin can do this - a plain admin can't escalate
+// anyone, including themselves, into that tier. Same self-lockout
+// protection as the plain-admin toggle: can't change your own row here.
+function ofx_admin_toggle_super_admin(string $id): void
+{
+    $admin = ofx_require_super_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    if ((int)$id === (int)$admin['id']) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ["Can't change your own super admin access here"]]);
+        return;
+    }
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT id, login, super_admin FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['user not found']]);
+        return;
+    }
+
+    $newSuperAdmin = $user['super_admin'] ? 0 : 1;
+    $pdo->prepare('UPDATE users SET super_admin = ?, updated_at = NOW() WHERE id = ?')->execute([$newSuperAdmin, $id]);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'],
+        $newSuperAdmin ? 'grant_super_admin' : 'revoke_super_admin',
+        null,
+        $user['login'] ?? ('user #' . $id)
+    );
+
+    echo json_encode(['status' => 200, 'super_admin' => (bool)$newSuperAdmin]);
 }
 
 // POST /admin/add-repo - pulls in one specific repo Github search never

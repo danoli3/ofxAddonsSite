@@ -28,12 +28,25 @@
         </td>
         <td><?= ofx_h(ofx_time_ago($u['created_at'])) ?></td>
         <td><?= ofx_h(ofx_time_ago($u['last_login_at'])) ?></td>
-        <td><?= $u['admin'] ? '<span class="tag">Admin</span>' : 'User' ?></td>
+        <td>
+          <?php if (!empty($u['super_admin'])): ?>
+            <span class="tag tag--super-admin">Super Admin</span>
+          <?php elseif ($u['admin']): ?>
+            <span class="tag">Admin</span>
+          <?php else: ?>
+            User
+          <?php endif; ?>
+        </td>
         <td>
           <?php if ((int)$u['id'] !== $currentUserId): ?>
             <button type="button" class="admin-user__toggle" data-admin="<?= $u['admin'] ? '1' : '0' ?>">
               <?= $u['admin'] ? 'Revoke admin' : 'Make admin' ?>
             </button>
+            <?php if ($isSuperAdmin && $u['admin']): ?>
+              <button type="button" class="admin-user__toggle-super" data-super-admin="<?= !empty($u['super_admin']) ? '1' : '0' ?>">
+                <?= !empty($u['super_admin']) ? 'Revoke super admin' : 'Make super admin' ?>
+              </button>
+            <?php endif; ?>
           <?php else: ?>
             <span class="admin-row__status">(you)</span>
           <?php endif; ?>

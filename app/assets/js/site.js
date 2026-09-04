@@ -664,6 +664,35 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.admin-user__toggle-super', function () {
+    var $btn = $(this);
+    var $row = $btn.closest('tr');
+    var userId = $row.data('user-id');
+    var makingSuper = $btn.data('super-admin') != 1;
+    var login = $row.find('a').text().trim();
+    var verb = makingSuper ? 'Grant' : 'Revoke';
+    if (!window.confirm(verb + ' super admin access ' + (makingSuper ? 'to' : 'from') + ' ' + login + '?')) {
+      return;
+    }
+
+    $btn.prop('disabled', true);
+    $.ajax({
+      url: '/admin/admins/' + userId + '/toggle-super',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
+      $btn.prop('disabled', false);
+    });
+  });
+
   var $adminTbody = $('#admin-tbody');
   if ($adminTbody.length) {
     var $adminSentinel = $('#admin-sentinel');
