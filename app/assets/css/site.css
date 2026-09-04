@@ -285,6 +285,8 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 .addon-card__stars { display: flex; align-items: center; gap: 4px; color: #f0b93b; font-weight: 600; }
 .addon-card__forks { display: flex; align-items: center; gap: 4px; color: var(--accent-3); font-weight: 600; }
 .addon-card__forks:hover { text-decoration: none; opacity: .85; }
+.addon-card__admin { display: flex; align-items: center; gap: 4px; color: #f5b638; font-weight: 600; }
+.addon-card__admin:hover { text-decoration: none; opacity: .85; }
 .addon-card.is-hidden { display: none; }
 
 .grid-sentinel { height: 1px; }
@@ -348,8 +350,6 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 
 .addon-card__more { font-size: .76rem; color: var(--accent-3); }
 .addon-card__more:hover { text-decoration: none; opacity: .85; }
-.addon-card__admin { font-size: .76rem; color: #f5b638; }
-.addon-card__admin:hover { text-decoration: none; opacity: .85; }
 
 .addon-detail__back { display: inline-block; font-size: .85rem; color: var(--text-muted); margin-bottom: 14px; }
 .addon-detail__back:hover { color: var(--accent-3); text-decoration: none; }

@@ -31,9 +31,6 @@ $cardIsAdmin = !empty($cardUser['admin']);
       <?php if (($addon['type'] ?? null) === 'Addon'): ?>
         <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($addon['full_name'])) ?>">More info &rarr;</a>
       <?php endif; ?>
-      <?php if ($cardIsAdmin): ?>
-        <a class="addon-card__admin" href="/admin/repos?type=<?= ofx_h($addon['type'] ?? 'Addon') ?>&q=<?= ofx_h(rawurlencode($addon['full_name'] ?? '')) ?>">Admin &rarr;</a>
-      <?php endif; ?>
     </div>
     <?php if (!empty($addon['featured'])): ?>
       <span class="tag tag--featured" title="Featured in this category">★ Featured</span>
@@ -72,6 +69,15 @@ $cardIsAdmin = !empty($cardUser['admin']);
             <path d="M5 3.25a1.75 1.75 0 1 1 3.5 0 1.75 1.75 0 0 1-3.5 0Zm5.75 0a1.75 1.75 0 1 1 3.5 0 1.75 1.75 0 0 1-3.5 0ZM6.5 5.75c.276 0 .5.224.5.5v1.774c.996.284 1.719 1.207 1.719 2.298v.478h.219a.5.5 0 0 1 0 1H7.5a.5.5 0 0 1 0-1h.219v-.478c0-1.09.723-2.014 1.719-2.298V6.25a.5.5 0 0 1 1 0v1.774c.996.284 1.719 1.207 1.719 2.298v.478H9.5a1.75 1.75 0 0 0-1.75 1.75v.5a1.75 1.75 0 0 0 1.75 1.75h.5a1.75 1.75 0 0 0 1.75-1.75"/>
           </svg>
           <?= $newerForkCount ?>
+        </a>
+      <?php endif; ?>
+      <?php if ($cardIsAdmin): ?>
+        <a class="addon-card__admin" title="Edit in admin"
+           href="/admin/repos?type=<?= ofx_h($addon['type'] ?? 'Addon') ?>&q=<?= ofx_h(rawurlencode($addon['full_name'] ?? '')) ?>">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
+            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.25.25 0 0 0-.064.108l-.558 1.953 1.953-.558a.249.249 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"/>
+          </svg>
+          Admin
         </a>
       <?php endif; ?>
     </span>
