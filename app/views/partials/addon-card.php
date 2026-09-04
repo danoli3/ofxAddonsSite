@@ -81,6 +81,13 @@ $cardIsAdmin = !empty($cardUser['admin']);
         </a>
       <?php endif; ?>
     </span>
-    <span class="addon-card__updated">Updated <?= ofx_h(ofx_time_ago($addon['pushed_at'] ?? null)) ?></span>
+    <span class="addon-card__dates">
+      <span class="addon-card__updated">Updated <?= ofx_h(ofx_time_ago($addon['pushed_at'] ?? null)) ?></span>
+      <?php if (!empty($addon['created_at'])): ?>
+        <span class="addon-card__created" title="<?= ofx_h(date('M j, Y', strtotime($addon['created_at']))) ?>">
+          Created <?= ofx_h(ofx_time_ago($addon['created_at'])) ?>
+        </span>
+      <?php endif; ?>
+    </span>
   </div>
 </article>

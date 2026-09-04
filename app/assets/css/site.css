@@ -281,6 +281,8 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   padding-top: 10px;
   margin-top: auto;
 }
+.addon-card__dates { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.addon-card__created { font-size: .72rem; opacity: .75; }
 .addon-card__stats { display: flex; align-items: center; gap: 10px; }
 .addon-card__stars { display: flex; align-items: center; gap: 4px; color: #f0b93b; font-weight: 600; }
 .addon-card__forks { display: flex; align-items: center; gap: 4px; color: var(--accent-3); font-weight: 600; }
@@ -363,8 +365,6 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   font-size: .85rem;
   margin-bottom: 8px;
 }
-.addon-detail__meta a { display: inline-flex; align-items: center; gap: 4px; color: inherit; }
-.addon-detail__meta a:hover { color: var(--accent-3); text-decoration: none; }
 .addon-detail__readme {
   background: var(--surface);
   border: 1px solid var(--border);
