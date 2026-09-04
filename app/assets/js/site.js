@@ -172,6 +172,20 @@ $(function () {
     return $row.closest('table').data('endpoint');
   }
 
+  // Small spinner+text status box shown right under a Generate button
+  // while its request is in flight, instead of the far-away actions
+  // column - $scope is whatever ancestor holds the one console box that
+  // belongs to this button (there can be more than one per row).
+  function showConsole($scope, text) {
+    var $console = $scope.find('.admin-row__console');
+    $console.find('.admin-row__console-text').text(text);
+    $console.prop('hidden', false);
+    return $console;
+  }
+  function hideConsole($scope) {
+    $scope.find('.admin-row__console').prop('hidden', true);
+  }
+
   function saveRepoType($row, type, categoryIds, removeIfNot, description, descriptionGenerated, extra) {
     var repoId = $row.data('repo-id');
     var $status = $row.find('.admin-row__status');
@@ -434,9 +448,9 @@ $(function () {
   $(document).on('click', '.admin-row__generate-desc', function () {
     var $btn = $(this);
     var $row = $btn.closest('.admin-row');
+    var $cell = $btn.closest('.admin-row__desc-cell');
     var repoId = $row.data('repo-id');
     var $desc = $row.find('.admin-row__desc');
-    var $status = $row.find('.admin-row__status');
     // whatever's currently shown, saved or not - a second click builds
     // on this rather than the last saved value, and the server uses it
     // to steer the prompt away from repeating what's already there
@@ -444,7 +458,7 @@ $(function () {
     var maxLength = parseInt($desc.attr('maxlength'), 10) || 350;
 
     $btn.prop('disabled', true);
-    $status.text(existing ? 'Generating more…' : 'Generating…');
+    showConsole($cell, existing ? 'Generating more…' : 'Generating…');
 
     $.ajax({
       url: rowEndpoint($row) + '/' + repoId + '/generate-description',
@@ -456,14 +470,14 @@ $(function () {
       $desc.val(combined.slice(0, maxLength));
       $row.find('.admin-row__desc-generated').val('1');
       updateCharCount($desc);
-      $status.text('Suggested - review & Save');
+      hideConsole($cell);
     }).fail(function (xhr) {
       var msg = 'Generate failed';
       try {
         var body = JSON.parse(xhr.responseText);
         if (body.error) msg = [].concat(body.error).join(', ');
       } catch (e) {}
-      $status.text(msg);
+      showConsole($cell, msg);
     }).always(function () {
       $btn.prop('disabled', false);
     });
@@ -476,15 +490,18 @@ $(function () {
   $(document).on('click', '.admin-row__generate-thumb', function () {
     var $btn = $(this);
     var $row = $btn.closest('.admin-row');
+    var $cell = $btn.closest('td');
     var repoId = $btn.data('repo-id');
 
-    $btn.prop('disabled', true).text('Generating…');
+    $btn.prop('disabled', true);
+    showConsole($cell, 'Generating - this can take up to a minute…');
 
     $.ajax({
       url: rowEndpoint($row) + '/' + repoId + '/generate-thumbnail',
       method: 'POST',
       dataType: 'json'
     }).done(function (res) {
+      hideConsole($cell);
       $btn.replaceWith($('<img class="admin-row__thumb" alt="" loading="lazy">').attr('src', res.thumbnail_url));
     }).fail(function (xhr) {
       var msg = 'Generate failed';
@@ -492,8 +509,8 @@ $(function () {
         var body = JSON.parse(xhr.responseText);
         if (body.error) msg = [].concat(body.error).join(', ');
       } catch (e) {}
-      window.alert(msg);
-      $btn.prop('disabled', false).html('&#10024; Generate Img');
+      showConsole($cell, msg);
+      $btn.prop('disabled', false);
     });
   });
 

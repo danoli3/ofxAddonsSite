@@ -19,6 +19,10 @@
               title="Generate a 270x70 thumbnail with DALL-E, from this repo's name/description/README">
         &#10024; Generate Img
       </button>
+      <div class="admin-row__console" hidden>
+        <span class="spinner"></span>
+        <span class="admin-row__console-text"></span>
+      </div>
     <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">
@@ -50,6 +54,10 @@
          title="Opens the repo on Github - use Github's own Copilot icon there for an overview, then paste it in">
         Ask Copilot &rarr;
       </a>
+    </div>
+    <div class="admin-row__console" hidden>
+      <span class="spinner"></span>
+      <span class="admin-row__console-text"></span>
     </div>
   </td>
   <td>
