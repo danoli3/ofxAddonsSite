@@ -4,6 +4,11 @@ declare(strict_types=1);
 const OFX_AI_TRIAGE_TYPES = ['Unsorted', 'Incomplete', 'Spam'];
 const OFX_AI_TRIAGE_DEFAULT_LIMIT = 8;
 const OFX_AI_TRIAGE_MAX_LIMIT = 20;
+// How long a batch stays "claimed" (see ofx_api_triage_batch below)
+// before it's fair game again. Long enough to cover a slow README-fetch
+// + classify + submit round trip; short enough that a crashed or
+// abandoned run doesn't strand those addons for good.
+const OFX_AI_TRIAGE_LEASE_MINUTES = 30;
 
 // Every /api/triage/* endpoint is a machine-to-machine API for a locally
 // run model, not a browser session - authenticated by a static bearer key
@@ -24,15 +29,20 @@ function ofx_api_triage_require_key(): bool
     return true;
 }
 
-// GET /api/triage/batch?limit=8 - a small, not-yet-queued slice of
+// GET /api/triage/batch?limit=8 - a small, not-yet-claimed slice of
 // Unsorted/Incomplete/Spam repos for a local model to classify, each with
 // its actual README fetched server-side and truncated to a model-sized
 // chunk - the point of this endpoint is that a local model has no
 // browsing tool of its own to fetch that itself, which is what made the
 // old single giant export (which just told the model to go fetch READMEs)
-// unworkable for it. Repos already sitting in ai_triage_queue are
-// excluded, so repeated calls page through fresh addons instead of
-// re-serving the same ones every time.
+// unworkable for it. Repos already sitting in ai_triage_queue (submitted,
+// awaiting review) are excluded outright; repos handed out in a batch
+// within the last OFX_AI_TRIAGE_LEASE_MINUTES are excluded too, even if
+// never submitted - without that claim, calling this endpoint more than
+// once before finishing/submitting the first batch (parallel calls,
+// retries, a slow per-addon README fetch) just re-served the same
+// addons every time. The claim expires on its own if nothing is ever
+// submitted, so a crashed/abandoned run doesn't strand those addons.
 function ofx_api_triage_batch(): void
 {
     if (!ofx_api_triage_require_key()) {
@@ -47,6 +57,7 @@ function ofx_api_triage_batch(): void
 
     $pdo = ofx_db();
     $typePlaceholders = implode(',', array_fill(0, count(OFX_AI_TRIAGE_TYPES), '?'));
+    $leaseMinutes = OFX_AI_TRIAGE_LEASE_MINUTES;
 
     $stmt = $pdo->prepare("
         SELECT id, full_name, name, description, type, stargazers_count, pushed_at,
@@ -54,15 +65,23 @@ function ofx_api_triage_batch(): void
         FROM repos
         WHERE type IN ({$typePlaceholders})
           AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
-        ORDER BY updated_at ASC
+          AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
+        ORDER BY (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
         LIMIT {$limit}
     ");
     $stmt->execute(OFX_AI_TRIAGE_TYPES);
     $rows = $stmt->fetchAll();
 
+    if (!empty($rows)) {
+        $idPlaceholders = implode(',', array_fill(0, count($rows), '?'));
+        $pdo->prepare("UPDATE repos SET ai_triage_batched_at = NOW() WHERE id IN ({$idPlaceholders})")
+            ->execute(array_column($rows, 'id'));
+    }
+
     $countStmt = $pdo->prepare("
         SELECT COUNT(*) FROM repos
         WHERE type IN ({$typePlaceholders}) AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
+          AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
     ");
     $countStmt->execute(OFX_AI_TRIAGE_TYPES);
     $remaining = (int)$countStmt->fetchColumn();
@@ -105,7 +124,9 @@ function ofx_api_triage_batch(): void
         'of_versions' => array_column(OFX_VERSIONS, 'version'),
         'types' => array_map(fn($t) => $t === 'NonAddon' ? 'Banned' : $t, OFX_REPO_TYPES),
         'addons' => $addons,
-        'remaining_after_this_batch' => max(0, $remaining - count($addons)),
+        // already excludes the batch just claimed above, since the claim
+        // was written before this count ran
+        'remaining_after_this_batch' => $remaining,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
 
