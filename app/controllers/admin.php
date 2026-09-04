@@ -76,9 +76,11 @@ function ofx_admin_index(): void
         "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
     )->fetchColumn();
     $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
+    // confirmed_unique repos are excluded, same as the actual /admin/duplicates
+    // query - otherwise this badge count could show a group that page doesn't
     $dupeCount = (int)$pdo->query("
         SELECT COUNT(*) FROM (
-            SELECT 1 FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0
+            SELECT 1 FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
             GROUP BY LOWER(name) HAVING COUNT(*) > 1
         ) t
     ")->fetchColumn();
@@ -310,6 +312,80 @@ function ofx_admin_export_banned(): void
         ['generated_at' => gmdate('c'), 'banned' => $banned],
         JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
     );
+}
+
+// GET /admin/backup.sql.gz - a full logical dump of every table (schema
+// + data, as DROP/CREATE/INSERT statements), gzipped. Built in pure PHP
+// via SHOW CREATE TABLE + SELECT rather than shelling out to the
+// mysqldump binary, since shared hosting can't be relied on to have
+// exec()/shell_exec() enabled or the binary on PATH.
+function ofx_admin_backup_sql(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $dbName = $pdo->query('SELECT DATABASE()')->fetchColumn();
+
+    $sql = "-- ofxAddons database backup\n"
+        . "-- Generated " . gmdate('c') . "\n"
+        . "SET NAMES utf8mb4;\n"
+        . "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+
+    $tables = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($tables as $table) {
+        $createRow = $pdo->query('SHOW CREATE TABLE `' . $table . '`')->fetch();
+        $createSql = $createRow['Create Table'] ?? '';
+
+        $sql .= "-- ----------------------------\n"
+            . "-- Table: {$table}\n"
+            . "-- ----------------------------\n"
+            . "DROP TABLE IF EXISTS `{$table}`;\n"
+            . $createSql . ";\n\n";
+
+        $count = (int)$pdo->query('SELECT COUNT(*) FROM `' . $table . '`')->fetchColumn();
+        if ($count === 0) {
+            continue;
+        }
+
+        $stmt = $pdo->query('SELECT * FROM `' . $table . '`');
+        $columns = null;
+        $rowsInBatch = [];
+        $batchSize = 200;
+
+        $flush = function () use (&$rowsInBatch, &$sql, $table, &$columns): void {
+            if (empty($rowsInBatch)) {
+                return;
+            }
+            $cols = '`' . implode('`, `', $columns) . '`';
+            $sql .= "INSERT INTO `{$table}` ({$cols}) VALUES\n" . implode(",\n", $rowsInBatch) . ";\n";
+            $rowsInBatch = [];
+        };
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($columns === null) {
+                $columns = array_keys($row);
+            }
+            $values = array_map(function ($v) use ($pdo) {
+                return $v === null ? 'NULL' : $pdo->quote((string)$v);
+            }, $row);
+            $rowsInBatch[] = '(' . implode(', ', $values) . ')';
+            if (count($rowsInBatch) >= $batchSize) {
+                $flush();
+            }
+        }
+        $flush();
+        $sql .= "\n";
+    }
+
+    $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+
+    $filename = 'ofxaddons-' . ($dbName ?: 'db') . '-' . gmdate('Y-m-d') . '.sql.gz';
+    $gz = gzencode($sql, 9);
+
+    header('Content-Type: application/gzip');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($gz));
+    echo $gz;
 }
 
 function ofx_admin_export(string $format): void

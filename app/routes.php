@@ -53,6 +53,7 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/export\.(json|xml)$#', 'ofx_admin_export'],
         ['GET', '#^/admin/export-triage\.json$#', 'ofx_admin_export_triage'],
         ['GET', '#^/admin/export-banned\.json$#', 'ofx_admin_export_banned'],
+        ['GET', '#^/admin/backup\.sql\.gz$#', 'ofx_admin_backup_sql'],
         ['POST', '#^/admin/import$#', 'ofx_admin_import'],
         ['GET', '#^/my/addons$#', 'ofx_my_addons_index'],
         ['POST', '#^/my/addons/(\d+)$#', 'ofx_my_addons_update'],
