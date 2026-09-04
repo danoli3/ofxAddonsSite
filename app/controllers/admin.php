@@ -53,11 +53,26 @@ function ofx_admin_index(): void
     $isAiCuratedTab = $type === OFX_ADMIN_AI_CURATED_TAB;
     $isNoDescTab = $type === OFX_ADMIN_NO_DESC_TAB;
 
+    // "pushed" = Github's pushed_at (last commit); "updated" = our own
+    // updated_at, which moves on every crawl sync or admin edit - lets
+    // an admin surface rows the crawler *just* touched, not just repos
+    // with recent commits upstream. "thumbnail" puts every repo that
+    // already has an ofxaddons_thumbnail.png/override/AI-generated image
+    // first (pushed_at as the tiebreaker within each group) - useful for
+    // spotting ones still showing the generic ofxAddonTemplate example
+    // image, which "has a thumbnail" but isn't really this addon's own.
     $sort = $_GET['sort'] ?? 'pushed';
-    if (!in_array($sort, ['pushed', 'updated'], true)) {
+    if (!in_array($sort, ['pushed', 'updated', 'thumbnail'], true)) {
         $sort = 'pushed';
     }
-    $orderColumn = $sort === 'updated' ? 'r.updated_at' : 'r.pushed_at';
+    if ($sort === 'updated') {
+        $order = 'r.updated_at DESC, r.id ASC';
+    } elseif ($sort === 'thumbnail') {
+        $order = "((r.thumbnail_url_override IS NOT NULL AND r.thumbnail_url_override != '')
+            OR r.has_thumbnail = 1 OR r.ai_thumbnail_generated_at IS NOT NULL) DESC, r.pushed_at DESC, r.id ASC";
+    } else {
+        $order = 'r.pushed_at DESC, r.id ASC';
+    }
 
     $search = trim($_GET['q'] ?? '');
 
@@ -91,7 +106,7 @@ function ofx_admin_index(): void
         FROM repos r
         LEFT JOIN users u ON u.id = r.user_id
         WHERE {$where}
-        ORDER BY {$orderColumn} DESC, r.id ASC
+        ORDER BY {$order}
         LIMIT {$fetch} OFFSET {$offset}
     ");
     $stmt->execute($params);

@@ -67,6 +67,9 @@
   <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=updated<?= $qSuffix ?>" class="admin-tab <?= $sort === 'updated' ? 'active' : '' ?>">
     Recently updated
   </a>
+  <a href="/admin/repos?type=<?= ofx_h($type) ?>&sort=thumbnail<?= $qSuffix ?>" class="admin-tab <?= $sort === 'thumbnail' ? 'active' : '' ?>" title="Repos that already have a thumbnail image (own, override, or AI-generated) first">
+    Has Image
+  </a>
 </div>
 
 <div class="table-scroll">

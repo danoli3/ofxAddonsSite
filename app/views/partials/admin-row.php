@@ -14,16 +14,19 @@
     <?php $rowThumb = ofx_addon_thumbnail_url($repo); ?>
     <?php if ($rowThumb): ?>
       <img class="admin-row__thumb" src="<?= ofx_h($rowThumb) ?>" alt="" loading="lazy" onerror="this.hidden = true">
-    <?php else: ?>
-      <button type="button" class="admin-row__generate-thumb" data-repo-id="<?= (int)$repo['id'] ?>"
-              title="Generate a 270x70 thumbnail with DALL-E, from this repo's name/description/README">
-        &#10024; Generate Img
-      </button>
-      <div class="admin-row__console" hidden>
-        <span class="spinner"></span>
-        <span class="admin-row__console-text"></span>
-      </div>
     <?php endif; ?>
+    <!-- shown even when a thumbnail already exists - some repos' own
+         ofxaddons_thumbnail.png is just the generic ofxAddonTemplate
+         example image, not anything specific to that addon, so an admin
+         needs a way to regenerate over it, not just fill in blanks -->
+    <button type="button" class="admin-row__generate-thumb" data-repo-id="<?= (int)$repo['id'] ?>"
+            title="Generate a 270x70 thumbnail with AI, from this repo's name/description/README">
+      &#10024; <?= $rowThumb ? 'Regenerate Img' : 'Generate Img' ?>
+    </button>
+    <div class="admin-row__console" hidden>
+      <span class="spinner"></span>
+      <span class="admin-row__console-text"></span>
+    </div>
   </td>
   <td class="admin-row__desc-cell">
     <div class="admin-row__desc-inner">

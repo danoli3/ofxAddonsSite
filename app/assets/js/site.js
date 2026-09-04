@@ -502,7 +502,17 @@ $(function () {
       dataType: 'json'
     }).done(function (res) {
       hideConsole($cell);
-      $btn.replaceWith($('<img class="admin-row__thumb" alt="" loading="lazy">').attr('src', res.thumbnail_url));
+      // the button stays (relabeled) instead of being replaced by the
+      // image, so an admin can regenerate again later - e.g. over a
+      // generic ofxAddonTemplate example image the repo's own
+      // ofxaddons_thumbnail.png just happened to be
+      var $img = $cell.find('.admin-row__thumb');
+      if ($img.length) {
+        $img.attr('src', res.thumbnail_url).prop('hidden', false);
+      } else {
+        $btn.before($('<img class="admin-row__thumb" alt="" loading="lazy">').attr('src', res.thumbnail_url));
+      }
+      $btn.html('&#10024; Regenerate Img').prop('disabled', false);
     }).fail(function (xhr) {
       var msg = 'Generate failed';
       try {
