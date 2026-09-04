@@ -1,5 +1,15 @@
+<?php
+/** @var array $visibleRepos */
+/** @var array $hiddenRepos */
+/** @var array $bannedRepos */
+/** @var array $categories */
+/** @var array $repoCategoryIds */
+/** @var array $publicAddons */
+$allRepoCount = count($visibleRepos) + count($hiddenRepos) + count($bannedRepos);
+?>
 <div class="page-head">
   <h1>My Addons</h1>
+  <a class="my-addons__edit-btn" href="#edit">Edit Addons &rarr;</a>
 </div>
 
 <?php if (!empty($publicAddons)): ?>
@@ -15,101 +25,62 @@
   </p>
 <?php endif; ?>
 
-<div class="page-head">
+<hr class="section-divider">
+
+<div class="page-head" id="edit">
   <h1>Edit Addons</h1>
 </div>
 <p class="page-intro">
   Repos of yours the crawler has found. Categorize them, write your own description, hide one from public
   listings, or point at a custom thumbnail/GIF &mdash; changes here are yours; a crawl sync will never
   overwrite a description you've saved.
+  <?php if ($allRepoCount === 0): ?>
+    New to this? Read the <a href="/pages/howto">How To</a> guide for what makes a repo show up here.
+  <?php else: ?>
+    <a href="/pages/howto">How To</a>
+  <?php endif; ?>
 </p>
 
-<?php if (empty($repos)): ?>
+<?php if ($allRepoCount === 0): ?>
   <p class="empty-state">
     Nothing found under your Github account yet. If you've just published an addon, the crawler runs daily
     and should pick it up soon &mdash; make sure the repo name starts with <code>ofx</code>.
   </p>
-<?php endif; ?>
-
-<div class="table-scroll">
-<table class="admin-table" id="my-addons-table" data-endpoint="/my/addons">
-  <thead>
-    <tr>
-      <th>Repo</th>
-      <th>Description</th>
-      <th>Categories</th>
-      <th>Thumbnail URL</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php foreach ($repos as $repo): ?>
-      <tr class="admin-row" data-repo-id="<?= (int)$repo['id'] ?>" data-repo-name="<?= ofx_h($repo['name'] ?? $repo['full_name'] ?? '') ?>">
-        <td>
-          <a href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener">
-            <?= ofx_h($repo['name']) ?>
-          </a>
-          <div class="admin-row__owner"><?= ofx_h($repo['type']) ?></div>
-          <?php if ($repo['type'] === 'Addon'): ?>
-            <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
-          <?php endif; ?>
-          <?php if (!empty($repo['hidden_by_owner'])): ?>
-            <span class="tag tag--archived">Hidden from public</span>
-          <?php endif; ?>
-          <?php if (in_array($repo['type'], OFX_REVIEWABLE_TYPES, true)): ?>
-            <?php if (!empty($repo['ban_appealed'])): ?>
-              <span class="tag tag--curated">Review requested</span>
-            <?php else: ?>
-              <button type="button" class="my-addon-row__appeal-ban" data-repo-id="<?= (int)$repo['id'] ?>">Ask for Admin Review</button>
-            <?php endif; ?>
-          <?php endif; ?>
-        </td>
-        <td class="admin-row__desc-cell">
-          <textarea class="admin-row__desc" rows="5"
-                    maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
-          <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
-          <div class="admin-row__desc-meta">
-            <span class="admin-row__char-count"></span>
-            <?php if (!empty($repo['description_curated'])): ?>
-              <span class="tag tag--curated" title="Saved - a crawl sync won't overwrite this">
-                <?= !empty($repo['description_generated']) ? 'AI-generated' : 'Curated' ?>
-              </span>
-            <?php endif; ?>
-            <?php if (empty($repo['description'])): ?>
-              <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
-                &#10024; Generate
-              </button>
-            <?php else: ?>
-              <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
-                &#10024; Generate more
-              </button>
-            <?php endif; ?>
-          </div>
-        </td>
-        <td>
-          <?php ofx_category_picker($categories, $repoCategoryIds[$repo['id']] ?? []); ?>
-        </td>
-        <?php
-          $detectedThumbnail = $repo['thumbnail_url_override']
-              ?: (!empty($repo['has_thumbnail']) ? ofx_thumbnail_url($repo['full_name']) : '');
-        ?>
-        <td>
-          <img class="my-addon-row__thumbnail-preview" src="<?= ofx_h($detectedThumbnail) ?>" alt=""
-               loading="lazy" <?= $detectedThumbnail === '' ? 'hidden' : '' ?>
-               onerror="this.hidden = true" onload="this.hidden = false">
-          <input type="url" class="my-addon-row__thumbnail" placeholder="https://.../image.png or .gif"
-                 value="<?= ofx_h($detectedThumbnail) ?>">
-          <label class="my-addon-row__hidden-label">
-            <input type="checkbox" class="my-addon-row__hidden" <?= !empty($repo['hidden_by_owner']) ? 'checked' : '' ?>>
-            Hide from public listings
-          </label>
-        </td>
-        <td class="admin-row__actions">
-          <button type="button" class="admin-row__save">Save</button>
-          <span class="admin-row__status"></span>
-        </td>
+<?php else: ?>
+  <div class="table-scroll">
+  <table class="admin-table" id="my-addons-table" data-endpoint="/my/addons">
+    <thead>
+      <tr>
+        <th>Repo</th>
+        <th>Description</th>
+        <th>Categories</th>
+        <th>Thumbnail URL</th>
+        <th></th>
       </tr>
-    <?php endforeach; ?>
-  </tbody>
-</table>
-</div>
+    </thead>
+    <tbody>
+      <?php foreach ($visibleRepos as $repo): ?>
+        <?php ofx_my_addon_row_partial($repo, $categories, $repoCategoryIds[$repo['id']] ?? []); ?>
+      <?php endforeach; ?>
+
+      <?php if (!empty($hiddenRepos)): ?>
+        <tr class="my-addons-divider">
+          <td colspan="5">Hidden from public (<?= count($hiddenRepos) ?>)</td>
+        </tr>
+        <?php foreach ($hiddenRepos as $repo): ?>
+          <?php ofx_my_addon_row_partial($repo, $categories, $repoCategoryIds[$repo['id']] ?? []); ?>
+        <?php endforeach; ?>
+      <?php endif; ?>
+
+      <?php if (!empty($bannedRepos)): ?>
+        <tr class="my-addons-divider my-addons-divider--banned">
+          <td colspan="5">Banned (<?= count($bannedRepos) ?>)</td>
+        </tr>
+        <?php foreach ($bannedRepos as $repo): ?>
+          <?php ofx_my_addon_row_partial($repo, $categories, $repoCategoryIds[$repo['id']] ?? [], true); ?>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+<?php endif; ?>

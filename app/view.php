@@ -387,6 +387,13 @@ function ofx_category_addon_partial(array $addon, int $categoryId, bool $isAdmin
     include __DIR__ . '/views/partials/category-addon-card.php';
 }
 
+// /my/addons has its own row shape (a Thumbnail URL column the admin
+// table doesn't have), so it doesn't share ofx_admin_row_partial().
+function ofx_my_addon_row_partial(array $repo, array $categories, array $selectedCategoryIds, bool $isBanned = false): void
+{
+    include __DIR__ . '/views/partials/my-addon-row.php';
+}
+
 function ofx_category_picker(array $categories, array $selectedCategoryIds): void
 {
     include __DIR__ . '/views/partials/category-picker.php';

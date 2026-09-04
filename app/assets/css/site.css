@@ -613,6 +613,30 @@ a.addon-card__desc:hover { color: var(--text); }
    category chip picker isn't squeezed into the narrow "Type" slot */
 #my-addons-table th:nth-child(3), #my-addons-table td:nth-child(3) { width: 29%; }
 #my-addons-table th:nth-child(4), #my-addons-table td:nth-child(4) { width: 13%; }
+.my-addons-divider td {
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 8px 16px;
+}
+.my-addons-divider--banned td { color: #ff6b6b; }
+.admin-row--banned td { background: rgba(255, 107, 107, .04); }
+.admin-row--banned .admin-row__owner { color: #ff6b6b; }
+.my-addons__edit-btn {
+  flex-shrink: 0;
+  background: rgba(124, 92, 255, .1);
+  border: 1px solid rgba(124, 92, 255, .35);
+  color: var(--accent-1);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: .82rem;
+  font-weight: 600;
+}
+.my-addons__edit-btn:hover { text-decoration: none; background: rgba(124, 92, 255, .18); }
+.section-divider { border: none; border-top: 1px solid var(--border); margin: 34px 0; }
 .admin-row__owner { color: var(--text-muted); font-size: .78rem; }
 .admin-row__url { display: block; color: var(--text-muted); font-size: .74rem; margin-top: 2px; }
 .admin-row__url:hover { color: var(--accent-3); }

@@ -6,12 +6,30 @@ function ofx_my_addons_index(): void
     $user = ofx_require_user();
     $pdo = ofx_db();
 
-    $stmt = $pdo->prepare('SELECT * FROM repos WHERE user_id = ? ORDER BY hidden_by_owner ASC, LOWER(name) ASC');
+    $stmt = $pdo->prepare('SELECT * FROM repos WHERE user_id = ? ORDER BY LOWER(name) ASC');
     $stmt->execute([$user['id']]);
-    $repos = $stmt->fetchAll();
+    $allRepos = $stmt->fetchAll();
+
+    // Split into three visually distinct groups for the edit table:
+    // banned (NonAddon/Deleted - same definition as /admin/banned) sinks
+    // to the very bottom regardless of hidden-from-public status, since
+    // it's a stronger, admin-driven state; hidden-by-owner sinks below
+    // the normal editable list but above banned.
+    $visibleRepos = [];
+    $hiddenRepos = [];
+    $bannedRepos = [];
+    foreach ($allRepos as $repo) {
+        if (in_array($repo['type'], OFX_BANNED_TYPES, true)) {
+            $bannedRepos[] = $repo;
+        } elseif (!empty($repo['hidden_by_owner'])) {
+            $hiddenRepos[] = $repo;
+        } else {
+            $visibleRepos[] = $repo;
+        }
+    }
 
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
-    $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($repos, 'id'));
+    $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($allRepos, 'id'));
 
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
@@ -28,7 +46,9 @@ function ofx_my_addons_index(): void
     $publicAddons = $stmt->fetchAll();
 
     ofx_render('my_addons/index', [
-        'repos' => $repos,
+        'visibleRepos' => $visibleRepos,
+        'hiddenRepos' => $hiddenRepos,
+        'bannedRepos' => $bannedRepos,
         'categories' => $categories,
         'repoCategoryIds' => $repoCategoryIds,
         'publicAddons' => $publicAddons,

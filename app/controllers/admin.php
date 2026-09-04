@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Incomplete', 'NonAddon', 'Spam', 'Unsorted'];
 const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam', 'Addon'];
+// Same definition /admin/banned uses - shared here so /my/addons can
+// group an owner's own banned repos the same way.
+const OFX_BANNED_TYPES = ['NonAddon', 'Deleted'];
 // "Curated" isn't a repos.type value - it's a separate tab filtered on
 // description_curated=1 (any type), so admins can review/audit every
 // hand-written or AI-generated-then-approved description in one place.
