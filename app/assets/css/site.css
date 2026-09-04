@@ -396,7 +396,7 @@ a.addon-card__desc:hover { color: var(--text); }
 .contributor-card__login { font-weight: 700; }
 .contributor-card__count { color: var(--text-muted); font-size: .8rem; }
 
-.contributor-head { align-items: center; gap: 16px; }
+.contributor-head { align-items: center; justify-content: flex-start; gap: 16px; }
 .contributor-head__avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
 .addon-detail__thumb {
   display: block;

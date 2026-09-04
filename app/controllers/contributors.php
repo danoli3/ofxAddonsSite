@@ -36,6 +36,11 @@ function ofx_contributors_show(string $login): void
     );
     $stmt->execute([$user['id']]);
     $addons = $stmt->fetchAll();
+    foreach ($addons as &$addon) {
+        $addon['user_login'] = $user['login'];
+        $addon['user_avatar_url'] = $user['avatar_url'];
+    }
+    unset($addon);
 
     // Forks of this contributor's own addons that are more actively
     // maintained than the addon itself - reuses the newer_forks data the
