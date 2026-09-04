@@ -469,6 +469,34 @@ $(function () {
     });
   });
 
+  // admin-only "Generate Img" button in the Repo column - replaces
+  // itself with the resulting <img> on success, same element either
+  // table it's in came from (there's only one caller, the admin table,
+  // but this mirrors the other buttons' pattern for consistency).
+  $(document).on('click', '.admin-row__generate-thumb', function () {
+    var $btn = $(this);
+    var $row = $btn.closest('.admin-row');
+    var repoId = $btn.data('repo-id');
+
+    $btn.prop('disabled', true).text('Generating…');
+
+    $.ajax({
+      url: rowEndpoint($row) + '/' + repoId + '/generate-thumbnail',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $btn.replaceWith($('<img class="admin-row__thumb" alt="" loading="lazy">').attr('src', res.thumbnail_url));
+    }).fail(function (xhr) {
+      var msg = 'Generate failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
+      $btn.prop('disabled', false).html('&#10024; Generate Img');
+    });
+  });
+
   $(document).on('click', '.feature-toggle', function () {
     var $btn = $(this);
     var repoId = $btn.data('repo-id');

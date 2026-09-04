@@ -370,6 +370,25 @@ function ofx_thumbnail_url(string $fullName, ?string $override = null): string
     return 'https://github.com/' . $fullName . '/raw/HEAD/ofxaddons_thumbnail.png';
 }
 
+// Full priority for what thumbnail actually gets shown: an owner's
+// manual override wins, then a real ofxaddons_thumbnail.png the repo
+// ships itself, then an admin-generated AI thumbnail as a last resort.
+// Returns null (not a placeholder) when none of the three apply, so the
+// caller can skip rendering an <img> at all, same as before this existed.
+function ofx_addon_thumbnail_url(array $addon): ?string
+{
+    if (!empty($addon['thumbnail_url_override'])) {
+        return $addon['thumbnail_url_override'];
+    }
+    if (!empty($addon['has_thumbnail']) && !empty($addon['full_name'])) {
+        return ofx_thumbnail_url($addon['full_name']);
+    }
+    if (!empty($addon['ai_thumbnail_generated_at']) && !empty($addon['id'])) {
+        return ofx_asset_url('/app/assets/generated-thumbnails/' . (int)$addon['id'] . '.png');
+    }
+    return null;
+}
+
 function ofx_asset_url(string $path): string
 {
     $file = dirname(__DIR__) . $path;

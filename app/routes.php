@@ -39,6 +39,7 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/repos$#', 'ofx_admin_index'],
         ['POST', '#^/admin/repos/(\d+)$#', 'ofx_admin_update'],
         ['POST', '#^/admin/repos/(\d+)/generate-description$#', 'ofx_admin_generate_description'],
+        ['POST', '#^/admin/repos/(\d+)/generate-thumbnail$#', 'ofx_admin_generate_thumbnail'],
         ['GET', '#^/admin/banned$#', 'ofx_admin_banned'],
         ['GET', '#^/admin/review$#', 'ofx_admin_review_queue'],
         ['GET', '#^/admin/duplicates$#', 'ofx_admin_duplicates'],

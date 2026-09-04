@@ -265,6 +265,64 @@ function ofx_admin_generate_description(string $id): void
     echo json_encode(['status' => 200, 'description' => $addition]);
 }
 
+// POST /admin/repos/{id}/generate-thumbnail - admin-only, no per-user
+// cap (that's a Phase 2 self-serve /my/addons concern, not built yet).
+// Asks DALL-E 3 for a banner image, crops/resizes it to the site's
+// 270x70 spec, and saves it to OFX_GENERATED_THUMBNAIL_DIR/{id}.png -
+// same file every time a repo is regenerated, so old requests for it
+// don't 404 and nothing needs cleaning up.
+function ofx_admin_generate_thumbnail(string $id): void
+{
+    ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    if (!ofx_env('OPENAI_IMAGE_API_KEY') && !ofx_env('OPENAI_API_KEY')) {
+        http_response_code(501);
+        echo json_encode(['status' => 501, 'error' => ['no OpenAI image API key is configured']]);
+        return;
+    }
+
+    $stmt = ofx_db()->prepare('SELECT id, full_name, name, description FROM repos WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $repo = $stmt->fetch();
+    if (!$repo) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['repo not found']]);
+        return;
+    }
+
+    $readme = ofx_fetch_readme($repo['full_name']);
+    $png = ofx_generate_thumbnail_image($repo['name'] ?? $repo['full_name'], (string)$repo['description'], $readme);
+    if (!$png) {
+        http_response_code(502);
+        echo json_encode(['status' => 502, 'error' => ['image generation failed']]);
+        return;
+    }
+
+    $cropped = ofx_thumbnail_crop_resize($png);
+    if (!$cropped) {
+        http_response_code(502);
+        echo json_encode(['status' => 502, 'error' => ['could not process the generated image']]);
+        return;
+    }
+
+    if (!is_dir(OFX_GENERATED_THUMBNAIL_DIR)) {
+        mkdir(OFX_GENERATED_THUMBNAIL_DIR, 0755, true);
+    }
+    $path = OFX_GENERATED_THUMBNAIL_DIR . '/' . (int)$repo['id'] . '.png';
+    file_put_contents($path, $cropped);
+
+    $pdo = ofx_db();
+    $pdo->prepare('UPDATE repos SET ai_thumbnail_generated_at = NOW() WHERE id = ?')->execute([$repo['id']]);
+    ofx_log_admin_action($pdo, ofx_current_user()['id'] ?? null, 'generate_thumbnail', (int)$repo['id'], $repo['full_name']);
+
+    echo json_encode([
+        'status' => 200,
+        'thumbnail_url' => ofx_asset_url('/app/assets/generated-thumbnails/' . (int)$repo['id'] . '.png'),
+    ]);
+}
+
 function ofx_admin_banned(): void
 {
     ofx_require_admin();

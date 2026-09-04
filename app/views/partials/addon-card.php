@@ -9,13 +9,12 @@ if (!empty($addon['newer_forks'])) {
 $cardUser = ofx_current_user();
 $cardIsAdmin = !empty($cardUser['admin']);
 $cardOfVersion = ofx_addon_of_version($addon);
+$cardThumb = ofx_addon_thumbnail_url($addon);
 ?>
 <article class="addon-card" data-name="<?= ofx_h(strtolower($addon['name'] ?? '')) ?>" data-desc="<?= ofx_h(strtolower($addon['description'] ?? '')) ?>">
-  <?php if ((!empty($addon['has_thumbnail']) || !empty($addon['thumbnail_url_override'])) && !empty($addon['full_name'])): ?>
+  <?php if ($cardThumb && !empty($addon['full_name'])): ?>
     <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">
-      <img class="addon-card__thumb"
-           src="<?= ofx_h(ofx_thumbnail_url($addon['full_name'], $addon['thumbnail_url_override'] ?? null)) ?>"
-           alt="" loading="lazy" onerror="this.closest('a').remove()">
+      <img class="addon-card__thumb" src="<?= ofx_h($cardThumb) ?>" alt="" loading="lazy" onerror="this.closest('a').remove()">
     </a>
   <?php endif; ?>
   <div class="addon-card__head">

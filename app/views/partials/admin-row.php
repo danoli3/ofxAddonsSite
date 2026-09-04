@@ -11,6 +11,15 @@
     <?php if ($repo['type'] === 'Addon'): ?>
       <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
     <?php endif; ?>
+    <?php $rowThumb = ofx_addon_thumbnail_url($repo); ?>
+    <?php if ($rowThumb): ?>
+      <img class="admin-row__thumb" src="<?= ofx_h($rowThumb) ?>" alt="" loading="lazy" onerror="this.hidden = true">
+    <?php else: ?>
+      <button type="button" class="admin-row__generate-thumb" data-repo-id="<?= (int)$repo['id'] ?>"
+              title="Generate a 270x70 thumbnail with DALL-E, from this repo's name/description/README">
+        &#10024; Generate Img
+      </button>
+    <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">
     <textarea class="admin-row__desc" rows="5"
