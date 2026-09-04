@@ -53,6 +53,7 @@ function ofx_sitemap_urls(): array
         '/contributors' => $maxAddonPushed,
         '/pages/howto' => gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT)),
         '/about-openframeworks' => gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT)),
+        '/history' => gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT)),
         '/sitemap' => gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT)),
     ];
     foreach ($staticPaths as $path => $lastmod) {
@@ -156,6 +157,7 @@ function ofx_llms_content(): string
     $out .= "- Contributors: {$base}/contributors\n";
     $out .= "- How addons work / folder structure: {$base}/pages/howto\n";
     $out .= "- About openFrameworks itself: {$base}/about-openframeworks\n";
+    $out .= "- History and credits: {$base}/history\n";
     $out .= "- Human-readable sitemap: {$base}/sitemap\n";
     $out .= "- An individual addon (name, description, README, forks): {$base}/addons/{owner}/{repo}\n\n";
     $out .= "## Machine-readable data\n";

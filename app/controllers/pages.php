@@ -11,6 +11,11 @@ function ofx_pages_about_openframeworks(): void
     ofx_render('pages/about-openframeworks', ['title' => 'About openFrameworks']);
 }
 
+function ofx_pages_history(): void
+{
+    ofx_render('pages/history', ['title' => 'History & Credits']);
+}
+
 // GET /sitemap - human-readable index of every page/section on the
 // site, each with a one-line description of what it's for. The
 // machine-readable /sitemap.xml and /sitemap.json cover URLs for every

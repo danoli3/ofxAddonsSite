@@ -26,6 +26,7 @@ function ofx_dispatch(): void
         ['GET', '#^/contributors/([^/]+)$#', 'ofx_contributors_show'],
         ['GET', '#^/pages/howto$#', 'ofx_pages_howto'],
         ['GET', '#^/about-openframeworks$#', 'ofx_pages_about_openframeworks'],
+        ['GET', '#^/history$#', 'ofx_pages_history'],
         ['GET', '#^/sitemap$#', 'ofx_pages_sitemap'],
         ['GET', '#^/sitemap\.xml$#', 'ofx_sitemap_xml'],
         ['GET', '#^/sitemap\.json$#', 'ofx_sitemap_json'],

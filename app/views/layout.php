@@ -61,6 +61,7 @@ $flash = ofx_flash_get();
         <a href="https://openframeworks.cc" target="_blank" rel="noopener">openFrameworks</a> addons.
         <a href="/pages/howto">How To</a>
         &middot; <a href="/about-openframeworks">About openFrameworks</a>
+        &middot; <a href="/history">History &amp; Credits</a>
         &middot; <a href="/sitemap">Sitemap</a></p>
       <p class="site-footer__credit">
         <a class="of-badge of-badge--footer" href="/about-openframeworks">
