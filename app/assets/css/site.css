@@ -229,6 +229,25 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   border-color: rgba(124, 92, 255, .5);
   background: var(--surface-hover);
 }
+.addon-card--view-all {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-style: dashed;
+  color: var(--text);
+}
+.addon-card--view-all:hover { text-decoration: none; }
+.addon-card--view-all__count { font-size: .78rem; color: var(--text-muted); }
+.addon-card--view-all__title { font-weight: 700; font-size: 1.02rem; }
+.addon-card--view-all__btn {
+  margin-top: 2px;
+  font-size: .8rem;
+  font-weight: 700;
+  color: #0b0d14;
+  background: var(--gradient);
+  border-radius: 999px;
+  padding: 6px 16px;
+}
 .addon-card__thumb {
   width: 100%;
   /* matches the documented 270x70 thumbnail spec (howto page) - a fixed

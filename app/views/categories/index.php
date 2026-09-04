@@ -38,6 +38,17 @@
         <?php foreach (array_slice($all, 0, OFX_CATEGORY_PREVIEW_SIZE) as $addon): ?>
           <?php ofx_addon_partial($addon); ?>
         <?php endforeach; ?>
+        <?php if (count($all) > OFX_CATEGORY_PREVIEW_SIZE): ?>
+          <!-- addon-card--view-all, not a real addon-card - excluded from
+               the #addon-filter matching loop in site.js (it has no
+               data-name/data-desc), so it never breaks that filter or
+               gets miscounted as a "visible" match -->
+          <a class="addon-card addon-card--view-all" href="<?= ofx_h(ofx_category_url($category)) ?>">
+            <span class="addon-card--view-all__count"><?= count($all) - OFX_CATEGORY_PREVIEW_SIZE ?> more in <?= ofx_h($category['name']) ?></span>
+            <span class="addon-card--view-all__title">View all <?= ofx_h($category['name']) ?></span>
+            <span class="addon-card--view-all__btn">View all &rarr;</span>
+          </a>
+        <?php endif; ?>
       </div>
     </section>
   <?php endforeach; ?>

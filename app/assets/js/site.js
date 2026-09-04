@@ -74,7 +74,9 @@ $(function () {
       clearTimeout(searchTimer);
 
       var anyMatch = false;
-      $('.addon-card').each(function () {
+      // :not(.addon-card--view-all) - that's a fake "View all" tile with
+      // no data-name/data-desc, not a real card to match against
+      $('.addon-card:not(.addon-card--view-all)').each(function () {
         var $card = $(this);
         var matches = !q || $card.data('name').indexOf(q) !== -1 || $card.data('desc').indexOf(q) !== -1;
         $card.toggleClass('is-hidden', !matches);
@@ -82,7 +84,7 @@ $(function () {
       });
       $('.category-section').each(function () {
         var $section = $(this);
-        var visible = $section.find('.addon-card').not('.is-hidden').length;
+        var visible = $section.find('.addon-card:not(.addon-card--view-all)').not('.is-hidden').length;
         $section.toggle(visible > 0);
       });
 
