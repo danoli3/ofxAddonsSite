@@ -38,11 +38,12 @@ $formAction = $formAction ?? '/admin/import/confirm';
                 <span class="tag">No changes</span>
               <?php endif; ?>
               <?php if (!empty($d['proposed_type'])): ?>
+                <?php $typeLabel = fn($t) => $t === 'NonAddon' ? 'Banned' : $t; ?>
                 <div class="import-diff-row__version">
                   <?php if (!empty($d['type_changed'])): ?>
-                    Type: <?= ofx_h($d['current_type']) ?> &rarr; <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                    Type: <?= ofx_h($typeLabel($d['current_type'])) ?> &rarr; <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
                   <?php else: ?>
-                    Type: <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                    Type: <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
                     <span class="import-diff-row__confirmed">(prior decision, unchanged)</span>
                   <?php endif; ?>
                 </div>

@@ -16,6 +16,17 @@ const OFX_ADMIN_CURATED_TAB = 'Curated';
 const OFX_ADMIN_NO_DESC_TAB = 'NoDescription';
 const OFX_ADMIN_PAGE_SIZE = 25;
 
+// Accepts the human-facing "Banned" label as a synonym for the actual
+// stored type value "NonAddon" - the admin Type dropdown displays
+// NonAddon as "Banned" (see admin-row.php), and the AI triage API is
+// told to use "Banned" too (see ai_triage_api.php), so anything parsing
+// a type from external input (AI submissions, manual JSON/XML import)
+// needs to accept either spelling rather than silently dropping one.
+function ofx_normalize_repo_type(string $type): string
+{
+    return $type === 'Banned' ? 'NonAddon' : $type;
+}
+
 function ofx_admin_index(): void
 {
     $admin = ofx_require_admin();
@@ -660,7 +671,7 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         if ($proposedVersion !== '' && !in_array($proposedVersion, $validVersions, true)) {
             $proposedVersion = '';
         }
-        $proposedType = isset($entry['type']) ? trim((string)$entry['type']) : '';
+        $proposedType = isset($entry['type']) ? ofx_normalize_repo_type(trim((string)$entry['type'])) : '';
         if ($proposedType !== '' && !in_array($proposedType, OFX_REPO_TYPES, true)) {
             $proposedType = '';
         }
@@ -924,7 +935,7 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
         $fullName = $entry['full_name'] ?? null;
         $categoryNames = array_filter(array_map('trim', $entry['categories'] ?? []));
         $ofVersion = isset($entry['of_version']) ? trim((string)$entry['of_version']) : '';
-        $type = isset($entry['type']) ? trim((string)$entry['type']) : '';
+        $type = isset($entry['type']) ? ofx_normalize_repo_type(trim((string)$entry['type'])) : '';
         if ($type !== '' && !in_array($type, OFX_REPO_TYPES, true)) {
             $type = '';
         }

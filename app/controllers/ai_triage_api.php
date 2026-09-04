@@ -90,19 +90,20 @@ function ofx_api_triage_batch(): void
     echo json_encode([
         'instructions' => 'For each addon, decide its "type": "Addon" if it is a real, usable openFrameworks '
             . 'addon (assign 1+ "categories" from the list below in that case); "Incomplete" if it looks like a '
-            . 'real addon but is missing an example/structure or is too early to use; "Spam" or "NonAddon" if it '
+            . 'real addon but is missing an example/structure or is too early to use; "Spam" or "Banned" if it '
             . 'has nothing to do with openFrameworks or is not an addon at all (an unmodified fork, a personal '
-            . 'project, a tutorial repo, etc); "Deleted" only if the description/readme indicate the repo no '
-            . 'longer exists. Leave "categories" empty for anything that is not type "Addon". Optionally set '
-            . '"of_version" (one of of_versions below) only if the readme states an explicit openFrameworks '
-            . 'version requirement - never guess. A short free-text "notes" field is optional, shown to the '
-            . 'human reviewer only, never applied to anything. POST results as {"entries": [{"full_name": ..., '
-            . '"type": ..., "categories": [...], "of_version": ..., "notes": ...}, ...]} to /api/triage/submit '
-            . 'with the same Authorization header used here. Nothing is saved to the site until an admin '
-            . 'reviews and confirms each entry by hand.',
+            . 'project, a tutorial repo, etc) - "Banned" is the general "not really an addon" rejection, same '
+            . 'as "Spam" but for cases that aren\'t spam specifically, just not an addon; "Deleted" only if the '
+            . 'description/readme indicate the repo no longer exists. Leave "categories" empty for anything '
+            . 'that is not type "Addon". Optionally set "of_version" (one of of_versions below) only if the '
+            . 'readme states an explicit openFrameworks version requirement - never guess. A short free-text '
+            . '"notes" field is optional, shown to the human reviewer only, never applied to anything. POST '
+            . 'results as {"entries": [{"full_name": ..., "type": ..., "categories": [...], "of_version": ..., '
+            . '"notes": ...}, ...]} to /api/triage/submit with the same Authorization header used here. Nothing '
+            . 'is saved to the site until an admin reviews and confirms each entry by hand.',
         'categories' => $categories,
         'of_versions' => array_column(OFX_VERSIONS, 'version'),
-        'types' => OFX_REPO_TYPES,
+        'types' => array_map(fn($t) => $t === 'NonAddon' ? 'Banned' : $t, OFX_REPO_TYPES),
         'addons' => $addons,
         'remaining_after_this_batch' => max(0, $remaining - count($addons)),
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -142,7 +143,7 @@ function ofx_api_triage_submit(): void
 
     foreach ($entries as $entry) {
         $fullName = trim((string)($entry['full_name'] ?? ''));
-        $type = trim((string)($entry['type'] ?? ''));
+        $type = ofx_normalize_repo_type(trim((string)($entry['type'] ?? '')));
         $categories = array_values(array_filter(array_map('trim', $entry['categories'] ?? [])));
 
         if ($fullName === '' || ($type === '' && empty($categories))) {
