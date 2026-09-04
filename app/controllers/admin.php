@@ -844,6 +844,13 @@ function ofx_admin_duplicates(): void
         ");
         $stmt->execute($dupeNames);
         foreach ($stmt->fetchAll() as $repo) {
+            // last 200 chars of the actual README, live-fetched - often
+            // has an install/usage note or a signature ("by so-and-so")
+            // that's a faster tell for "same addon" vs "coincidence"
+            // than eyeballing the description alone. Duplicate groups
+            // are small in practice, so this stays a handful of calls.
+            $readme = ofx_fetch_readme($repo['full_name']);
+            $repo['readme_tail'] = $readme ? trim(mb_substr($readme, -200)) : null;
             $groups[strtolower($repo['name'])][] = $repo;
         }
     }

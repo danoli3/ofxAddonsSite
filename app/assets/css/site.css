@@ -724,6 +724,16 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 }
 .dupe-item__status { font-size: .8rem; color: var(--text-muted); }
 .dupe-item__status.is-error { color: #ff6b6b; }
+.dupe-item__readme {
+  flex-basis: 100%;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-style: italic;
+  word-break: break-word;
+}
 
 .site-footer { border-top: 1px solid var(--border); margin-top: 40px; }
 .site-footer .wrap { padding: 24px 20px; color: var(--text-muted); font-size: .84rem; }

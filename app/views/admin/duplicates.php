@@ -51,6 +51,9 @@
           </button>
         <?php endif; ?>
         <span class="dupe-item__status"></span>
+        <?php if (!empty($repo['readme_tail'])): ?>
+          <p class="dupe-item__readme">&hellip;<?= ofx_h($repo['readme_tail']) ?></p>
+        <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </div>
