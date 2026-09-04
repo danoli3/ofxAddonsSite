@@ -5,6 +5,16 @@
     <input type="text" class="filter-box filter-box--hero" id="addon-filter" placeholder="Search addons&hellip;">
     <span class="spinner search-spinner" aria-hidden="true"></span>
   </div>
+  <?php if (!empty($categories)): ?>
+    <!-- jumps to the matching #category-{id} section further down this
+         same page, rather than navigating to /categories/{slug} - the
+         category name link in each section heading already covers that -->
+    <nav class="category-jump" aria-label="Jump to category">
+      <?php foreach ($categories as $category): ?>
+        <a class="category-jump__link" href="#category-<?= (int)$category['id'] ?>"><?= ofx_h($category['name']) ?></a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
 </div>
 
 <div id="search-results" class="addon-grid" hidden></div>

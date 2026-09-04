@@ -132,8 +132,12 @@ $(function () {
       }).done(function (html, status, xhr) {
         $grid.append(html);
         var hasMore = xhr.getResponseHeader('X-Has-More') === '1';
-        $grid.attr('data-has-more', hasMore ? '1' : '0');
-        $grid.attr('data-next-url', incrementPage($grid.data('next-url')));
+        // .data(key, val) here, not .attr() - jQuery's .data() reads are
+        // cached internally after the first access (line above), so an
+        // .attr() write updates the DOM but not that cache, leaving
+        // .data('next-url') stuck returning the same page forever
+        $grid.data('has-more', hasMore ? '1' : '0');
+        $grid.data('next-url', incrementPage($grid.data('next-url')));
         $loading.prop('hidden', true);
         if (!hasMore) {
           $end.prop('hidden', false);
@@ -586,8 +590,9 @@ $(function () {
         if (replace) $adminTbody.empty();
         $adminTbody.append(html);
         var hasMore = xhr.getResponseHeader('X-Has-More') === '1';
-        $adminTbody.attr('data-has-more', hasMore ? '1' : '0');
-        $adminTbody.attr('data-next-url', incrementPage(url));
+        // .data(), not .attr() - see the matching comment in loadMore() above
+        $adminTbody.data('has-more', hasMore ? '1' : '0');
+        $adminTbody.data('next-url', incrementPage(url));
         $adminLoading.prop('hidden', true);
         $adminEnd.prop('hidden', !!hasMore);
       }).fail(function () {
