@@ -30,7 +30,8 @@
 <ul>
   <li><a href="/sitemap.xml">/sitemap.xml</a> &mdash; standard XML sitemap format.</li>
   <li><a href="/sitemap.json">/sitemap.json</a> &mdash; the same URL list as plain JSON.</li>
-  <li><a href="/llms.txt">/llms.txt</a> &mdash; a plain-text summary for LLMs.</li>
+  <li><a href="/llms.txt">/llms.txt</a> &mdash; a plain-text summary for LLMs (the emerging llms.txt convention).</li>
+  <li><a href="/llms.md">/llms.md</a> &mdash; the same summary, as a .md file for tools that expect that extension.</li>
 </ul>
 
 </div>

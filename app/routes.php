@@ -29,6 +29,7 @@ function ofx_dispatch(): void
         ['GET', '#^/sitemap\.xml$#', 'ofx_sitemap_xml'],
         ['GET', '#^/sitemap\.json$#', 'ofx_sitemap_json'],
         ['GET', '#^/llms\.txt$#', 'ofx_llms_txt'],
+        ['GET', '#^/llms\.md$#', 'ofx_llms_md'],
         ['POST', '#^/webhooks/sync$#', 'ofx_webhook_sync'],
         ['GET', '#^/banned\.json$#', 'ofx_banned_json'],
         ['GET', '#^/addon-repos\.json$#', 'ofx_addon_repos_json'],
