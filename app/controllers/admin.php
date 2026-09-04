@@ -394,20 +394,30 @@ function ofx_admin_export_triage(): void
             'has_correct_folder_structure' => (bool)$row['has_correct_folder_structure'],
             'has_thumbnail' => (bool)$row['has_thumbnail'],
             'archived' => (bool)$row['archived'],
-            // of_version: current curated value, if any - read this
-            // addon's README for an explicit openFrameworks version
-            // requirement and set "of_version" in your output (one of:
-            // 0.7, 0.8, 0.9, 0.10, 0.11, 0.12) to override it. Leave
-            // unset/null to keep the guess below, which is already
-            // based on when this addon was last pushed.
-            'of_version' => $row['of_version_curated'] ? $row['of_version'] : null,
-            'of_version_inferred' => ofx_infer_of_version($row['pushed_at']),
+            // of_version_confirmed: already curated (an admin, or a
+            // prior Qwen pass that found an explicit version in the
+            // README) - null if nothing's been confirmed yet.
+            'of_version_confirmed' => $row['of_version_curated'] ? $row['of_version'] : null,
+            // of_version_approximate: guessed from this addon's last
+            // pushed date against openFrameworks' real release history -
+            // not read from anything the addon itself says.
+            'of_version_approximate' => ofx_infer_of_version($row['pushed_at']),
         ];
     }, $stmt->fetchAll());
 
     header('Content-Type: application/json');
     header('Content-Disposition: attachment; filename="ofxaddons-triage.json"');
     echo json_encode([
+        'instructions' => [
+            'of_version' => 'For each addon, fetch its actual README from Github (full_name) and look for an '
+                . 'explicit openFrameworks version requirement (e.g. "requires OF 0.11+", "tested on '
+                . 'openFrameworks 0.10.0", a of_compatibleWith badge, etc). If you find one, include '
+                . '"of_version" set to one of the values in of_versions below in your output for that addon - '
+                . 'this becomes the new confirmed version, overriding of_version_confirmed shown here. If the '
+                . 'README says nothing explicit, leave "of_version" out of your output entirely - don\'t guess; '
+                . 'of_version_approximate already has a date-based guess for that case and doesn\'t need to be '
+                . 'repeated or confirmed.',
+        ],
         'categories' => $categories,
         'of_versions' => array_column(OFX_VERSIONS, 'version'),
         'addons' => $addons,
