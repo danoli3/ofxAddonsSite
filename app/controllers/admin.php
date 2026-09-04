@@ -10,6 +10,12 @@ const OFX_BANNED_TYPES = ['NonAddon', 'Deleted'];
 // description_curated=1 (any type), so admins can review/audit every
 // hand-written or AI-generated-then-approved description in one place.
 const OFX_ADMIN_CURATED_TAB = 'Curated';
+// Also not a repos.type value - repos.categories_ai_curated=1, set when
+// an admin confirms AI-suggested categories on the import/AI-triage
+// review screen. Independent of OFX_ADMIN_CURATED_TAB above - a repo can
+// be AI-curated on categories, hand-curated on its description, both, or
+// neither, so this is its own tab rather than folded into Curated.
+const OFX_ADMIN_AI_CURATED_TAB = 'AiCurated';
 // Also not a repos.type value - Addon-type repos with a blank/null
 // description, regardless of type tab, so an admin can batch-fill them
 // (by hand or via the AI triage export) without hunting across tabs.
@@ -40,10 +46,11 @@ function ofx_admin_index(): void
     // Curated/No Description below) purely so an admin can browse/audit
     // what's been marked deleted, without it cluttering those other flows.
     if (!in_array($type, OFX_ADMIN_TYPES, true) && $type !== OFX_ADMIN_CURATED_TAB
-        && $type !== OFX_ADMIN_NO_DESC_TAB && $type !== 'Deleted') {
+        && $type !== OFX_ADMIN_AI_CURATED_TAB && $type !== OFX_ADMIN_NO_DESC_TAB && $type !== 'Deleted') {
         $type = 'Unsorted';
     }
     $isCuratedTab = $type === OFX_ADMIN_CURATED_TAB;
+    $isAiCuratedTab = $type === OFX_ADMIN_AI_CURATED_TAB;
     $isNoDescTab = $type === OFX_ADMIN_NO_DESC_TAB;
 
     $sort = $_GET['sort'] ?? 'pushed';
@@ -59,14 +66,21 @@ function ofx_admin_index(): void
     $fetch = OFX_ADMIN_PAGE_SIZE + 1;
 
     // banned repos (NonAddon/Deleted) can end up with a curated
-    // description from before they were banned - they belong on the
-    // Banned page, not cluttering this review tab
-    $where = $isCuratedTab
-        ? "r.description_curated = 1 AND r.type NOT IN ('NonAddon', 'Deleted')"
-        : ($isNoDescTab
-            ? "r.type = 'Addon' AND (r.description IS NULL OR r.description = '')"
-            : 'r.type = ?');
-    $params = ($isCuratedTab || $isNoDescTab) ? [] : [$type];
+    // description (or AI-curated categories) from before they were
+    // banned - they belong on the Banned page, not cluttering these tabs
+    if ($isCuratedTab) {
+        $where = "r.description_curated = 1 AND r.type NOT IN ('NonAddon', 'Deleted')";
+        $params = [];
+    } elseif ($isAiCuratedTab) {
+        $where = "r.categories_ai_curated = 1 AND r.type NOT IN ('NonAddon', 'Deleted')";
+        $params = [];
+    } elseif ($isNoDescTab) {
+        $where = "r.type = 'Addon' AND (r.description IS NULL OR r.description = '')";
+        $params = [];
+    } else {
+        $where = 'r.type = ?';
+        $params = [$type];
+    }
     if ($search !== '') {
         $where .= ' AND (r.full_name LIKE ? OR r.name LIKE ?)';
         $params[] = "%{$search}%";
@@ -102,6 +116,9 @@ function ofx_admin_index(): void
     }
     $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query(
         "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
+    )->fetchColumn();
+    $counts[OFX_ADMIN_AI_CURATED_TAB] = (int)$pdo->query(
+        "SELECT COUNT(*) FROM repos WHERE categories_ai_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
     )->fetchColumn();
     $counts[OFX_ADMIN_NO_DESC_TAB] = (int)$pdo->query(
         "SELECT COUNT(*) FROM repos WHERE type = 'Addon' AND (description IS NULL OR description = '')"
