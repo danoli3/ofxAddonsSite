@@ -304,17 +304,25 @@ function ofx_generate_thumbnail_image(string $repoName, string $description, ?st
         $context .= "\n\n" . mb_substr($readme, 0, 2000);
     }
 
-    $prompt = "A minimal, flat-design horizontal banner icon/logo for a C++ creative-coding library addon "
-        . "named \"{$repoName}\". Context on what it does: " . mb_substr($context, 0, 800) . ". "
-        . 'Wide letterbox/banner composition, simple bold shapes, no text or letters in the image, '
-        . 'clean modern tech aesthetic, flat vector illustration style, dark background.';
+    // "no text" alone wasn't enough - the model rendered a literal
+    // "C++" logo the first time this was tried, and left large empty
+    // margins around a small centered icon, which the crop below would
+    // have mostly wasted (it takes the full source width). Naming the
+    // language/toolkit only as background context, forbidding text more
+    // emphatically, and asking explicitly for edge-to-edge/full-bleed
+    // fixed both in testing.
+    $prompt = "A single abstract flat-vector icon/symbol representing what this openFrameworks (C++ creative "
+        . "coding) addon does, based on: " . mb_substr($context, 0, 800) . ". "
+        . 'The icon must fill the entire frame edge-to-edge, full-bleed, no empty margins or padding around it. '
+        . 'Absolutely no text, letters, words, numbers, or acronyms anywhere in the image - symbol/iconography '
+        . 'only. Simple bold geometric shapes, clean modern flat illustration style, dark background, wide '
+        . 'landscape composition.';
 
     $payload = [
-        'model' => 'dall-e-3',
+        'model' => 'gpt-image-1',
         'prompt' => $prompt,
         'n' => 1,
-        'size' => '1792x1024',
-        'response_format' => 'b64_json',
+        'size' => '1536x1024',
     ];
 
     $ch = curl_init('https://api.openai.com/v1/images/generations');
@@ -326,7 +334,7 @@ function ofx_generate_thumbnail_image(string $repoName, string $description, ?st
             "Authorization: Bearer {$apiKey}",
             'Content-Type: application/json',
         ],
-        CURLOPT_TIMEOUT => 60,
+        CURLOPT_TIMEOUT => 90,
     ]);
     $body = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
