@@ -75,6 +75,7 @@ function ofx_admin_index(): void
     $counts[OFX_ADMIN_CURATED_TAB] = (int)$pdo->query(
         "SELECT COUNT(*) FROM repos WHERE description_curated = 1 AND type NOT IN ('NonAddon', 'Deleted')"
     )->fetchColumn();
+    $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
@@ -85,6 +86,7 @@ function ofx_admin_index(): void
         'sort' => $sort,
         'search' => $search,
         'counts' => $counts,
+        'reviewCount' => $reviewCount,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
         'title' => 'Admin',
@@ -107,7 +109,7 @@ function ofx_admin_category_ids_for(PDO $pdo, array $repoIds): array
     return $result;
 }
 
-function ofx_admin_row_partial(array $repo, array $categories, array $selectedCategoryIds): void
+function ofx_admin_row_partial(array $repo, array $categories, array $selectedCategoryIds, bool $showDismissRequest = false): void
 {
     include __DIR__ . '/../views/partials/admin-row.php';
 }
@@ -703,8 +705,9 @@ function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
     echo json_encode(['status' => 200, 'featured' => (bool)$newFeatured]);
 }
 
-// POST /admin/repos/{id}/dismiss-appeal - the ban stands, just clears
-// the appeal flag so it drops back out of the "Appealed" section.
+// POST /admin/repos/{id}/dismiss-appeal - the classification stands
+// (still banned, or still Spam), just clears the review-request flag
+// so it drops off the /admin/review queue.
 function ofx_admin_dismiss_appeal(string $id): void
 {
     $admin = ofx_require_admin();
@@ -712,15 +715,48 @@ function ofx_admin_dismiss_appeal(string $id): void
     ofx_require_csrf();
 
     $pdo = ofx_db();
-    $stmt = $pdo->prepare("UPDATE repos SET ban_appealed = 0, updated_at = NOW() WHERE id = ? AND type = 'NonAddon'");
+    $stmt = $pdo->prepare(
+        "UPDATE repos SET ban_appealed = 0, updated_at = NOW() WHERE id = ? AND type IN ('NonAddon', 'Spam')"
+    );
     $stmt->execute([$id]);
     if ($stmt->rowCount() === 0) {
         http_response_code(404);
-        echo json_encode(['status' => 404, 'error' => ['not a banned repo']]);
+        echo json_encode(['status' => 404, 'error' => ['not a banned or spam-flagged repo']]);
         return;
     }
 
     ofx_log_admin_action($pdo, $admin['id'], 'dismiss_appeal', (int)$id, null);
 
     echo json_encode(['status' => 200]);
+}
+
+// GET /admin/review - every repo whose owner has asked for a manual
+// look (banned as NonAddon, or auto-classified as Spam by the sync
+// pipeline for lacking any recognizable addon structure) via "Ask for
+// Admin Review" on /my/addons. Reuses the full categorize row (type
+// select, category picker, description) so an admin can reclassify in
+// place, plus a Dismiss action if the existing classification stands.
+function ofx_admin_review_queue(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $stmt = $pdo->query("
+        SELECT r.*, u.login AS user_login
+        FROM repos r
+        LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.ban_appealed = 1 AND r.hidden_by_owner = 0
+        ORDER BY r.updated_at DESC
+    ");
+    $repos = $stmt->fetchAll();
+
+    $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
+    $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($repos, 'id'));
+
+    ofx_render('admin/review', [
+        'repos' => $repos,
+        'categories' => $categories,
+        'repoCategoryIds' => $repoCategoryIds,
+        'title' => 'Review requests',
+    ]);
 }

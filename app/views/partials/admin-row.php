@@ -49,6 +49,11 @@
   <td class="admin-row__actions">
     <button type="button" class="admin-row__save">Save</button>
     <button type="button" class="admin-row__ban" title="Not really an openFrameworks addon">Ban</button>
+    <?php if (!empty($showDismissRequest) && !empty($repo['ban_appealed'])): ?>
+      <button type="button" class="admin-row__dismiss-appeal" title="Classification stands - clear the review request">
+        Dismiss request
+      </button>
+    <?php endif; ?>
     <span class="admin-row__status"></span>
   </td>
 </tr>

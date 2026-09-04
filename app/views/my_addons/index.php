@@ -56,11 +56,11 @@
           <?php if (!empty($repo['hidden_by_owner'])): ?>
             <span class="tag tag--archived">Hidden from public</span>
           <?php endif; ?>
-          <?php if ($repo['type'] === 'NonAddon'): ?>
+          <?php if (in_array($repo['type'], OFX_REVIEWABLE_TYPES, true)): ?>
             <?php if (!empty($repo['ban_appealed'])): ?>
-              <span class="tag tag--curated">Ban appealed</span>
+              <span class="tag tag--curated">Review requested</span>
             <?php else: ?>
-              <button type="button" class="my-addon-row__appeal-ban" data-repo-id="<?= (int)$repo['id'] ?>">Appeal ban</button>
+              <button type="button" class="my-addon-row__appeal-ban" data-repo-id="<?= (int)$repo['id'] ?>">Ask for Admin Review</button>
             <?php endif; ?>
           <?php endif; ?>
         </td>

@@ -297,7 +297,7 @@ $(function () {
       method: 'POST',
       dataType: 'json'
     }).done(function () {
-      $btn.replaceWith('<span class="tag tag--curated">Ban appealed</span>');
+      $btn.replaceWith('<span class="tag tag--curated">Review requested</span>');
     }).fail(function (xhr) {
       var msg = 'Failed';
       try {

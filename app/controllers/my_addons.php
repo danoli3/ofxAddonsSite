@@ -124,9 +124,13 @@ function ofx_my_addons_update(string $id): void
     echo json_encode(['status' => 200]);
 }
 
-// POST /my/addons/{id}/appeal-ban - owner-only, only meaningful on a
-// repo an admin has banned (NonAddon). Just flags it for review; an
-// admin still has to actually unban it on /admin/banned.
+const OFX_REVIEWABLE_TYPES = ['NonAddon', 'Spam'];
+
+// POST /my/addons/{id}/appeal-ban - owner-only, "Ask for Admin Review"
+// on a repo that's been banned (NonAddon) or auto-classified as Spam
+// (no recognizable addon structure - src/, example/, a makefile, or a
+// thumbnail). Just flags it; an admin still has to actually reclassify
+// it, on /admin/review.
 function ofx_my_addons_appeal_ban(string $id): void
 {
     $user = ofx_require_user();
@@ -140,9 +144,9 @@ function ofx_my_addons_appeal_ban(string $id): void
         echo json_encode(['status' => 403, 'error' => ['not your addon']]);
         return;
     }
-    if ($repo['type'] !== 'NonAddon') {
+    if (!in_array($repo['type'], OFX_REVIEWABLE_TYPES, true)) {
         http_response_code(400);
-        echo json_encode(['status' => 400, 'error' => ['this addon is not banned']]);
+        echo json_encode(['status' => 400, 'error' => ['this addon is not banned or flagged as spam']]);
         return;
     }
 
