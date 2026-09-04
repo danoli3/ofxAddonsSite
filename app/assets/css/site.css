@@ -685,7 +685,7 @@ a.addon-card__desc:hover { color: var(--text); }
 .admin-row__url { display: block; color: var(--text-muted); font-size: .74rem; margin-top: 2px; }
 .admin-row__url:hover { color: var(--accent-3); }
 .admin-row__updated { color: var(--text-muted); font-size: .72rem; margin-top: 2px; opacity: .75; }
-.admin-row__desc-cell { display: flex; flex-direction: column; gap: 6px; }
+.admin-row__desc-inner { display: flex; flex-direction: column; gap: 6px; }
 .admin-row__desc-static { color: var(--text-muted); }
 .log-avatar { width: 18px; height: 18px; border-radius: 5px; object-fit: cover; vertical-align: middle; margin-right: 4px; }
 .admin-row__desc {
@@ -834,13 +834,15 @@ a.addon-card__desc:hover { color: var(--text); }
   color: var(--text-muted);
   cursor: pointer;
 }
-.admin-row__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.admin-row__actions-inner { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .admin-row__save {
   background: var(--gradient);
   color: #0b0d14;
   border: none;
   border-radius: 8px;
   padding: 7px 16px;
+  min-width: 74px;
+  text-align: center;
   cursor: pointer;
   font-weight: 700;
   font-size: .85rem;
@@ -852,6 +854,8 @@ a.addon-card__desc:hover { color: var(--text); }
   border: 1px solid rgba(255, 107, 107, .4);
   border-radius: 8px;
   padding: 6px 14px;
+  min-width: 74px;
+  text-align: center;
   cursor: pointer;
   font-weight: 600;
   font-size: .85rem;
@@ -863,6 +867,8 @@ a.addon-card__desc:hover { color: var(--text); }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 14px;
+  min-width: 74px;
+  text-align: center;
   cursor: pointer;
   font-weight: 600;
   font-size: .85rem;

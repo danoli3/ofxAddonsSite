@@ -26,38 +26,40 @@
     <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">
-    <textarea class="admin-row__desc" rows="5"
-              maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
-    <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
-    <div class="admin-row__desc-meta">
-      <span class="admin-row__char-count"></span>
-      <?php if (!empty($repo['description_curated'])): ?>
-        <span class="tag tag--curated" title="Saved by an admin - a crawl sync won't overwrite this">
-          <?= !empty($repo['description_generated']) ? 'AI-generated' : 'Curated' ?>
-        </span>
-      <?php endif; ?>
-      <?php if (empty($repo['description'])): ?>
-        <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
-          &#10024; Generate
-        </button>
-      <?php else: ?>
-        <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
-          &#10024; Generate more
-        </button>
-      <?php endif; ?>
-      <!-- Github's own Copilot repo-overview chat is a UI-only feature with
-           no public API to call it from here - this just opens the repo
-           page so an admin can click Github's Copilot icon there themselves
-           (useful when there's no README for the AI Generate button above
-           to work from) and paste the result into the box on the left -->
-      <a class="admin-row__ask-copilot" href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener"
-         title="Opens the repo on Github - use Github's own Copilot icon there for an overview, then paste it in">
-        Ask Copilot &rarr;
-      </a>
-    </div>
-    <div class="admin-row__console" hidden>
-      <span class="spinner"></span>
-      <span class="admin-row__console-text"></span>
+    <div class="admin-row__desc-inner">
+      <textarea class="admin-row__desc" rows="5"
+                maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
+      <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
+      <div class="admin-row__desc-meta">
+        <span class="admin-row__char-count"></span>
+        <?php if (!empty($repo['description_curated'])): ?>
+          <span class="tag tag--curated" title="Saved by an admin - a crawl sync won't overwrite this">
+            <?= !empty($repo['description_generated']) ? 'AI-generated' : 'Curated' ?>
+          </span>
+        <?php endif; ?>
+        <?php if (empty($repo['description'])): ?>
+          <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
+            &#10024; Generate
+          </button>
+        <?php else: ?>
+          <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
+            &#10024; Generate more
+          </button>
+        <?php endif; ?>
+        <!-- Github's own Copilot repo-overview chat is a UI-only feature with
+             no public API to call it from here - this just opens the repo
+             page so an admin can click Github's Copilot icon there themselves
+             (useful when there's no README for the AI Generate button above
+             to work from) and paste the result into the box on the left -->
+        <a class="admin-row__ask-copilot" href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener"
+           title="Opens the repo on Github - use Github's own Copilot icon there for an overview, then paste it in">
+          Ask Copilot &rarr;
+        </a>
+      </div>
+      <div class="admin-row__console" hidden>
+        <span class="spinner"></span>
+        <span class="admin-row__console-text"></span>
+      </div>
     </div>
   </td>
   <td>
@@ -76,13 +78,15 @@
     <?php endif; ?>
   </td>
   <td class="admin-row__actions">
-    <button type="button" class="admin-row__save">Save</button>
-    <button type="button" class="admin-row__ban" title="Not really an openFrameworks addon">Ban</button>
-    <?php if (!empty($showDismissRequest) && !empty($repo['ban_appealed'])): ?>
-      <button type="button" class="admin-row__dismiss-appeal" title="Classification stands - clear the review request">
-        Dismiss request
-      </button>
-    <?php endif; ?>
-    <span class="admin-row__status"></span>
+    <div class="admin-row__actions-inner">
+      <button type="button" class="admin-row__save">Save</button>
+      <button type="button" class="admin-row__ban" title="Not really an openFrameworks addon">Ban</button>
+      <?php if (!empty($showDismissRequest) && !empty($repo['ban_appealed'])): ?>
+        <button type="button" class="admin-row__dismiss-appeal" title="Classification stands - clear the review request">
+          Dismiss request
+        </button>
+      <?php endif; ?>
+      <span class="admin-row__status"></span>
+    </div>
   </td>
 </tr>

@@ -25,25 +25,27 @@
     <?php endif; ?>
   </td>
   <td class="admin-row__desc-cell">
-    <textarea class="admin-row__desc" rows="5"
-              maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
-    <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
-    <div class="admin-row__desc-meta">
-      <span class="admin-row__char-count"></span>
-      <?php if (!empty($repo['description_curated'])): ?>
-        <span class="tag tag--curated" title="Saved - a crawl sync won't overwrite this">
-          <?= !empty($repo['description_generated']) ? 'AI-generated' : 'Curated' ?>
-        </span>
-      <?php endif; ?>
-      <?php if (empty($repo['description'])): ?>
-        <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
-          &#10024; Generate
-        </button>
-      <?php else: ?>
-        <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
-          &#10024; Generate more
-        </button>
-      <?php endif; ?>
+    <div class="admin-row__desc-inner">
+      <textarea class="admin-row__desc" rows="5"
+                maxlength="<?= OFX_DESCRIPTION_MAX_LENGTH ?>"><?= ofx_h($repo['description'] ?? '') ?></textarea>
+      <input type="hidden" class="admin-row__desc-generated" value="<?= !empty($repo['description_generated']) ? '1' : '0' ?>">
+      <div class="admin-row__desc-meta">
+        <span class="admin-row__char-count"></span>
+        <?php if (!empty($repo['description_curated'])): ?>
+          <span class="tag tag--curated" title="Saved - a crawl sync won't overwrite this">
+            <?= !empty($repo['description_generated']) ? 'AI-generated' : 'Curated' ?>
+          </span>
+        <?php endif; ?>
+        <?php if (empty($repo['description'])): ?>
+          <button type="button" class="admin-row__generate-desc" title="Generate a description from the repo's README">
+            &#10024; Generate
+          </button>
+        <?php else: ?>
+          <button type="button" class="admin-row__generate-desc" title="Add another AI-generated detail from the repo's README, appended to what's already there">
+            &#10024; Generate more
+          </button>
+        <?php endif; ?>
+      </div>
     </div>
   </td>
   <td>
@@ -69,7 +71,9 @@
     </label>
   </td>
   <td class="admin-row__actions">
-    <button type="button" class="admin-row__save">Save</button>
-    <span class="admin-row__status"></span>
+    <div class="admin-row__actions-inner">
+      <button type="button" class="admin-row__save">Save</button>
+      <span class="admin-row__status"></span>
+    </div>
   </td>
 </tr>

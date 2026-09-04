@@ -38,9 +38,11 @@ $rest = array_values(array_filter($repos, fn($r) => empty($r['ban_appealed'])));
           </td>
           <td class="admin-row__desc-static"><?= ofx_h($repo['description'] ?: '') ?></td>
           <td class="admin-row__actions">
-            <button type="button" class="admin-row__unban">Unban</button>
-            <button type="button" class="admin-row__dismiss-appeal">Dismiss appeal</button>
-            <span class="admin-row__status"></span>
+            <div class="admin-row__actions-inner">
+              <button type="button" class="admin-row__unban">Unban</button>
+              <button type="button" class="admin-row__dismiss-appeal">Dismiss appeal</button>
+              <span class="admin-row__status"></span>
+            </div>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -71,8 +73,10 @@ $rest = array_values(array_filter($repos, fn($r) => empty($r['ban_appealed'])));
           </td>
           <td class="admin-row__desc-static"><?= ofx_h($repo['description'] ?: '') ?></td>
           <td class="admin-row__actions">
-            <button type="button" class="admin-row__unban">Unban</button>
-            <span class="admin-row__status"></span>
+            <div class="admin-row__actions-inner">
+              <button type="button" class="admin-row__unban">Unban</button>
+              <span class="admin-row__status"></span>
+            </div>
           </td>
         </tr>
       <?php endforeach; ?>
