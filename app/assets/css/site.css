@@ -310,7 +310,8 @@ a.addon-card__desc:hover { color: var(--text); }
 .tag--version:hover { text-decoration: none; opacity: .85; }
 .tag--version-guess { color: var(--text-muted); background: transparent; border-style: dashed; font-weight: 600; }
 
-.addon-card-wrap { position: relative; }
+.addon-card-wrap { position: relative; display: flex; flex-direction: column; height: 100%; }
+.addon-card-wrap .addon-card { flex: 1; }
 /* reserves clear space above the header row for the absolutely-positioned
    .feature-toggle button below, so it never sits on top of the card's own
    featured/archived/releases badges in that same top-right corner */
@@ -724,6 +725,7 @@ a.addon-card__desc:hover { color: var(--text); }
   color: var(--text-muted);
   max-width: 320px;
 }
+.admin-row__console[hidden] { display: none; }
 .admin-row__console .spinner { flex-shrink: 0; }
 .admin-row__ask-copilot { font-size: .78rem; color: var(--text-muted); }
 .admin-row__ask-copilot:hover { color: var(--accent-1); text-decoration: none; }
@@ -918,6 +920,13 @@ a.addon-card__desc:hover { color: var(--text); }
 
 @media (max-width: 600px) {
   .site-nav { gap: 14px; }
-  .addon-grid, .contributor-grid { grid-template-columns: 1fr 1fr; }
   .hero { padding: 40px 10px 32px; }
+}
+@media (max-width: 600px) and (min-width: 481px) {
+  .addon-grid, .contributor-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .addon-grid, .contributor-grid { grid-template-columns: 1fr; }
+  .category-jump { gap: 8px; }
+  .category-jump__link { padding: 5px 10px; font-size: .78rem; }
 }
