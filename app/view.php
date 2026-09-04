@@ -96,6 +96,42 @@ function ofx_h(?string $s): string
 
 const OFX_README_MAX_CHARS = 20000;
 
+// Resolves a markdown image/link target for rendering: an absolute
+// http(s) URL passes through unchanged; a protocol-relative "//host/..."
+// gets an explicit https: prefix; a bare "#fragment" passes through
+// (harmless, browser-only); anything else with a URI scheme (javascript:,
+// data:, mailto:, etc) is rejected, same as the original http(s)-only
+// allowlist did. A genuine schemeless relative path - the common case
+// for a Github README image like "./img/x.png" - is resolved against
+// the repo/branch context when one is given: $mode 'raw' for an actual
+// image (raw.githubusercontent.com), 'blob' for a browsable link
+// (github.com/.../blob/...). Returns null when nothing safe/resolvable
+// is available, so the caller can drop the image/strip the link exactly
+// as it already did before relative-path resolution existed.
+function ofx_md_resolve_url(string $url, ?string $repoFullName, ?string $defaultBranch, string $mode): ?string
+{
+    if (preg_match('#^https?://#i', $url)) {
+        return $url;
+    }
+    if (str_starts_with($url, '//')) {
+        return 'https:' . $url;
+    }
+    if ($url === '' || $url[0] === '#') {
+        return $url;
+    }
+    if (preg_match('#^[a-zA-Z][a-zA-Z0-9+.\-]*:#', $url)) {
+        return null;
+    }
+    if (!$repoFullName || !$defaultBranch) {
+        return null;
+    }
+    $path = preg_replace('#^\./#', '', ltrim($url, '/'));
+    $base = $mode === 'raw'
+        ? "https://raw.githubusercontent.com/{$repoFullName}/{$defaultBranch}/"
+        : "https://github.com/{$repoFullName}/blob/{$defaultBranch}/";
+    return $base . $path;
+}
+
 // Minimal, dependency-free markdown-to-HTML for READMEs, which are
 // written by arbitrary Github users and therefore untrusted input.
 // The whole source is escaped FIRST (ofx_h), before any formatting
@@ -106,10 +142,14 @@ const OFX_README_MAX_CHARS = 20000;
 // quote character in a URL is already &quot; by then too, so it can't
 // break out of the attribute either. Deliberately basic - ATX and
 // Setext headings, bold/italic, inline code, fenced code blocks,
-// images and links (http/https only), simple "- " lists, and GFM
-// pipe tables.
-function ofx_render_markdown_lite(string $markdown): string
+// images and links (http/https, or a relative path resolved against
+// $repoFullName/$defaultBranch when given), simple "- " lists, and
+// GFM pipe tables.
+function ofx_render_markdown_lite(string $markdown, ?string $repoFullName = null, ?string $defaultBranch = null): string
 {
+    $repoFullName = $repoFullName !== null ? ofx_h($repoFullName) : null;
+    $defaultBranch = $defaultBranch !== null ? ofx_h($defaultBranch) : null;
+
     $markdown = mb_substr($markdown, 0, OFX_README_MAX_CHARS);
     $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
     $html = ofx_h($markdown);
@@ -128,10 +168,16 @@ function ofx_render_markdown_lite(string $markdown): string
     $html = preg_replace('/^(.+)\n={3,}[ \t]*$/m', '<h1>$1</h1>', $html);
     $html = preg_replace('/^(.+)\n-{3,}[ \t]*$/m', '<h2>$1</h2>', $html);
 
-    $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html);
-    $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
-    $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html);
-    $html = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $html);
+    // Up to 3 leading spaces tolerated (real READMEs sometimes have
+    // them), the space after the #'s is optional (plenty of READMEs
+    // skip it), and an optional trailing " ##" closing sequence is
+    // stripped - all three are common real-world variations the
+    // strict original version of this regex silently left as plain
+    // text instead of a heading.
+    $html = preg_replace('/^[ \t]{0,3}####[ \t]?(.+?)(?:[ \t]+#+[ \t]*)?$/m', '<h4>$1</h4>', $html);
+    $html = preg_replace('/^[ \t]{0,3}###[ \t]?(.+?)(?:[ \t]+#+[ \t]*)?$/m', '<h3>$1</h3>', $html);
+    $html = preg_replace('/^[ \t]{0,3}##[ \t]?(.+?)(?:[ \t]+#+[ \t]*)?$/m', '<h2>$1</h2>', $html);
+    $html = preg_replace('/^[ \t]{0,3}#[ \t]?(.+?)(?:[ \t]+#+[ \t]*)?$/m', '<h1>$1</h1>', $html);
 
     // GFM pipe tables: a header row, a |---|---| separator row (at
     // least two dash-runs so a plain "---" thematic break/Setext
@@ -167,9 +213,13 @@ function ofx_render_markdown_lite(string $markdown): string
     // lookup table ready by the time they need to resolve a ![alt][ref]
     // or [text][ref]. Runs over already-escaped text same as every rule
     // here, so a definition is just as safe as the inline (url) forms.
+    // A quote character in the source is already the entity &quot;/
+    // &#039; by this point (ofx_h ran before any of these rules), so
+    // that's what the optional title here has to match against, not a
+    // literal quote - there isn't one left in the string to find.
     $refs = [];
     $html = preg_replace_callback(
-        '/^[ \t]{0,3}\[([^\]]+)\]:[ \t]*(\S+)[ \t]*(?:"[^"]*"|\'[^\']*\'|\([^)]*\))?[ \t]*$/m',
+        '/^[ \t]{0,3}\[([^\]]+)\]:[ \t]*(\S+)[ \t]*(?:&quot;.*?&quot;|&#0?39;.*?&#0?39;|\([^)]*\))?[ \t]*$/m',
         function (array $m) use (&$refs): string {
             $refs[strtolower(trim($m[1]))] = $m[2];
             return '';
@@ -179,41 +229,58 @@ function ofx_render_markdown_lite(string $markdown): string
 
     // Images before links - ![alt](url) shares [alt](url) syntax with
     // a link, just prefixed with "!", so this has to run first or the
-    // link rule below partially matches it and leaves a stray "!"
-    $html = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)\)/', function (array $m): string {
-        if (!preg_match('#^https?://#i', $m[2])) {
-            return '';
-        }
-        return '<img src="' . $m[2] . '" alt="' . $m[1] . '" loading="lazy">';
-    }, $html);
+    // link rule below partially matches it and leaves a stray "!". An
+    // optional "title" after the URL (some READMEs add one) is matched
+    // and discarded here - see the &quot; note above, same reason - and
+    // the URL itself goes through ofx_md_resolve_url() so a relative
+    // path - the common case for a README image, not a full https://
+    // URL - still renders instead of silently vanishing.
+    $html = preg_replace_callback(
+        '/!\[([^\]]*)\]\(([^)\s]+)(?:[ \t]+&quot;.*?&quot;)?\)/',
+        function (array $m) use ($repoFullName, $defaultBranch): string {
+            $src = ofx_md_resolve_url($m[2], $repoFullName, $defaultBranch, 'raw');
+            if ($src === null) {
+                return '';
+            }
+            return '<img src="' . $src . '" alt="' . $m[1] . '" loading="lazy">';
+        },
+        $html
+    );
 
     // Reference-style images - ![alt][ref], or ![alt][] which reuses
     // alt as the ref key - resolved against $refs above.
-    $html = preg_replace_callback('/!\[([^\]]*)\]\[([^\]]*)\]/', function (array $m) use ($refs): string {
+    $html = preg_replace_callback('/!\[([^\]]*)\]\[([^\]]*)\]/', function (array $m) use ($refs, $repoFullName, $defaultBranch): string {
         $key = strtolower(trim($m[2] !== '' ? $m[2] : $m[1]));
         $url = $refs[$key] ?? null;
-        if (!$url || !preg_match('#^https?://#i', $url)) {
+        $src = $url !== null ? ofx_md_resolve_url($url, $repoFullName, $defaultBranch, 'raw') : null;
+        if ($src === null) {
             return $m[1];
         }
-        return '<img src="' . $url . '" alt="' . $m[1] . '" loading="lazy">';
+        return '<img src="' . $src . '" alt="' . $m[1] . '" loading="lazy">';
     }, $html);
 
-    $html = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)\)/', function (array $m): string {
-        if (!preg_match('#^https?://#i', $m[2])) {
-            return $m[1];
-        }
-        return '<a href="' . $m[2] . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
-    }, $html);
+    $html = preg_replace_callback(
+        '/\[([^\]]+)\]\(([^)\s]+)(?:[ \t]+&quot;.*?&quot;)?\)/',
+        function (array $m) use ($repoFullName, $defaultBranch): string {
+            $href = ofx_md_resolve_url($m[2], $repoFullName, $defaultBranch, 'blob');
+            if ($href === null) {
+                return $m[1];
+            }
+            return '<a href="' . $href . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
+        },
+        $html
+    );
 
     // Reference-style links - [text][ref], or [text][] which reuses
     // text as the ref key.
-    $html = preg_replace_callback('/\[([^\]]+)\]\[([^\]]*)\]/', function (array $m) use ($refs): string {
+    $html = preg_replace_callback('/\[([^\]]+)\]\[([^\]]*)\]/', function (array $m) use ($refs, $repoFullName, $defaultBranch): string {
         $key = strtolower(trim($m[2] !== '' ? $m[2] : $m[1]));
         $url = $refs[$key] ?? null;
-        if (!$url || !preg_match('#^https?://#i', $url)) {
+        $href = $url !== null ? ofx_md_resolve_url($url, $repoFullName, $defaultBranch, 'blob') : null;
+        if ($href === null) {
             return $m[1];
         }
-        return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
+        return '<a href="' . $href . '" target="_blank" rel="noopener noreferrer">' . $m[1] . '</a>';
     }, $html);
 
     // allow (and strip) leading whitespace so an indented list item -
@@ -234,7 +301,29 @@ function ofx_render_markdown_lite(string $markdown): string
         return '<blockquote>' . implode('<br>', $lines) . '</blockquote>';
     }, $html);
 
-    return nl2br($html);
+    // Github READMEs are routinely hard-wrapped at a fixed column width
+    // by whatever editor wrote them - treating every remaining newline
+    // as a literal <br> (nl2br below) kept that fixed width forever
+    // instead of letting the paragraph reflow to fit this page. A
+    // single newline inside a block of prose becomes a space instead;
+    // a blank line (a real paragraph break) is preserved so nl2br still
+    // turns it into a visible gap. Fenced code blocks are protected from
+    // both this reflow AND nl2br() below - their line breaks are
+    // meaningful and must stay exactly as written, and a <pre> already
+    // renders raw newlines as real line breaks on its own, so adding
+    // <br> tags in there too would double every line break - by
+    // splitting them out first and applying neither step to them.
+    $blocks = preg_split('/(<pre class="md-code">.*?<\/pre>)/s', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+    foreach ($blocks as $i => $block) {
+        if ($i % 2 === 1) {
+            continue;
+        }
+        $block = preg_replace('/\n{2,}/', "\n\n", $block);
+        $block = preg_replace('/(?<!\n)\n(?!\n)/', ' ', $block);
+        $blocks[$i] = nl2br($block);
+    }
+
+    return implode('', $blocks);
 }
 
 function ofx_flash_get(): ?string

@@ -127,7 +127,7 @@ $detailOfVersion = ofx_addon_of_version($addon);
 
 <div class="page-head"><h2>README</h2></div>
 <?php if ($readme): ?>
-  <div class="addon-detail__readme"><?= ofx_render_markdown_lite($readme) ?></div>
+  <div class="addon-detail__readme"><?= ofx_render_markdown_lite($readme, $addon['full_name'] ?? null, $addon['default_branch'] ?? null) ?></div>
 <?php else: ?>
   <p class="empty-state">Couldn't load a README for this repo.</p>
 <?php endif; ?>
@@ -174,7 +174,7 @@ $detailOfVersion = ofx_addon_of_version($addon);
       <span class="release-card__date">published <?= ofx_h(ofx_time_ago($latestRelease['published_at'] ?? null)) ?></span>
     </div>
     <?php if (!empty($latestRelease['body'])): ?>
-      <div class="release-card__notes"><?= ofx_render_markdown_lite(mb_substr($latestRelease['body'], 0, 2000)) ?></div>
+      <div class="release-card__notes"><?= ofx_render_markdown_lite(mb_substr($latestRelease['body'], 0, 2000), $addon['full_name'] ?? null, $addon['default_branch'] ?? null) ?></div>
     <?php endif; ?>
   </div>
 <?php endif; ?>
