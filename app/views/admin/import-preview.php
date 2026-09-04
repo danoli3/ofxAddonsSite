@@ -21,6 +21,7 @@ $formAction = $formAction ?? '/admin/import/confirm';
     <div class="import-diff-list">
       <?php foreach ($diffs as $d): ?>
         <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed'] || !empty($d['type_changed'])); ?>
+        <?php $typeConfirmed = $d['found'] && !empty($d['proposed_type']) && empty($d['type_changed']); ?>
         <div class="import-diff-row<?= !$d['found'] ? ' import-diff-row--missing' : '' ?><?= ($d['found'] && !$hasChanges) ? ' import-diff-row--nochange' : '' ?>">
           <?php if ($d['found']): ?>
             <input type="checkbox" class="import-diff-row__check" name="confirm[]" value="<?= (int)$d['index'] ?>" checked>
@@ -33,12 +34,17 @@ $formAction = $formAction ?? '/admin/import/confirm';
             <?php if (!$d['found']): ?>
               <span class="tag tag--archived">Not found in this database - will be skipped</span>
             <?php else: ?>
-              <?php if (!$hasChanges): ?>
+              <?php if (!$hasChanges && !$typeConfirmed): ?>
                 <span class="tag">No changes</span>
               <?php endif; ?>
-              <?php if (!empty($d['type_changed'])): ?>
+              <?php if (!empty($d['proposed_type'])): ?>
                 <div class="import-diff-row__version">
-                  Type: <?= ofx_h($d['current_type']) ?> &rarr; <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                  <?php if (!empty($d['type_changed'])): ?>
+                    Type: <?= ofx_h($d['current_type']) ?> &rarr; <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                  <?php else: ?>
+                    Type: <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                    <span class="import-diff-row__confirmed">(prior decision, unchanged)</span>
+                  <?php endif; ?>
                 </div>
               <?php endif; ?>
               <div class="import-diff-row__cats">
