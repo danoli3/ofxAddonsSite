@@ -137,6 +137,10 @@ $detailIsAdmin = !empty($detailUser['admin']);
   </div>
   <div class="addon-detail__get-links">
     <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">View on GitHub</a>
+    &middot;
+    <a href="x-github-client://openRepo/https://github.com/<?= ofx_h($addon['full_name']) ?>" title="Requires Github Desktop to be installed">
+      Open with Github Desktop
+    </a>
     <?php if (!empty($addon['default_branch'])): ?>
       &middot; <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>/archive/refs/heads/<?= ofx_h($addon['default_branch']) ?>.zip">Download ZIP</a>
     <?php endif; ?>
