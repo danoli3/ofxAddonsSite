@@ -15,7 +15,8 @@
   </div>
   <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">AI triage</span>
-    <a href="/admin/export-triage.json" title="Unsorted/Incomplete/Spam repos + category list, for feeding to a local model">Download</a>
+    <a href="/admin/export-triage.json" title="Full one-shot export of every Unsorted/Incomplete/Spam repo - can be too large for a local model's context">Download</a>
+    <span class="admin-toolbar__hint" title="A small-batch API for a local model: GET /api/triage/batch (readme included per addon) then POST /api/triage/submit, both with an Authorization: Bearer &lt;AI_TRIAGE_API_KEY&gt; header. Submissions land below in the AI triage queue for review.">API docs &darr;</span>
   </div>
   <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">Database</span>
@@ -43,6 +44,7 @@
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/review">Review requests<?= $reviewCount > 0 ? ' (' . $reviewCount . ')' : '' ?> &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/duplicates">Possible duplicates<?= $dupeCount > 0 ? ' (' . $dupeCount . ')' : '' ?> &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>
 </div>
 
 <?php $qSuffix = $search !== '' ? '&q=' . urlencode($search) : ''; ?>

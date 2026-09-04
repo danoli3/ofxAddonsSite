@@ -97,6 +97,7 @@ function ofx_admin_index(): void
             GROUP BY LOWER(name) HAVING COUNT(*) > 1
         ) t
     ")->fetchColumn();
+    $aiQueueCount = (int)$pdo->query('SELECT COUNT(*) FROM ai_triage_queue')->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
@@ -109,6 +110,7 @@ function ofx_admin_index(): void
         'counts' => $counts,
         'reviewCount' => $reviewCount,
         'dupeCount' => $dupeCount,
+        'aiQueueCount' => $aiQueueCount,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
         'title' => 'Admin',
@@ -629,8 +631,10 @@ function ofx_admin_import_preview(): void
 }
 
 // Read-only: computes what ofx_apply_addon_import() would do for each
-// entry (found/not-found, category adds/removes, of_version change)
-// against the database as it stands right now, for the review screen.
+// entry (found/not-found, category adds/removes, of_version change, type
+// change) against the database as it stands right now, for the review
+// screen. Shared by the manual file-upload import and the AI triage
+// queue review - entries from either source normalize to the same shape.
 function ofx_admin_import_diff(PDO $pdo, array $entries): array
 {
     $validVersions = array_column(OFX_VERSIONS, 'version');
@@ -648,6 +652,11 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         if ($proposedVersion !== '' && !in_array($proposedVersion, $validVersions, true)) {
             $proposedVersion = '';
         }
+        $proposedType = isset($entry['type']) ? trim((string)$entry['type']) : '';
+        if ($proposedType !== '' && !in_array($proposedType, OFX_REPO_TYPES, true)) {
+            $proposedType = '';
+        }
+        $notes = isset($entry['notes']) ? trim((string)$entry['notes']) : '';
 
         // re-encoded from the normalized values above (not the raw
         // upload) so a confirmed row can only ever apply what this same
@@ -656,9 +665,12 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         if ($proposedVersion !== '') {
             $normalizedEntry['of_version'] = $proposedVersion;
         }
+        if ($proposedType !== '') {
+            $normalizedEntry['type'] = $proposedType;
+        }
 
         $stmt = $pdo->prepare(
-            'SELECT id, full_name, name, of_version, of_version_curated FROM repos WHERE LOWER(full_name) = LOWER(?) LIMIT 1'
+            'SELECT id, full_name, name, type, of_version, of_version_curated FROM repos WHERE LOWER(full_name) = LOWER(?) LIMIT 1'
         );
         $stmt->execute([$fullName]);
         $repo = $stmt->fetch();
@@ -694,6 +706,10 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
             'current_version' => $currentVersion,
             'proposed_version' => $proposedVersion !== '' ? $proposedVersion : null,
             'version_changed' => $proposedVersion !== '' && $proposedVersion !== $currentVersion,
+            'current_type' => $repo['type'],
+            'proposed_type' => $proposedType !== '' ? $proposedType : null,
+            'type_changed' => $proposedType !== '' && $proposedType !== $repo['type'],
+            'notes' => $notes !== '' ? $notes : null,
         ];
     }
 
@@ -751,6 +767,99 @@ function ofx_admin_import_confirm(): void
     ofx_redirect('/admin/repos');
 }
 
+// GET /admin/ai-triage/review - same review-before-applying screen as the
+// manual file-upload import above, but sourced from ai_triage_queue (rows
+// staged by a local model via POST /api/triage/submit) instead of an
+// uploaded file. Reuses ofx_admin_import_diff() so both flows show and
+// apply changes identically.
+function ofx_admin_ai_queue_review(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $rows = $pdo->query('SELECT entry_json FROM ai_triage_queue ORDER BY submitted_at ASC')->fetchAll();
+    $entries = [];
+    foreach ($rows as $row) {
+        $decoded = json_decode($row['entry_json'], true);
+        if (is_array($decoded)) {
+            $entries[] = $decoded;
+        }
+    }
+
+    $diffs = ofx_admin_import_diff($pdo, $entries);
+
+    ofx_render('admin/import-preview', [
+        'diffs' => $diffs,
+        'filename' => 'the AI triage queue (' . count($entries) . ' pending)',
+        'formAction' => '/admin/ai-triage/confirm',
+        'title' => 'Review AI triage queue',
+    ]);
+}
+
+// POST /admin/ai-triage/confirm - same checked-rows-only apply as
+// /admin/import/confirm, except every row shown on the review screen
+// (checked or not) is a queued suggestion the admin has now looked at, so
+// all of them are removed from ai_triage_queue here - checked ones get
+// applied first, unchecked ones are simply discarded. A discarded addon
+// stays whatever type it already was, so it's free to be re-picked up by
+// a future /api/triage/batch call if it's still Unsorted/Incomplete/Spam.
+function ofx_admin_ai_queue_confirm(): void
+{
+    ofx_require_admin();
+
+    if (!ofx_csrf_verify()) {
+        $_SESSION['flash'] = 'Review failed: invalid request, please try again.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
+
+    $confirmedIndexes = array_map('intval', $_POST['confirm'] ?? []);
+    $entryData = $_POST['entry_data'] ?? [];
+
+    $allEntries = [];
+    $confirmedEntries = [];
+    foreach ($entryData as $i => $json) {
+        $decoded = json_decode((string)$json, true);
+        if (!is_array($decoded) || empty($decoded['full_name'])) {
+            continue;
+        }
+        $allEntries[] = $decoded;
+        if (in_array((int)$i, $confirmedIndexes, true)) {
+            $confirmedEntries[] = $decoded;
+        }
+    }
+
+    if (empty($allEntries)) {
+        $_SESSION['flash'] = 'Nothing to review.';
+        ofx_redirect('/admin/repos');
+        return;
+    }
+
+    $pdo = ofx_db();
+    $result = ['updated' => 0, 'notFound' => 0];
+    if (!empty($confirmedEntries)) {
+        $result = ofx_apply_addon_import($pdo, $confirmedEntries, true);
+    }
+
+    $deleteStmt = $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)');
+    foreach ($allEntries as $entry) {
+        $deleteStmt->execute([$entry['full_name']]);
+    }
+
+    $discarded = count($allEntries) - count($confirmedEntries);
+    ofx_log_admin_action(
+        $pdo,
+        ofx_current_user()['id'] ?? null,
+        'ai_triage_review',
+        null,
+        count($confirmedEntries) . " confirmed of " . count($allEntries)
+            . " reviewed: {$result['updated']} applied, {$result['notFound']} not found, {$discarded} discarded"
+    );
+
+    $_SESSION['flash'] = "AI triage review done: {$result['updated']} addon(s) updated, {$discarded} discarded.";
+    ofx_redirect('/admin/repos');
+}
+
 function ofx_parse_import_json(string $contents): array
 {
     $data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
@@ -784,9 +893,15 @@ function ofx_parse_import_xml(string $contents): array
     return $entries;
 }
 
-// Each entry can carry categories, of_version, or both - a version-only
-// pass (e.g. a Qwen run reading READMEs for an explicit openFrameworks
-// requirement) doesn't need to touch type/categorization at all.
+// Each entry can carry categories, of_version, type, or any mix - a
+// version-only pass (e.g. a Qwen run reading READMEs for an explicit
+// openFrameworks requirement) doesn't need to touch type/categorization
+// at all. An entry can also carry an explicit "type" (e.g. from the AI
+// triage queue, which classifies Unsorted/Spam repos rather than just
+// categorizing already-confirmed ones) - if present and valid it's
+// applied as given; if absent but categories are, it defaults to "Addon"
+// as before, since that's the only sensible type for something being
+// handed categories.
 // $aiCurated marks any categories touched here as repos.categories_ai_curated
 // = 1 - set only by the AI-triage preview/confirm flow, never by a human
 // hand-editing categories through the picker, so a future triage export
@@ -801,7 +916,11 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
         $fullName = $entry['full_name'] ?? null;
         $categoryNames = array_filter(array_map('trim', $entry['categories'] ?? []));
         $ofVersion = isset($entry['of_version']) ? trim((string)$entry['of_version']) : '';
-        if (!$fullName || (empty($categoryNames) && $ofVersion === '')) {
+        $type = isset($entry['type']) ? trim((string)$entry['type']) : '';
+        if ($type !== '' && !in_array($type, OFX_REPO_TYPES, true)) {
+            $type = '';
+        }
+        if (!$fullName || (empty($categoryNames) && $ofVersion === '' && $type === '')) {
             continue;
         }
 
@@ -828,8 +947,8 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
             }
 
             $pdo->prepare(
-                'UPDATE repos SET type = "Addon", categories_ai_curated = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$aiCurated ? 1 : 0, $repoId]);
+                'UPDATE repos SET type = ?, categories_ai_curated = ?, updated_at = NOW() WHERE id = ?'
+            )->execute([$type !== '' ? $type : 'Addon', $aiCurated ? 1 : 0, $repoId]);
             $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$repoId]);
             $insert = $pdo->prepare(
                 'INSERT INTO categorizations (category_id, repo_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())'
@@ -837,6 +956,8 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
             foreach ($categoryIds as $categoryId) {
                 $insert->execute([$categoryId, $repoId]);
             }
+        } elseif ($type !== '') {
+            $pdo->prepare('UPDATE repos SET type = ?, updated_at = NOW() WHERE id = ?')->execute([$type, $repoId]);
         }
 
         if ($ofVersion !== '' && in_array($ofVersion, $validVersions, true)) {

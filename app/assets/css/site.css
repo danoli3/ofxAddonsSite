@@ -608,6 +608,7 @@ a.addon-card__desc:hover { color: var(--text); }
 }
 .admin-toolbar__group { display: flex; align-items: center; gap: 10px; margin: 0; }
 .admin-toolbar__label { color: var(--text-muted); font-weight: 600; }
+.admin-toolbar__hint { color: var(--text-muted); font-size: .78rem; border-bottom: 1px dotted var(--text-muted); cursor: help; }
 .admin-toolbar__group input[type="file"] { color: var(--text-muted); font-size: .8rem; max-width: 200px; }
 .admin-toolbar__group input[type="text"] {
   background: var(--bg-alt);
@@ -933,6 +934,7 @@ a.addon-card__desc:hover { color: var(--text); }
 .import-diff-row__body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
 .import-diff-row__cats { display: flex; flex-wrap: wrap; gap: 6px; }
 .import-diff-row__version { font-size: .82rem; color: var(--text-muted); }
+.import-diff-row__notes { font-size: .82rem; color: var(--text-muted); font-style: italic; }
 .import-diff-tag--added { color: var(--accent-3); background: rgba(56, 225, 198, .12); border-color: rgba(56, 225, 198, .35); font-weight: 700; }
 .import-diff-tag--removed { color: #ff6b6b; background: rgba(255, 107, 107, .1); border-color: rgba(255, 107, 107, .3); text-decoration: line-through; }
 .import-diff-confirm-all {

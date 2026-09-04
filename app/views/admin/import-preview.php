@@ -1,6 +1,8 @@
 <?php
 /** @var array $diffs */
 /** @var string $filename */
+/** @var string|null $formAction */
+$formAction = $formAction ?? '/admin/import/confirm';
 ?>
 <div class="page-head">
   <h1>Review import</h1>
@@ -14,11 +16,11 @@
 <?php if (empty($diffs)): ?>
   <p class="empty-state">Nothing to review.</p>
 <?php else: ?>
-  <form method="post" action="/admin/import/confirm">
+  <form method="post" action="<?= ofx_h($formAction) ?>">
     <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
     <div class="import-diff-list">
       <?php foreach ($diffs as $d): ?>
-        <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed']); ?>
+        <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed'] || !empty($d['type_changed'])); ?>
         <div class="import-diff-row<?= !$d['found'] ? ' import-diff-row--missing' : '' ?><?= ($d['found'] && !$hasChanges) ? ' import-diff-row--nochange' : '' ?>">
           <?php if ($d['found']): ?>
             <input type="checkbox" class="import-diff-row__check" name="confirm[]" value="<?= (int)$d['index'] ?>" checked>
@@ -33,6 +35,11 @@
             <?php else: ?>
               <?php if (!$hasChanges): ?>
                 <span class="tag">No changes</span>
+              <?php endif; ?>
+              <?php if (!empty($d['type_changed'])): ?>
+                <div class="import-diff-row__version">
+                  Type: <?= ofx_h($d['current_type']) ?> &rarr; <strong><?= ofx_h($d['proposed_type']) ?></strong>
+                </div>
               <?php endif; ?>
               <div class="import-diff-row__cats">
                 <?php foreach ($d['unchanged_categories'] as $c): ?>
@@ -55,6 +62,9 @@
                   <?php endif; ?>
                   &rarr; <strong><?= ofx_h($d['proposed_version']) ?></strong>
                 </div>
+              <?php endif; ?>
+              <?php if (!empty($d['notes'])): ?>
+                <div class="import-diff-row__notes">&ldquo;<?= ofx_h($d['notes']) ?>&rdquo;</div>
               <?php endif; ?>
             <?php endif; ?>
           </div>
