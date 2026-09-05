@@ -350,6 +350,7 @@ a.addon-card__desc:hover { color: var(--text); }
 .tag--super-admin { color: #f5b638; background: rgba(245, 182, 56, .12); border-color: rgba(245, 182, 56, .35); font-weight: 700; }
 .tag--pass { color: #38e1c6; background: rgba(56, 225, 198, .1); border-color: rgba(56, 225, 198, .25); font-weight: 700; }
 .tag--fail { color: #ff6b6b; background: rgba(255, 107, 107, .12); border-color: rgba(255, 107, 107, .35); font-weight: 700; }
+.tag--warn { color: #f5b638; background: rgba(245, 182, 56, .12); border-color: rgba(245, 182, 56, .35); font-weight: 700; }
 .tag--version { color: var(--accent-1); background: rgba(124, 92, 255, .1); border-color: rgba(124, 92, 255, .3); font-weight: 700; }
 .tag--version:hover { text-decoration: none; opacity: .85; }
 .tag--version-guess { color: var(--text-muted); background: transparent; border-style: dashed; font-weight: 600; }

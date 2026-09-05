@@ -64,9 +64,18 @@ $envPermsOk = $envPerms !== null && in_array($envPerms, ['0600', '0640'], true);
       <td><span class="tag <?= $cookieParams['secure'] ? 'tag--pass' : 'tag--fail' ?>"><?= $cookieParams['secure'] ? 'Pass' : 'FAIL' ?></span></td>
       <td>Only sent back over HTTPS</td>
     </tr>
+    <?php
+    $sameSite = $cookieParams['samesite'] ?? '';
+    // Strict is the strongest setting; Lax (this site's actual setting - see
+    // ofx_session_start()) is a reasonable, deliberate middle ground that
+    // still blocks cross-site POSTs but allows a plain top-level GET
+    // navigation (e.g. following a link from Github) to arrive logged in -
+    // a real tradeoff, not a misconfiguration, so it gets a warn, not a fail.
+    $sameSiteTag = $sameSite === 'Strict' ? 'tag--pass' : ($sameSite === 'Lax' ? 'tag--warn' : 'tag--fail');
+    ?>
     <tr>
       <td>Session cookie: SameSite</td>
-      <td><span class="tag <?= ($cookieParams['samesite'] ?? '') === 'Lax' ? 'tag--pass' : 'tag--fail' ?>"><?= ofx_h($cookieParams['samesite'] ?: 'none') ?></span></td>
+      <td><span class="tag <?= $sameSiteTag ?>"><?= ofx_h($sameSite ?: 'none') ?></span></td>
       <td>Mitigates CSRF from a cross-site request carrying the cookie</td>
     </tr>
 
