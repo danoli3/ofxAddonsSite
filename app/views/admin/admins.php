@@ -22,7 +22,7 @@
       <tr class="admin-row" data-user-id="<?= (int)$u['id'] ?>">
         <td>
           <a href="https://github.com/<?= ofx_h($u['login']) ?>" target="_blank" rel="noopener">
-            <img class="contributor-card__avatar" style="width:24px;height:24px;vertical-align:middle;border-radius:50%;" src="<?= ofx_h(ofx_avatar_url($u['avatar_url'])) ?>" alt="">
+            <img class="contributor-card__avatar" style="width:24px;height:24px;vertical-align:middle;border-radius:50%;" src="<?= ofx_h(ofx_avatar_url($u['avatar_url'], 24)) ?>" alt="">
             @<?= ofx_h($u['login']) ?>
           </a>
         </td>

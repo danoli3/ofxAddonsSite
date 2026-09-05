@@ -15,7 +15,7 @@ $detailThumb = ofx_addon_thumbnail_url($addon);
 <?php endif; ?>
 
 <div class="page-head contributor-head">
-  <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($addon['user_avatar_url'] ?? null)) ?>" alt="">
+  <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($addon['user_avatar_url'] ?? null, 64)) ?>" alt="">
   <div>
     <h1><?= ofx_h($addon['name']) ?></h1>
     <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">

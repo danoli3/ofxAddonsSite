@@ -334,9 +334,19 @@ function ofx_flash_get(): ?string
     return $flash;
 }
 
-function ofx_avatar_url(?string $url): string
+// $size is the CSS display size in px (avatars always render small - 18
+// to 64px across the site) - Github's own avatar CDN resizes
+// server-side via ?s=, so asking for 2x that (retina-sharp) shrinks a
+// ~35KB original down to a couple KB, instead of every addon-card/
+// contributor-list/log row downloading the full-size original just to
+// display it at a fraction of that size.
+function ofx_avatar_url(?string $url, int $size = 32): string
 {
-    return $url ?: '/app/assets/img/default-gravatar.png';
+    if (!$url) {
+        return '/app/assets/img/default-gravatar.png';
+    }
+    $separator = str_contains($url, '?') ? '&' : '?';
+    return "{$url}{$separator}s=" . ($size * 2);
 }
 
 function ofx_addon_url(string $fullName): string

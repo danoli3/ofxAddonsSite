@@ -1,5 +1,5 @@
 <div class="page-head contributor-head">
-  <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($user['avatar_url'])) ?>" alt="">
+  <img class="contributor-head__avatar" src="<?= ofx_h(ofx_avatar_url($user['avatar_url'], 64)) ?>" alt="">
   <div>
     <h1><?= ofx_h($user['name'] ?: $user['login']) ?></h1>
     <a href="https://github.com/<?= ofx_h($user['login']) ?>" target="_blank" rel="noopener">@<?= ofx_h($user['login']) ?></a>

@@ -27,7 +27,7 @@
         <td class="admin-row__desc-static"><?= ofx_h(ofx_time_ago($entry['created_at'])) ?></td>
         <td>
           <?php if (!empty($entry['user_login'])): ?>
-            <img class="log-avatar" src="<?= ofx_h(ofx_avatar_url($entry['user_avatar_url'])) ?>" alt="" loading="lazy">
+            <img class="log-avatar" src="<?= ofx_h(ofx_avatar_url($entry['user_avatar_url'], 18)) ?>" alt="" loading="lazy">
             <a href="https://github.com/<?= ofx_h($entry['user_login']) ?>" target="_blank" rel="noopener">
               @<?= ofx_h($entry['user_login']) ?>
             </a>
