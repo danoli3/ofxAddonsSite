@@ -17,6 +17,12 @@ const OFX_AI_TRIAGE_LEASE_MINUTES = 30;
 function ofx_api_triage_require_key(): bool
 {
     header('Content-Type: application/json');
+    // critical if a CDN ever sits in front of this site: /api/triage/batch
+    // hands out a different, not-yet-claimed set of addons on every call
+    // (see the lease logic below) - a cached response here would silently
+    // start serving the same batch to every caller again, exactly the bug
+    // the lease was built to fix, just moved to a layer this app can't see.
+    header('Cache-Control: private, no-store');
     $secret = ofx_env('AI_TRIAGE_API_KEY');
     $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
     $provided = str_starts_with($auth, 'Bearer ') ? substr($auth, 7) : '';

@@ -122,6 +122,7 @@ function ofx_sitemap_xml_content(): string
 function ofx_sitemap_xml(): void
 {
     header('Content-Type: application/xml; charset=UTF-8');
+    header('Cache-Control: public, max-age=900');
     ofx_cache_serve('sitemap.xml', 'ofx_sitemap_xml_content');
 }
 
@@ -137,6 +138,7 @@ function ofx_sitemap_json_content(): string
 function ofx_sitemap_json(): void
 {
     header('Content-Type: application/json');
+    header('Cache-Control: public, max-age=900');
     ofx_cache_serve('sitemap.json', 'ofx_sitemap_json_content');
 }
 

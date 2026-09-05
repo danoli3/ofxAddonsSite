@@ -35,7 +35,10 @@ function ofx_banned_json_content(): string
 function ofx_banned_json(): void
 {
     header('Content-Type: application/json');
-    header('Cache-Control: no-cache');
+    // public/non-personalized and already regenerated on every crawl
+    // sync - safe for a CDN to cache; a short TTL just bounds how stale
+    // it can get between syncs without needing a cache-purge call
+    header('Cache-Control: public, max-age=900');
     ofx_cache_serve('banned.json', 'ofx_banned_json_content');
 }
 
@@ -52,6 +55,6 @@ function ofx_addon_repos_json_content(): string
 function ofx_addon_repos_json(): void
 {
     header('Content-Type: application/json');
-    header('Cache-Control: no-cache');
+    header('Cache-Control: public, max-age=900');
     ofx_cache_serve('addon-repos.json', 'ofx_addon_repos_json_content');
 }
