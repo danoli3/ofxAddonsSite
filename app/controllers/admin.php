@@ -1245,6 +1245,22 @@ function ofx_admin_regenerate_caches(): void
     echo json_encode(['status' => 200]);
 }
 
+// GET /admin/cache - when each cached page/feed (see app/cache.php) was
+// last regenerated, how long that took, and how big it came out - lets
+// an admin see whether the cache is actually fresh/healthy, not just
+// trust that it is. Any admin can view this (it's diagnostics, not
+// data export); the "Regenerate all now" button on it is the same
+// action as the toolbar's "Regenerate feeds" button.
+function ofx_admin_cache_stats(): void
+{
+    ofx_require_admin();
+
+    ofx_render('admin/cache', [
+        'meta' => ofx_cache_read_meta(),
+        'title' => 'Cache',
+    ]);
+}
+
 function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
 {
     $admin = ofx_require_admin();

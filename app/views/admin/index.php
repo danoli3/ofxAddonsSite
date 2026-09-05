@@ -22,6 +22,7 @@
     <span id="admin-add-repo-status" class="admin-row__status"></span>
   </div>
   <a class="admin-toolbar__link" href="/admin/log">Log &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/cache">Cache &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/admins">Users &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/review">Review requests<?= $reviewCount > 0 ? ' (' . $reviewCount . ')' : '' ?> &rarr;</a>

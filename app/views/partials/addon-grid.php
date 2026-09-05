@@ -8,3 +8,11 @@
   <span class="spinner"></span> Loading more&hellip;
 </div>
 <p class="grid-end" hidden>You&rsquo;ve reached the end.</p>
+<?php if ($hasMore): ?>
+  <!-- infinite scroll needs JS - without it, this is the only way to
+       reach page 2+, so it has to be real, crawlable HTML rather than
+       something JS inserts -->
+  <noscript>
+    <p class="pagination-fallback"><a href="<?= ofx_h($nextUrl) ?>">Next page &rarr;</a></p>
+  </noscript>
+<?php endif; ?>

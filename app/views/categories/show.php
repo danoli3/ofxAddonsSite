@@ -23,4 +23,9 @@
     <span class="spinner"></span> Loading more&hellip;
   </div>
   <p class="grid-end" hidden>You&rsquo;ve reached the end.</p>
+  <?php if ($hasMore): ?>
+    <noscript>
+      <p class="pagination-fallback"><a href="<?= ofx_h($nextUrl) ?>">Next page &rarr;</a></p>
+    </noscript>
+  <?php endif; ?>
 </div>

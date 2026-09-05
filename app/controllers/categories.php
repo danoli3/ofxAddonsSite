@@ -3,21 +3,31 @@ declare(strict_types=1);
 
 const OFX_CATEGORY_PREVIEW_SIZE = 8;
 
-function ofx_categories_index(): void
+// The join behind /categories - every non-archived, non-hidden Addon
+// with which category(ies) it's in. Expensive enough (and identical
+// between crawl syncs) that it's normally served from the cache built
+// by ofx_regenerate_public_caches() rather than run on every homepage
+// view - see ofx_categories_index() below.
+function ofx_categories_addons_content(): array
 {
-    $pdo = ofx_db();
-
-    $stmt = $pdo->query('
+    return ofx_db()->query('
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url, cz.category_id, cz.featured
         FROM repos r
         JOIN categorizations cz ON cz.repo_id = r.id
         LEFT JOIN users u ON u.id = r.user_id
         WHERE r.type = "Addon" AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0 AND r.archived = 0
         ORDER BY cz.featured DESC, LOWER(r.name) ASC
-    ');
+    ')->fetchAll();
+}
+
+function ofx_categories_index(): void
+{
+    $pdo = ofx_db();
+
+    $rows = ofx_cache_read_data('categories-addons.json') ?? ofx_categories_addons_content();
 
     $addonsByCategory = [];
-    while ($row = $stmt->fetch()) {
+    foreach ($rows as $row) {
         $addonsByCategory[$row['category_id']][] = $row;
     }
 

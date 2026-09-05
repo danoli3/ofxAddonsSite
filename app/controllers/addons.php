@@ -158,26 +158,31 @@ function ofx_addons_search(): void
     }
 }
 
-function ofx_render_addons_sorted(?string $sort): void
+// whitelisted, not user-concatenated - safe to interpolate. r.id as a
+// final tiebreaker keeps pagination stable across pages - without it,
+// rows tied on the sort column (e.g. two repos with the same
+// stargazers_count) can come back in a different relative order
+// between the page-1 and page-2 queries, showing up twice or not at all
+function ofx_addons_sort_order(string $sortKey): string
 {
-
-    // r.id as a final tiebreaker keeps pagination stable across pages -
-    // without it, rows tied on the sort column (e.g. two repos with the
-    // same stargazers_count) can come back in a different relative order
-    // between the page-1 and page-2 queries, showing up twice or not at all
-    $order = 'LOWER(r.name) ASC, r.id ASC';
-    if ($sort === 'freshest') {
-        $order = 'r.pushed_at DESC, r.id ASC';
-    } elseif ($sort === 'popular') {
-        $order = 'r.stargazers_count DESC, r.id ASC';
+    if ($sortKey === 'freshest') {
+        return 'r.pushed_at DESC, r.id ASC';
     }
+    if ($sortKey === 'popular') {
+        return 'r.stargazers_count DESC, r.id ASC';
+    }
+    return 'LOWER(r.name) ASC, r.id ASC';
+}
 
-    $page = max(1, (int)($_GET['page'] ?? 1));
-    $offset = ($page - 1) * OFX_PAGE_SIZE;
-    $fetch = OFX_PAGE_SIZE + 1;
-
-    $pdo = ofx_db();
-    $stmt = $pdo->prepare("
+// The full (unpaginated) addon list for one sort mode - identical
+// between crawl syncs, so it's normally read from the cache built by
+// ofx_regenerate_public_caches() and paginated in PHP, rather than
+// re-running this GROUP_CONCAT join across 4 tables on every single
+// page view of /addons, /freshest, or /popular.
+function ofx_addons_sorted_content(string $sortKey): array
+{
+    $order = ofx_addons_sort_order($sortKey);
+    return ofx_db()->query("
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
                GROUP_CONCAT(c.name SEPARATOR '||') AS categories
         FROM repos r
@@ -187,10 +192,37 @@ function ofx_render_addons_sorted(?string $sort): void
         WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
         GROUP BY r.id
         ORDER BY {$order}
-        LIMIT {$fetch} OFFSET {$offset}
-    ");
-    $stmt->execute();
-    [$addons, $hasMore] = ofx_paginate_slice($stmt->fetchAll(), OFX_PAGE_SIZE);
+    ")->fetchAll();
+}
+
+function ofx_render_addons_sorted(?string $sort): void
+{
+    $sortKey = in_array($sort, ['freshest', 'popular'], true) ? $sort : 'name';
+
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($page - 1) * OFX_PAGE_SIZE;
+    $fetch = OFX_PAGE_SIZE + 1;
+
+    $cached = ofx_cache_read_data("addons-{$sortKey}.json");
+    if ($cached !== null) {
+        [$addons, $hasMore] = ofx_paginate_slice(array_slice($cached, $offset, $fetch), OFX_PAGE_SIZE);
+    } else {
+        $order = ofx_addons_sort_order($sortKey);
+        $stmt = ofx_db()->prepare("
+            SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
+                   GROUP_CONCAT(c.name SEPARATOR '||') AS categories
+            FROM repos r
+            LEFT JOIN users u ON u.id = r.user_id
+            LEFT JOIN categorizations cz ON cz.repo_id = r.id
+            LEFT JOIN categories c ON c.id = cz.category_id
+            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
+            GROUP BY r.id
+            ORDER BY {$order}
+            LIMIT {$fetch} OFFSET {$offset}
+        ");
+        $stmt->execute();
+        [$addons, $hasMore] = ofx_paginate_slice($stmt->fetchAll(), OFX_PAGE_SIZE);
+    }
 
     if (ofx_is_ajax()) {
         header('X-Has-More: ' . ($hasMore ? '1' : '0'));

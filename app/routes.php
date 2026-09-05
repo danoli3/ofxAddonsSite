@@ -55,6 +55,7 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/admins/(\d+)/toggle-super$#', 'ofx_admin_toggle_super_admin'],
         ['POST', '#^/admin/sync-now$#', 'ofx_admin_sync_now'],
         ['POST', '#^/admin/regenerate-caches$#', 'ofx_admin_regenerate_caches'],
+        ['GET', '#^/admin/cache$#', 'ofx_admin_cache_stats'],
         ['POST', '#^/admin/add-repo$#', 'ofx_admin_add_repo'],
         ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
         ['POST', '#^/admin/repos/(\d+)/dismiss-appeal$#', 'ofx_admin_dismiss_appeal'],

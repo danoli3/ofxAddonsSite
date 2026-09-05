@@ -470,3 +470,15 @@ function ofx_time_ago(?string $datetime): string
     $years = intdiv($months, 12);
     return "{$years}y ago";
 }
+
+function ofx_format_bytes(int $bytes): string
+{
+    if ($bytes < 1024) {
+        return "{$bytes} B";
+    }
+    $kb = $bytes / 1024;
+    if ($kb < 1024) {
+        return number_format($kb, 1) . ' KB';
+    }
+    return number_format($kb / 1024, 1) . ' MB';
+}
