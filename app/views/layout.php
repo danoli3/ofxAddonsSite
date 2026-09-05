@@ -11,6 +11,14 @@ $flash = ofx_flash_get();
   <meta name="description" content="The central place to discover openFrameworks addons.">
   <meta name="csrf-token" content="<?= ofx_h(ofx_csrf_token()) ?>">
   <link rel="icon" href="/app/assets/img/ofxlogo-small.png">
+  <!-- every addon card on the site loads a github avatar image - let the
+       browser start that connection's DNS+TCP+TLS now instead of waiting
+       until the parser reaches the first <img> tag; dns-prefetch is the
+       fallback for browsers that don't support preconnect -->
+  <link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
+  <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+  <link rel="dns-prefetch" href="https://code.jquery.com">
   <link rel="stylesheet" href="<?= ofx_h(ofx_asset_url('/app/assets/css/site.min.css')) ?>">
 </head>
 <body id="top">
@@ -74,7 +82,8 @@ $flash = ofx_flash_get();
     </div>
   </footer>
 
-  <script src="/app/assets/js/vendor/jquery-3.7.1.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+  <script>window.jQuery || document.write('<script src="/app/assets/js/vendor/jquery-3.7.1.min.js"><\/script>')</script>
   <script src="<?= ofx_h(ofx_asset_url('/app/assets/js/site.min.js')) ?>"></script>
 </body>
 </html>

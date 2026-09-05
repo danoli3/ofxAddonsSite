@@ -19,7 +19,10 @@ function ofx_dispatch(): void
     $matchMethod = $isHead ? 'GET' : $method;
 
     $routes = [
-        ['GET', '#^/$#', fn () => ofx_redirect('/categories')],
+        // rendered directly (not a redirect to /categories) - every
+        // visitor hits this URL first, and a 302 here would delay the
+        // entire page behind an extra round trip before anything can render
+        ['GET', '#^/$#', 'ofx_categories_index'],
         ['GET', '#^/categories$#', 'ofx_categories_index'],
         ['GET', '#^/categories/([a-zA-Z0-9-]+)$#', 'ofx_categories_show'],
         ['GET', '#^/addons$#', 'ofx_addons_index'],
