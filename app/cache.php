@@ -117,4 +117,5 @@ function ofx_regenerate_public_caches(): void
     ofx_cache_generate_data('addons-freshest.json', fn () => ofx_addons_sorted_content('freshest'));
     ofx_cache_generate_data('addons-popular.json', fn () => ofx_addons_sorted_content('popular'));
     ofx_cache_generate_data('addons-newest.json', fn () => ofx_addons_sorted_content('newest'));
+    ofx_cache_generate_data('openframeworks-recent.json', 'ofx_openframeworks_recent_commits_content');
 }

@@ -10,6 +10,7 @@ $labels = [
     'addons-freshest.json' => 'Freshest',
     'addons-popular.json' => 'Popular',
     'addons-newest.json' => 'Newest',
+    'openframeworks-recent.json' => 'About openFrameworks (recent commits)',
 ];
 ?>
 <div class="page-head">
