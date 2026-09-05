@@ -505,14 +505,20 @@ const OFX_MAINTENANCE_FLAG_PATH = __DIR__ . '/maintenance.flag';
 // 'unsafe-inline' because the site already relies on a few inline
 // image-fallback handlers (onerror=) and the jQuery-CDN-fallback inline
 // <script> in layout.php - this is defense-in-depth against loading
-// arbitrary *third-party* script/frame/image origins, not a guarantee
-// against injected inline script.
+// arbitrary *third-party* script/frame origins, not a guarantee against
+// injected inline script. img-src is deliberately any https: host, not
+// an allowlist - addon thumbnails come from raw.githubusercontent.com
+// (the ofxaddons_thumbnail.png convention) or from an owner's own
+// arbitrary HTTPS thumbnail_url_override (see ofx_validate_thumbnail_url,
+// which already does the real SSRF/host validation for that at save
+// time); img-src can't execute script, so this is a low-risk directive
+// to leave open compared to script-src/frame-ancestors.
 function ofx_send_security_headers(): void
 {
     header("Content-Security-Policy: default-src 'self'; "
         . "script-src 'self' 'unsafe-inline' https://code.jquery.com; "
         . "style-src 'self' 'unsafe-inline'; "
-        . "img-src 'self' data: https://avatars.githubusercontent.com; "
+        . "img-src 'self' data: https:; "
         . "connect-src 'self'; "
         . "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
     header('X-Content-Type-Options: nosniff');
