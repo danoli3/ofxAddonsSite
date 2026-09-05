@@ -301,10 +301,12 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
 }
 .addon-card__head { display: flex; align-items: center; gap: 10px; }
 .addon-card__avatar { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg-alt); }
-.addon-card__title { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.addon-card__title { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 2px; }
 .addon-card__name { font-weight: 700; color: var(--text); font-size: .98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .addon-card__name:hover { color: var(--accent-3); text-decoration: none; }
-.addon-card__owner { font-size: .76rem; color: var(--text-muted); }
+/* padding+negative margin grows the tappable area (touch-target-size
+   audit) without visually shifting the surrounding stacked links */
+.addon-card__owner { display: inline-block; font-size: .76rem; color: var(--text-muted); padding: 4px 0; margin: -4px 0; }
 .addon-card__owner:hover { color: var(--accent-3); text-decoration: none; }
 .addon-card__head-tags { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
 .addon-card__desc {

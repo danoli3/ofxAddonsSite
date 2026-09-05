@@ -13,7 +13,11 @@ $cardThumb = ofx_addon_thumbnail_url($addon);
 ?>
 <article class="addon-card" data-name="<?= ofx_h(strtolower($addon['name'] ?? '')) ?>" data-desc="<?= ofx_h(strtolower($addon['description'] ?? '')) ?>">
   <?php if ($cardThumb && !empty($addon['full_name'])): ?>
-    <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener">
+    <!-- same destination as .addon-card__name below - hidden from
+         assistive tech (rather than given its own aria-label) so a
+         screen reader doesn't announce two identical links back to
+         back for one card -->
+    <a href="https://github.com/<?= ofx_h($addon['full_name']) ?>" target="_blank" rel="noopener" aria-hidden="true" tabindex="-1">
       <img class="addon-card__thumb" src="<?= ofx_h($cardThumb) ?>" alt="" loading="lazy" onerror="this.closest('a').remove()">
     </a>
   <?php endif; ?>

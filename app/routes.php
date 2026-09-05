@@ -8,7 +8,15 @@ function ofx_dispatch(): void
     if ($path === '') {
         $path = '/';
     }
+    // HEAD must work wherever GET does (same headers, no body) - every
+    // route below only lists GET, so match HEAD against those same GET
+    // routes and just discard whatever body the handler produces,
+    // rather than falling through to a 404 for every HEAD request
+    // (which is exactly what tools like curl -I and some crawlers/audit
+    // bots default to using).
     $method = $_SERVER['REQUEST_METHOD'];
+    $isHead = $method === 'HEAD';
+    $matchMethod = $isHead ? 'GET' : $method;
 
     $routes = [
         ['GET', '#^/$#', fn () => ofx_redirect('/categories')],
@@ -75,14 +83,24 @@ function ofx_dispatch(): void
         ['POST', '#^/my/addons/(\d+)/appeal-ban$#', 'ofx_my_addons_appeal_ban'],
     ];
 
+    if ($isHead) {
+        ob_start();
+    }
+
     foreach ($routes as [$m, $pattern, $handler]) {
-        if ($method !== $m || !preg_match($pattern, $path, $matches)) {
+        if ($matchMethod !== $m || !preg_match($pattern, $path, $matches)) {
             continue;
         }
         array_shift($matches);
         call_user_func_array($handler, $matches);
+        if ($isHead) {
+            ob_end_clean();
+        }
         return;
     }
 
+    if ($isHead) {
+        ob_end_clean();
+    }
     ofx_not_found();
 }
