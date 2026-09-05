@@ -139,6 +139,7 @@ function ofx_categories_show(string $slugOrId): void
     $offset = ($page - 1) * OFX_PAGE_SIZE;
     $fetch = OFX_PAGE_SIZE + 1;
 
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $fetch/$offset are (int)-cast/computed from a max()'d page number, never raw string interpolation of request data
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url, cz.featured
         FROM repos r

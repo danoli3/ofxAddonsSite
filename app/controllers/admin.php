@@ -101,6 +101,7 @@ function ofx_admin_index(): void
         $params[] = "%{$search}%";
         $params[] = "%{$search}%";
     }
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $where only ever contains hardcoded fragments + '?' placeholders (real values bound via $params/execute()); $order/$type are whitelist-validated above
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login
         FROM repos r
@@ -164,6 +165,7 @@ function ofx_admin_index(): void
         'aiQueueCount' => $aiQueueCount,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
+        'maintenanceOn' => is_file(OFX_MAINTENANCE_FLAG_PATH),
         'title' => 'Admin',
     ]);
 }
@@ -257,6 +259,7 @@ function ofx_admin_update(string $id): void
     $categoryNames = [];
     if (!empty($categoryIds)) {
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $placeholders is a "?,?,?" string sized only by count($categoryIds); real values bound via execute($categoryIds) below
         $stmt = $pdo->prepare("SELECT name FROM categories WHERE id IN ({$placeholders})");
         $stmt->execute($categoryIds);
         $categoryNames = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -270,6 +273,7 @@ function ofx_admin_update(string $id): void
     }
     ofx_log_admin_action($pdo, ofx_current_user()['id'] ?? null, 'update_repo', (int)$id, $details);
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response (Content-Type: application/json), not HTML; htmlentities() doesn't apply here. $type is whitelist-validated, $id is (int)-cast
     echo json_encode(['status' => 200, 'repo' => ['id' => (int)$id, 'type' => $type]]);
 }
 
@@ -315,6 +319,7 @@ function ofx_admin_generate_description(string $id): void
         return;
     }
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response; $addition is a model-generated description, not raw request input
     echo json_encode(['status' => 200, 'description' => $addition]);
 }
 
@@ -1166,6 +1171,7 @@ function ofx_admin_add_repo(): void
     $item = ofx_fetch_repo_snapshot($fullName);
     if (!$item) {
         http_response_code(404);
+        // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response, not HTML; $fullName was already validated (only alphanumeric/-/_ owner/repo shape) above
         echo json_encode(['status' => 404, 'error' => "Could not find {$fullName} on Github"]);
         return;
     }
@@ -1179,6 +1185,7 @@ function ofx_admin_add_repo(): void
     $stmt->execute([$item['full_name']]);
     $type = $stmt->fetchColumn() ?: 'Unsorted';
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response; $item comes from Github's own API (ofx_fetch_repo_snapshot), $type is a DB column value
     echo json_encode(['status' => 200, 'full_name' => $item['full_name'], 'type' => $type] + $result);
 }
 
@@ -1258,6 +1265,79 @@ function ofx_admin_cache_stats(): void
     ofx_render('admin/cache', [
         'meta' => ofx_cache_read_meta(),
         'title' => 'Cache',
+    ]);
+}
+
+// POST /admin/maintenance/toggle - site-wide kill switch for an active
+// attack/DDoS/incident. Super-admin only: flipping this takes the whole
+// public site down (see index.php), so it needs the same tier as backup/
+// import/export, not day-to-day categorizing. Touching/removing a flag
+// file (rather than a DB row) is deliberate - it has to be checkable
+// before index.php even opens a DB connection.
+function ofx_admin_toggle_maintenance(): void
+{
+    ofx_require_super_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    if (is_file(OFX_MAINTENANCE_FLAG_PATH)) {
+        unlink(OFX_MAINTENANCE_FLAG_PATH);
+        $on = false;
+    } else {
+        file_put_contents(OFX_MAINTENANCE_FLAG_PATH, gmdate('c'));
+        $on = true;
+    }
+
+    echo json_encode(['maintenanceOn' => $on]);
+}
+
+// GET /admin/security - a self-check dashboard, not a guarantee: every
+// item here is something the app itself can verify by inspecting its own
+// files/config/DB at request time, so it stays accurate as the codebase
+// changes instead of being a snapshot someone forgets to update.
+function ofx_admin_security(): void
+{
+    ofx_require_super_admin();
+    $pdo = ofx_db();
+
+    $root = dirname(__DIR__, 2);
+    $htaccessChecks = [
+        [
+            'label' => 'Root .htaccess denies dotfiles (.env, .git, .htaccess itself)',
+            'pass' => str_contains((string)@file_get_contents($root . '/.htaccess'), 'FilesMatch "^\\."'),
+        ],
+        [
+            'label' => '/app is denied direct web access',
+            'pass' => str_contains((string)@file_get_contents($root . '/app/.htaccess'), 'Require all denied'),
+        ],
+        [
+            'label' => '/cron is denied direct web access',
+            'pass' => str_contains((string)@file_get_contents($root . '/cron/.htaccess'), 'Require all denied'),
+        ],
+    ];
+
+    $envPath = $root . '/.env';
+    $envExists = is_file($envPath);
+    $envPerms = $envExists ? substr(sprintf('%o', fileperms($envPath)), -4) : null;
+
+    $cookieParams = session_get_cookie_params();
+
+    $admins = $pdo->query(
+        "SELECT login, admin, super_admin FROM users WHERE admin = 1 OR super_admin = 1 ORDER BY super_admin DESC, login ASC"
+    )->fetchAll();
+
+    ofx_render('admin/security', [
+        'htaccessChecks' => $htaccessChecks,
+        'envExists' => $envExists,
+        'envPerms' => $envPerms,
+        'cookieParams' => $cookieParams,
+        'admins' => $admins,
+        'maintenanceOn' => is_file(OFX_MAINTENANCE_FLAG_PATH),
+        'syncSecretSet' => (bool)ofx_env('SYNC_SECRET'),
+        'aiTriageKeySet' => (bool)ofx_env('AI_TRIAGE_API_KEY'),
+        'displayErrorsOff' => ini_get('display_errors') === '' || ini_get('display_errors') === '0',
+        'isHttps' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'title' => 'Security',
     ]);
 }
 

@@ -158,6 +158,7 @@ function ofx_addons_search(): void
     $addons = $stmt->fetchAll();
 
     if (empty($addons)) {
+        // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- $q is passed through ofx_h() (htmlspecialchars) right here
         echo '<p class="empty-state">No addons found for &ldquo;' . ofx_h($q) . '&rdquo;.</p>';
         return;
     }
@@ -220,6 +221,7 @@ function ofx_render_addons_sorted(?string $sort): void
         [$addons, $hasMore] = ofx_paginate_slice(array_slice($cached, $offset, $fetch), OFX_PAGE_SIZE);
     } else {
         $order = ofx_addons_sort_order($sortKey);
+        // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $sortKey is whitelisted via in_array() a few lines above; ofx_addons_sort_order() only ever returns one of a few hardcoded ORDER BY strings, never raw input
         $stmt = ofx_db()->prepare("
             SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url,
                    GROUP_CONCAT(c.name SEPARATOR '||') AS categories

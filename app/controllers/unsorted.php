@@ -26,6 +26,7 @@ function ofx_unsorted_index(): void
     $fetch = OFX_PAGE_SIZE + 1;
 
     $pdo = ofx_db();
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $order is one of a few hardcoded strings picked by an earlier if/else on $sort, not raw user input; $fetch/$offset are (int)-cast/computed
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url
         FROM repos r

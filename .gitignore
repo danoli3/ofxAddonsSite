@@ -16,3 +16,7 @@ Thumbs.db
 # regenerated cache of public sitemap/feed responses (see app/cache.php) -
 # runtime-generated, never meant to be committed
 /app/cache
+
+# maintenance kill-switch flag (see /admin/maintenance/toggle) - runtime
+# state, never meant to be committed
+/app/maintenance.flag

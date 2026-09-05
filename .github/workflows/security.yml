@@ -1,0 +1,33 @@
+name: Security
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  php-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      - name: Lint every PHP file (php -l)
+        run: find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 -P4 php -l
+
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep scan (PHP security rules + secret detection)
+        run: >
+          semgrep scan
+          --config p/php
+          --config p/security-audit
+          --config p/secrets
+          --exclude "*.min.js"
+          --exclude "vendor/*"
+          --error

@@ -46,6 +46,15 @@
       <span class="admin-toolbar__label">Database</span>
       <a href="/admin/backup.sql.gz" title="Full schema + data dump of every table, gzipped">Backup .sql.gz</a>
     </div>
+    <div class="admin-toolbar__group">
+      <span class="admin-toolbar__label">Site</span>
+      <button type="button" id="admin-toggle-maintenance" class="<?= !empty($maintenanceOn) ? 'is-danger' : '' ?>"
+              data-on="<?= !empty($maintenanceOn) ? '1' : '0' ?>"
+              title="Takes the entire public site down behind a static 503 page - use during an active attack/DDoS. /admin stays reachable so you can turn it back off.">
+        <?= !empty($maintenanceOn) ? 'Disable maintenance mode' : 'Enable maintenance mode' ?>
+      </button>
+      <span id="admin-toggle-maintenance-status" class="admin-row__status"></span>
+    </div>
     <form class="admin-toolbar__group" action="/admin/import/preview" method="post" enctype="multipart/form-data">
       <span class="admin-toolbar__label">Import</span>
       <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
@@ -53,6 +62,7 @@
       <button type="submit" title="Review a diff before anything is saved">Preview</button>
     </form>
     <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>
+    <a class="admin-toolbar__link" href="/admin/security">Security &rarr;</a>
   </div>
 <?php endif; ?>
 

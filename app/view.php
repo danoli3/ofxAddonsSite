@@ -492,3 +492,34 @@ function ofx_format_bytes(int $bytes): string
     }
     return number_format($kb / 1024, 1) . ' MB';
 }
+
+// Absolute path to the maintenance kill-switch flag - existence alone is
+// the signal (see index.php, which checks this before requiring anything
+// else, and ofx_admin_toggle_maintenance()). __DIR__ here is /app, same
+// as the literal path index.php uses before this file is even loaded.
+const OFX_MAINTENANCE_FLAG_PATH = __DIR__ . '/maintenance.flag';
+
+// Sent on every real (non-maintenance-mode) response, right before
+// dispatch - a same-origin CSP plus the standard clickjacking/MIME-sniff/
+// referrer/permissions hardening headers. script-src/style-src need
+// 'unsafe-inline' because the site already relies on a few inline
+// image-fallback handlers (onerror=) and the jQuery-CDN-fallback inline
+// <script> in layout.php - this is defense-in-depth against loading
+// arbitrary *third-party* script/frame/image origins, not a guarantee
+// against injected inline script.
+function ofx_send_security_headers(): void
+{
+    header("Content-Security-Policy: default-src 'self'; "
+        . "script-src 'self' 'unsafe-inline' https://code.jquery.com; "
+        . "style-src 'self' 'unsafe-inline'; "
+        . "img-src 'self' data: https://avatars.githubusercontent.com; "
+        . "connect-src 'self'; "
+        . "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}

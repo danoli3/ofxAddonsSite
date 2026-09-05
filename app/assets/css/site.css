@@ -160,6 +160,14 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   color: var(--text);
 }
 .prose pre code { background: none; border: none; padding: 0; color: inherit; }
+.prose__figure { margin: 20px 0; }
+.prose__figure img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: block;
+}
+.prose__figure figcaption { font-size: .82rem; color: var(--text-muted); margin-top: 8px; }
 .empty-state { color: var(--text-muted); font-style: italic; }
 
 .category-jump {
@@ -340,6 +348,8 @@ a.addon-card__desc:hover { color: var(--text); }
 .tag--releases:hover { text-decoration: none; opacity: .85; }
 .tag--featured { color: #f5b638; background: rgba(245, 182, 56, .12); border-color: rgba(245, 182, 56, .35); }
 .tag--super-admin { color: #f5b638; background: rgba(245, 182, 56, .12); border-color: rgba(245, 182, 56, .35); font-weight: 700; }
+.tag--pass { color: #38e1c6; background: rgba(56, 225, 198, .1); border-color: rgba(56, 225, 198, .25); font-weight: 700; }
+.tag--fail { color: #ff6b6b; background: rgba(255, 107, 107, .12); border-color: rgba(255, 107, 107, .35); font-weight: 700; }
 .tag--version { color: var(--accent-1); background: rgba(124, 92, 255, .1); border-color: rgba(124, 92, 255, .3); font-weight: 700; }
 .tag--version:hover { text-decoration: none; opacity: .85; }
 .tag--version-guess { color: var(--text-muted); background: transparent; border-style: dashed; font-weight: 600; }
@@ -642,6 +652,11 @@ a.addon-card__desc:hover { color: var(--text); }
   cursor: pointer;
   font-size: .8rem;
   font-weight: 600;
+}
+.admin-toolbar__group button.is-danger {
+  background: rgba(255, 107, 107, .12);
+  border-color: rgba(255, 107, 107, .5);
+  color: #ff6b6b;
 }
 .admin-toolbar__link { margin-left: auto; font-weight: 600; }
 .admin-toolbar--super { background: rgba(245, 182, 56, .07); border-color: rgba(245, 182, 56, .3); }

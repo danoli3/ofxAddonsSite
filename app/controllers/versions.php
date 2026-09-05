@@ -56,6 +56,7 @@ function ofx_versions_show(string $version): void
     $fetch = OFX_PAGE_SIZE + 1;
     $inferredCase = ofx_of_version_sql_case('r.pushed_at');
 
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $version was already validated against the hardcoded OFX_VERSIONS list above; $fetch/$offset are (int)-cast/computed
     $stmt = $pdo->prepare("
         SELECT r.*, u.login AS user_login, u.avatar_url AS user_avatar_url
         FROM repos r

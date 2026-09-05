@@ -596,6 +596,34 @@ $(function () {
     });
   });
 
+  $('#admin-toggle-maintenance').on('click', function () {
+    var $btn = $(this);
+    var turningOn = $btn.data('on') !== 1 && $btn.data('on') !== '1';
+    var confirmMsg = turningOn
+      ? 'Take the ENTIRE public site down behind a static 503 page? Only /admin stays reachable.'
+      : 'Bring the public site back online?';
+    if (!window.confirm(confirmMsg)) return;
+
+    var $status = $('#admin-toggle-maintenance-status');
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Working…');
+
+    $.ajax({
+      url: '/admin/maintenance/toggle',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $btn.data('on', res.maintenanceOn ? '1' : '0');
+      $btn.toggleClass('is-danger', !!res.maintenanceOn);
+      $btn.text(res.maintenanceOn ? 'Disable maintenance mode' : 'Enable maintenance mode');
+      $status.text(res.maintenanceOn ? 'Site is now DOWN' : 'Site is back up');
+    }).fail(function () {
+      $status.addClass('is-error').text('Toggle failed');
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $('#admin-add-repo').on('click', function () {
     var $btn = $(this);
     var $input = $('#admin-add-repo-input');

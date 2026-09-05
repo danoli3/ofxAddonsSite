@@ -65,6 +65,7 @@ function ofx_api_triage_batch(): void
     $typePlaceholders = implode(',', array_fill(0, count(OFX_AI_TRIAGE_TYPES), '?'));
     $leaseMinutes = OFX_AI_TRIAGE_LEASE_MINUTES;
 
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $typePlaceholders is "?,?"-shaped (count of a hardcoded constant array), $limit is (int)-cast + min()-clamped, $leaseMinutes is a constant; all real values bound via execute()
     $stmt = $pdo->prepare("
         SELECT id, full_name, name, description, type, stargazers_count, pushed_at,
                has_makefile, example_count, has_correct_folder_structure, has_thumbnail, archived
@@ -80,6 +81,7 @@ function ofx_api_triage_batch(): void
 
     if (!empty($rows)) {
         $idPlaceholders = implode(',', array_fill(0, count($rows), '?'));
+        // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $idPlaceholders is a "?,?"-shaped string sized only by count($rows); real ids bound via execute() below
         $pdo->prepare("UPDATE repos SET ai_triage_batched_at = NOW() WHERE id IN ({$idPlaceholders})")
             ->execute(array_column($rows, 'id'));
     }
@@ -112,6 +114,7 @@ function ofx_api_triage_batch(): void
         ];
     }, $rows);
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response (bearer-token-gated); every field is DB/Github-sourced content, not raw request input, and htmlentities() doesn't apply to a JSON body anyway
     echo json_encode([
         'instructions' => 'For each addon, decide its "type": "Addon" if it is a real, usable openFrameworks '
             . 'addon (assign 1+ "categories" from the list below in that case); "Incomplete" if it looks like a '

@@ -84,6 +84,7 @@ function ofx_my_addons_update(string $id): void
         $error = ofx_validate_thumbnail_url($thumbnailOverride);
         if ($error) {
             http_response_code(400);
+            // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response; $error is one of ofx_validate_thumbnail_url()'s own hardcoded messages, not raw request input
             echo json_encode(['status' => 400, 'error' => [$error]]);
             return;
         }
@@ -214,6 +215,7 @@ function ofx_my_addons_generate_description(string $id): void
         return;
     }
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response; $addition is a model-generated description, not raw request input
     echo json_encode(['status' => 200, 'description' => $addition]);
 }
 
