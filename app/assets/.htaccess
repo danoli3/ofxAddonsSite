@@ -1,1 +1,20 @@
 Require all granted
+
+# DreamHost's host-level Apache config caches all static files here for
+# 30 days by default. Site is still under active development - CSS/JS
+# change often enough that a 30-day cache means visitors can sit on a
+# stale bundle for a month even with cache-busting query strings on a
+# proxy/CDN that ignores the query string. Override to 1 day for CSS/JS
+# only; leave images/fonts at the host default. Revisit once the site
+# stabilizes and this can go back up.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 day"
+  ExpiresByType application/javascript "access plus 1 day"
+  ExpiresByType text/javascript "access plus 1 day"
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
