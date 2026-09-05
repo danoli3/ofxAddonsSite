@@ -36,6 +36,7 @@ $flash = ofx_flash_get();
         <a href="/categories">Categories</a>
         <a href="/addons">All Addons</a>
         <a href="/freshest">Freshest</a>
+        <a href="/newest">Newest</a>
         <a href="/popular">Popular</a>
         <a href="/unsorted">Unsorted</a>
         <a href="/versions">Versions</a>

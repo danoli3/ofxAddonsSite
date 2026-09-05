@@ -9,6 +9,7 @@ $labels = [
     'addons-name.json' => 'All Addons',
     'addons-freshest.json' => 'Freshest',
     'addons-popular.json' => 'Popular',
+    'addons-newest.json' => 'Newest',
 ];
 ?>
 <div class="page-head">

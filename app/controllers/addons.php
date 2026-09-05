@@ -16,6 +16,15 @@ function ofx_addons_popular(): void
     ofx_render_addons_sorted('popular');
 }
 
+// "Newest" (by created_at, when the repo itself was first made) is
+// deliberately a separate button from "Freshest" (by pushed_at, when it
+// was last updated) - an addon can be newly created but already stale,
+// or years old but pushed yesterday; these answer different questions.
+function ofx_addons_newest(): void
+{
+    ofx_render_addons_sorted('newest');
+}
+
 // GET /addons/{owner}/{repo} - the "more info" page linked from every
 // addon card: full description, categories, forks that are more
 // actively maintained than the addon itself (see the crawler's
@@ -171,6 +180,9 @@ function ofx_addons_sort_order(string $sortKey): string
     if ($sortKey === 'popular') {
         return 'r.stargazers_count DESC, r.id ASC';
     }
+    if ($sortKey === 'newest') {
+        return 'r.created_at DESC, r.id ASC';
+    }
     return 'LOWER(r.name) ASC, r.id ASC';
 }
 
@@ -197,7 +209,7 @@ function ofx_addons_sorted_content(string $sortKey): array
 
 function ofx_render_addons_sorted(?string $sort): void
 {
-    $sortKey = in_array($sort, ['freshest', 'popular'], true) ? $sort : 'name';
+    $sortKey = in_array($sort, ['freshest', 'popular', 'newest'], true) ? $sort : 'name';
 
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * OFX_PAGE_SIZE;

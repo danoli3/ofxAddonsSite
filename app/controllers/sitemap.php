@@ -39,15 +39,16 @@ function ofx_sitemap_urls(): array
         ? gmdate('Y-m-d', strtotime($maxUnsortedUpdated))
         : gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT));
 
-    // /categories, /addons, /freshest, /popular, /contributors are all
-    // just different views over the same confirmed-Addon set, so they
-    // share one lastmod; /unsorted has its own (crawler-touch time, not
-    // a commit date - most Unsorted rows don't even have a pushed_at);
-    // /pages/howto and /sitemap are hand-written, static content.
+    // /categories, /addons, /freshest, /newest, /popular, /contributors
+    // are all just different views over the same confirmed-Addon set, so
+    // they share one lastmod; /unsorted has its own (crawler-touch time,
+    // not a commit date - most Unsorted rows don't even have a
+    // pushed_at); /pages/howto and /sitemap are hand-written, static content.
     $staticPaths = [
         '/categories' => $maxAddonPushed,
         '/addons' => $maxAddonPushed,
         '/freshest' => $maxAddonPushed,
+        '/newest' => $maxAddonPushed,
         '/popular' => $maxAddonPushed,
         '/unsorted' => $maxUnsortedUpdated,
         '/contributors' => $maxAddonPushed,

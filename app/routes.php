@@ -29,6 +29,7 @@ function ofx_dispatch(): void
         ['GET', '#^/search$#', 'ofx_addons_search'],
         ['GET', '#^/addons/([^/]+)/([^/]+)$#', 'ofx_addons_show'],
         ['GET', '#^/freshest$#', 'ofx_addons_freshest'],
+        ['GET', '#^/newest$#', 'ofx_addons_newest'],
         ['GET', '#^/popular$#', 'ofx_addons_popular'],
         ['GET', '#^/unsorted$#', 'ofx_unsorted_index'],
         ['GET', '#^/versions$#', 'ofx_versions_index'],

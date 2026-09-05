@@ -116,4 +116,5 @@ function ofx_regenerate_public_caches(): void
     ofx_cache_generate_data('addons-name.json', fn () => ofx_addons_sorted_content('name'));
     ofx_cache_generate_data('addons-freshest.json', fn () => ofx_addons_sorted_content('freshest'));
     ofx_cache_generate_data('addons-popular.json', fn () => ofx_addons_sorted_content('popular'));
+    ofx_cache_generate_data('addons-newest.json', fn () => ofx_addons_sorted_content('newest'));
 }
