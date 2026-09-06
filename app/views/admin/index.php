@@ -27,6 +27,7 @@
   <a class="admin-toolbar__link" href="/admin/banned">Banned addons &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/review">Review requests<?= $reviewCount > 0 ? ' (' . $reviewCount . ')' : '' ?> &rarr;</a>
   <a class="admin-toolbar__link" href="/admin/duplicates">Possible duplicates<?= $dupeCount > 0 ? ' (' . $dupeCount . ')' : '' ?> &rarr;</a>
+  <a class="admin-toolbar__link" href="/admin/flagged" title="Repos the security scan matched - script/prompt injection attempts">Flagged<?= $flaggedCount > 0 ? ' (' . $flaggedCount . ')' : '' ?> &rarr;</a>
 </div>
 
 <?php if (!empty($admin['super_admin'])): ?>

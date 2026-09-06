@@ -60,6 +60,23 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
         $newerForks = !empty($item['newer_forks']) ? json_encode($item['newer_forks']) : null;
         $aheadBranches = !empty($item['ahead_branches']) ? json_encode($item['ahead_branches']) : null;
 
+        // A repo still pending human review (new, or sitting in one of
+        // the auto-classified buckets) that trips the scan gets
+        // quarantined outright - straight to NonAddon, same as a human
+        // ban, so it never surfaces in /unsorted, the public site, or a
+        // future AI triage batch. A repo an admin already confirmed as a
+        // real Addon is flagged for /admin/flagged instead of silently
+        // unpublished - an automated heuristic shouldn't be able to take
+        // down something a human already vouched for, only surface it.
+        $threats = ofx_detect_security_threats((string)($item['name'] ?? ''), (string)($item['description'] ?? ''));
+        $securityFlagged = !empty($threats) ? 1 : 0;
+        $securityFlagReason = !empty($threats) ? implode('; ', $threats) : null;
+        $securityFlaggedAt = $securityFlagged ? gmdate('Y-m-d H:i:s') : null;
+        if ($securityFlagged && $stillPending) {
+            $type = 'NonAddon';
+            ofx_log_admin_action($pdo, null, 'security_quarantine', $existing['id'] ?? null, "{$fullName}: {$securityFlagReason}");
+        }
+
         $params = [
             ofx_sync_to_datetime($item['created_at'] ?? null),
             (int)($item['forks_count'] ?? 0),
@@ -80,6 +97,9 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             $aheadBranches,
             $userId,
             $type,
+            $securityFlagged,
+            $securityFlagReason,
+            $securityFlaggedAt,
         ];
 
         $isCurated = !empty($existing['description_curated']);
@@ -90,13 +110,13 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
                    has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
                    default_branch=?, ahead_branches=?,
-                   user_id=?, type=?, updated_at=NOW()
+                   user_id=?, type=?, security_flagged=?, security_flag_reason=?, security_flagged_at=?, updated_at=NOW()
                    WHERE id=?'
                 : 'UPDATE repos SET created_at=?, forks_count=?, fork=?, name=?, parent=?,
                    pushed_at=?, source=?, stargazers_count=?, example_count=?, has_makefile=?,
                    has_correct_folder_structure=?, has_thumbnail=?, archived=?, has_releases=?, newer_forks=?,
                    default_branch=?, ahead_branches=?,
-                   user_id=?, type=?, description=?, updated_at=NOW()
+                   user_id=?, type=?, security_flagged=?, security_flag_reason=?, security_flagged_at=?, description=?, updated_at=NOW()
                    WHERE id=?';
             $execParams = $isCurated ? $params : [...$params, $item['description'] ?? null];
             $pdo->prepare($sql)->execute([...$execParams, $existing['id']]);
@@ -105,8 +125,9 @@ function ofx_apply_crawl_snapshot(PDO $pdo, array $addons): array
             $sql = 'INSERT INTO repos (created_at, forks_count, fork, name, parent, pushed_at,
                     source, stargazers_count, example_count, has_makefile, has_correct_folder_structure,
                     has_thumbnail, archived, has_releases, newer_forks, default_branch, ahead_branches,
-                    user_id, type, description, full_name, updated_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
+                    user_id, type, security_flagged, security_flag_reason, security_flagged_at,
+                    description, full_name, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())';
             $pdo->prepare($sql)->execute([...$params, $item['description'] ?? null, $fullName]);
             $added++;
         }

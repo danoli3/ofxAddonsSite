@@ -70,6 +70,8 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/cache$#', 'ofx_admin_cache_stats'],
         ['POST', '#^/admin/maintenance/toggle$#', 'ofx_admin_toggle_maintenance'],
         ['GET', '#^/admin/security$#', 'ofx_admin_security'],
+        ['GET', '#^/admin/flagged$#', 'ofx_admin_flagged'],
+        ['POST', '#^/admin/repos/(\d+)/unflag$#', 'ofx_admin_unflag'],
         ['POST', '#^/admin/add-repo$#', 'ofx_admin_add_repo'],
         ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
         ['POST', '#^/admin/repos/(\d+)/dismiss-appeal$#', 'ofx_admin_dismiss_appeal'],

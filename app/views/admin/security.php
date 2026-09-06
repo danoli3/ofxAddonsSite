@@ -9,6 +9,7 @@
 /** @var bool $aiTriageKeySet */
 /** @var bool $displayErrorsOff */
 /** @var bool $isHttps */
+/** @var int $flaggedCount */
 
 // .env world/group-readable would be perm 644/664 etc - only the owner
 // should be able to read it (600/640).
@@ -105,6 +106,11 @@ $envPermsOk = $envPerms !== null && in_array($envPerms, ['0600', '0640'], true);
       <td>Maintenance kill switch</td>
       <td><span class="tag <?= $maintenanceOn ? 'tag--fail' : 'tag--pass' ?>"><?= $maintenanceOn ? 'ON' : 'Off' ?></span></td>
       <td>Toggle from the admin toolbar during an active attack/DDoS</td>
+    </tr>
+    <tr>
+      <td>Script/prompt-injection scan (repo name, description, README)</td>
+      <td><span class="tag <?= $flaggedCount > 0 ? 'tag--warn' : 'tag--pass' ?>"><?= $flaggedCount > 0 ? $flaggedCount . ' flagged' : 'None flagged' ?></span></td>
+      <td><a href="/admin/flagged">Review on /admin/flagged &rarr;</a></td>
     </tr>
   </tbody>
 </table>

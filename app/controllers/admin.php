@@ -150,6 +150,7 @@ function ofx_admin_index(): void
         ) t
     ")->fetchColumn();
     $aiQueueCount = (int)$pdo->query('SELECT COUNT(*) FROM ai_triage_queue')->fetchColumn();
+    $flaggedCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE security_flagged = 1')->fetchColumn();
 
     ofx_render('admin/index', [
         'repos' => $repos,
@@ -163,6 +164,7 @@ function ofx_admin_index(): void
         'reviewCount' => $reviewCount,
         'dupeCount' => $dupeCount,
         'aiQueueCount' => $aiQueueCount,
+        'flaggedCount' => $flaggedCount,
         'hasMore' => $hasMore,
         'nextUrl' => ofx_next_page_url(2),
         'maintenanceOn' => is_file(OFX_MAINTENANCE_FLAG_PATH),
@@ -1337,8 +1339,55 @@ function ofx_admin_security(): void
         'aiTriageKeySet' => (bool)ofx_env('AI_TRIAGE_API_KEY'),
         'displayErrorsOff' => ini_get('display_errors') === '' || ini_get('display_errors') === '0',
         'isHttps' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'flaggedCount' => (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE security_flagged = 1')->fetchColumn(),
         'title' => 'Security',
     ]);
+}
+
+// GET /admin/flagged - every repo ofx_detect_security_threats() has
+// matched, most recent first: a script/markup injection attempt aimed at
+// a visitor's browser (already inert either way - see
+// ofx_render_markdown_lite()), or a prompt-injection attempt aimed at
+// whatever reads the repo's content on a human's behalf (the local model
+// behind /api/triage/batch). Auto-quarantined straight to NonAddon at
+// detection time (see ofx_apply_crawl_snapshot() / ofx_api_triage_batch())
+// if the repo wasn't already an admin-confirmed Addon - this page is
+// where an admin reviews those calls, not where the decision gets made.
+function ofx_admin_flagged(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $repos = $pdo->query("
+        SELECT * FROM repos
+        WHERE security_flagged = 1
+        ORDER BY security_flagged_at DESC
+    ")->fetchAll();
+
+    ofx_render('admin/flagged', [
+        'repos' => $repos,
+        'title' => 'Flagged',
+    ]);
+}
+
+// POST /admin/repos/{id}/unflag - clears the flag only; deliberately
+// doesn't also change type back, since a false positive on the *type*
+// call (should this really be NonAddon?) is a separate decision from a
+// false positive on the *detection* itself (should this be flagged at
+// all?) - an admin who disagrees with both still categorizes/reclassifies
+// through the normal /admin/repos flow.
+function ofx_admin_unflag(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $pdo->prepare('UPDATE repos SET security_flagged = 0, security_flag_reason = NULL WHERE id = ?')
+        ->execute([$id]);
+    ofx_log_admin_action($pdo, $admin['id'] ?? null, 'security_unflag', (int)$id);
+
+    echo json_encode(['status' => 200]);
 }
 
 function ofx_admin_toggle_featured(string $repoId, string $categoryId): void

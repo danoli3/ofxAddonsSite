@@ -624,6 +624,22 @@ $(function () {
     });
   });
 
+  $('.admin-unflag-btn').on('click', function () {
+    var $btn = $(this);
+    var id = $btn.data('id');
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/repos/' + id + '/unflag',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $('#flagged-row-' + id).fadeOut(200, function () { $(this).remove(); });
+    }).fail(function () {
+      $btn.prop('disabled', false).text('Failed - retry');
+    });
+  });
+
   $('#admin-add-repo').on('click', function () {
     var $btn = $(this);
     var $input = $('#admin-add-repo-input');
