@@ -337,7 +337,18 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   margin: 0;
   color: var(--text-muted);
   font-size: .87rem;
+  line-height: 1.4;
+  /* Cards in the same grid row get stretched to equal height (grid's
+     default align-items: stretch), and this box previously relied only on
+     flex-grow to absorb that stretch - but a -webkit-line-clamp box's
+     automatic minimum size in a flex column isn't reliably computed as its
+     full 3-line height across browsers, so a taller neighbor card in the
+     same row could shrink this one below 3 lines and visibly clip text
+     with no ellipsis. min-height guarantees the 3-line floor regardless;
+     flex-shrink: 0 stops it ever being squeezed smaller than that again. */
+  min-height: calc(1.4em * 3);
   flex-grow: 1;
+  flex-shrink: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -347,7 +358,7 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
    a plain <p> otherwise - reset link styling either way */
 a.addon-card__desc { text-decoration: none; }
 a.addon-card__desc:hover { color: var(--text); }
-.addon-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.addon-card__tags { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .tag {
   font-size: .7rem;
   font-weight: 600;
