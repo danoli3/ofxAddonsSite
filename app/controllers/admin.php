@@ -352,6 +352,7 @@ function ofx_admin_set_version(string $id): void
         $version !== '' ? "confirmed OF {$version}" : 'cleared confirmed version'
     );
 
+    // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response (Content-Type: application/json), not HTML; htmlentities() doesn't apply here. $version is whitelist-validated against OFX_VERSIONS above, $pushedAt/guessed are DB/derived values
     echo json_encode([
         'status' => 200,
         'version' => $version !== '' ? $version : null,
