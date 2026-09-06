@@ -116,7 +116,11 @@ function ofx_categories_show(string $slugOrId): void
     $isAdmin = !empty(ofx_current_user()['admin'] ?? false);
 
     $category = null;
-    if (preg_match('/^(\d+)/', $slugOrId, $m)) {
+    // the digit run must end the string or be followed by a hyphen (the
+    // legacy "{id}" / "{id}-{oldslug}" shapes) - without that boundary this
+    // also matched a pure-name slug that happens to start with a digit,
+    // like "2d" or "3d-point-cloud", sending them to category id 2/3
+    if (preg_match('/^(\d+)(?:-|$)/', $slugOrId, $m)) {
         $stmt = $pdo->prepare('SELECT * FROM categories WHERE id = ? LIMIT 1');
         $stmt->execute([$m[1]]);
         $category = $stmt->fetch();
