@@ -115,6 +115,7 @@ function ofx_admin_index(): void
 
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
     $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($repos, 'id'));
+    ofx_admin_attach_ai_notes($pdo, $repos);
 
     if (ofx_is_ajax()) {
         header('X-Has-More: ' . ($hasMore ? '1' : '0'));
@@ -186,6 +187,37 @@ function ofx_admin_category_ids_for(PDO $pdo, array $repoIds): array
         $result[$row['repo_id']][] = (int)$row['category_id'];
     }
     return $result;
+}
+
+// Fills in $repo['ai_triage_notes'] (mutates in place, hence by-reference)
+// from any pending ai_triage_queue suggestion for that repo - the free-text
+// "notes" a local model can optionally attach when it submits (see
+// ofx_api_triage_submit), shown only to a human reviewer and never applied
+// to anything on its own. Surfacing it inline here means an admin can see
+// "AI flagged this as a possible fork" etc. while categorizing on the main
+// list, without a separate trip to /admin/ai-triage/review.
+function ofx_admin_attach_ai_notes(PDO $pdo, array &$repos): void
+{
+    $repoIds = array_column($repos, 'id');
+    if (empty($repoIds)) {
+        return;
+    }
+    $placeholders = implode(',', array_fill(0, count($repoIds), '?'));
+    $stmt = $pdo->prepare("SELECT repo_id, entry_json FROM ai_triage_queue WHERE repo_id IN ({$placeholders})");
+    $stmt->execute($repoIds);
+
+    $notesByRepoId = [];
+    while ($row = $stmt->fetch()) {
+        $decoded = json_decode((string)$row['entry_json'], true);
+        if (is_array($decoded) && !empty($decoded['notes'])) {
+            $notesByRepoId[(int)$row['repo_id']] = (string)$decoded['notes'];
+        }
+    }
+
+    foreach ($repos as &$repo) {
+        $repo['ai_triage_notes'] = $notesByRepoId[(int)$repo['id']] ?? null;
+    }
+    unset($repo);
 }
 
 function ofx_admin_row_partial(array $repo, array $categories, array $selectedCategoryIds, bool $showDismissRequest = false): void
@@ -277,6 +309,55 @@ function ofx_admin_update(string $id): void
 
     // nosemgrep: php.lang.security.injection.echoed-request.echoed-request -- JSON API response (Content-Type: application/json), not HTML; htmlentities() doesn't apply here. $type is whitelist-validated, $id is (int)-cast
     echo json_encode(['status' => 200, 'repo' => ['id' => (int)$id, 'type' => $type]]);
+}
+
+// POST /admin/repos/{id}/version - confirms (or clears) which openFrameworks
+// version this addon targets, independent of the Save button above so a
+// single click sticks immediately, the same instant-save pattern as the
+// feature-star toggle. An empty "version" clears of_version_curated and
+// falls back to ofx_infer_of_version()'s guess from pushed_at - the same
+// curated-vs-guessed distinction ofx_addon_of_version() already renders on
+// the public addon page/card (tag--version vs tag--version-guess).
+function ofx_admin_set_version(string $id): void
+{
+    ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $version = trim((string)($_POST['version'] ?? ''));
+    if ($version !== '' && !in_array($version, array_column(OFX_VERSIONS, 'version'), true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid version']);
+        return;
+    }
+
+    $pdo = ofx_db();
+    if ($version === '') {
+        $pdo->prepare('UPDATE repos SET of_version = NULL, of_version_curated = 0, updated_at = NOW() WHERE id = ?')
+            ->execute([$id]);
+    } else {
+        $pdo->prepare('UPDATE repos SET of_version = ?, of_version_curated = 1, updated_at = NOW() WHERE id = ?')
+            ->execute([$version, $id]);
+    }
+
+    $stmt = $pdo->prepare('SELECT pushed_at FROM repos WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $pushedAt = $stmt->fetchColumn();
+
+    ofx_log_admin_action(
+        $pdo,
+        ofx_current_user()['id'] ?? null,
+        'set_version',
+        (int)$id,
+        $version !== '' ? "confirmed OF {$version}" : 'cleared confirmed version'
+    );
+
+    echo json_encode([
+        'status' => 200,
+        'version' => $version !== '' ? $version : null,
+        'curated' => $version !== '',
+        'guessed' => $pushedAt !== false ? ofx_infer_of_version($pushedAt) : null,
+    ]);
 }
 
 function ofx_admin_generate_description(string $id): void
@@ -851,6 +932,7 @@ function ofx_admin_ai_queue_review(): void
         'filename' => 'the AI triage queue (' . count($entries) . ' pending)',
         'formAction' => '/admin/ai-triage/confirm',
         'title' => 'Review AI triage queue',
+        'isAiTriage' => true,
     ]);
 }
 
@@ -921,6 +1003,83 @@ function ofx_admin_ai_queue_confirm(): void
 
     $_SESSION['flash'] = "AI triage review done: {$result['updated']} addon(s) updated, {$discarded} discarded.";
     ofx_redirect('/admin/repos');
+}
+
+// POST /admin/ai-triage/deny - an explicit "no, and here's why" on one
+// AI-submitted suggestion, distinct from just leaving it unchecked on the
+// review screen above (which discards it silently). The admin's note is
+// kept in ai_triage_denials rather than applied to the repo, and handed
+// back to the model on its next GET /api/triage/batch call (see
+// "denied_feedback" in ofx_api_triage_batch) so it stops repeating the
+// same misclassification instead of just re-suggesting it forever.
+function ofx_admin_ai_queue_deny(): void
+{
+    $admin = ofx_require_super_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $fullName = trim((string)($_POST['full_name'] ?? ''));
+    $reason = mb_substr(trim((string)($_POST['reason'] ?? '')), 0, 500);
+    if ($fullName === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'full_name required']);
+        return;
+    }
+
+    $pdo = ofx_db();
+    $queueStmt = $pdo->prepare('SELECT repo_id, entry_json FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?) LIMIT 1');
+    $queueStmt->execute([$fullName]);
+    $queued = $queueStmt->fetch();
+
+    $pdo->prepare('
+        INSERT INTO ai_triage_denials (repo_id, full_name, entry_json, reason, denied_by, denied_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    ')->execute([
+        $queued['repo_id'] ?? null,
+        $fullName,
+        $queued['entry_json'] ?? null,
+        $reason !== '' ? $reason : null,
+        $admin['id'] ?? null,
+    ]);
+
+    // same cleanup as a plain discard on /admin/ai-triage/confirm - remove
+    // the staged suggestion and clear the batch claim so the repo is free
+    // to be re-picked-up (now with this denial visible as feedback)
+    $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)')->execute([$fullName]);
+    $pdo->prepare('UPDATE repos SET ai_triage_batched_at = NULL WHERE LOWER(full_name) = LOWER(?)')->execute([$fullName]);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'] ?? null,
+        'ai_triage_deny',
+        $queued['repo_id'] ?? null,
+        $fullName . ($reason !== '' ? ": {$reason}" : ' (no reason given)')
+    );
+
+    echo json_encode(['ok' => true]);
+}
+
+// GET /admin/ai-triage/denials - read-only log of every suggestion an
+// admin has explicitly denied (with their note, if any), newest first.
+// Purely for human visibility - the model gets the same data via
+// "denied_feedback" on GET /api/triage/batch, not from this page.
+function ofx_admin_ai_queue_denials(): void
+{
+    ofx_require_super_admin();
+    $pdo = ofx_db();
+
+    $denials = $pdo->query('
+        SELECT d.*, u.login AS denied_by_login
+        FROM ai_triage_denials d
+        LEFT JOIN users u ON u.id = d.denied_by
+        ORDER BY d.denied_at DESC
+        LIMIT 200
+    ')->fetchAll();
+
+    ofx_render('admin/ai-triage-denials', [
+        'denials' => $denials,
+        'title' => 'AI triage denials',
+    ]);
 }
 
 function ofx_parse_import_json(string $contents): array

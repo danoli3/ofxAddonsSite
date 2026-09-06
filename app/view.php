@@ -428,6 +428,11 @@ function ofx_category_picker(array $categories, array $selectedCategoryIds): voi
     include __DIR__ . '/views/partials/category-picker.php';
 }
 
+function ofx_version_picker(array $repo): void
+{
+    include __DIR__ . '/views/partials/version-picker.php';
+}
+
 function ofx_addon_grid(array $addons, bool $hasMore, string $nextUrl): void
 {
     include __DIR__ . '/views/partials/addon-grid.php';

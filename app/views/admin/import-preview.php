@@ -2,7 +2,9 @@
 /** @var array $diffs */
 /** @var string $filename */
 /** @var string|null $formAction */
+/** @var bool|null $isAiTriage */
 $formAction = $formAction ?? '/admin/import/confirm';
+$isAiTriage = $isAiTriage ?? false;
 ?>
 <div class="page-head">
   <h1>Review import</h1>
@@ -10,6 +12,11 @@ $formAction = $formAction ?? '/admin/import/confirm';
 <p class="page-intro">
   Parsed <?= count($diffs) ?> entr<?= count($diffs) === 1 ? 'y' : 'ies' ?> from <?= ofx_h($filename) ?>.
   Nothing has been saved yet - review each row below, uncheck any you don't want applied, then confirm.
+  <?php if ($isAiTriage): ?>
+    Rows you <strong>Deny</strong> are recorded with your note and handed back to the model as feedback on its
+    next batch (<a href="/admin/ai-triage/denials">denial log &rarr;</a>), instead of just being silently
+    discarded on unchecking.
+  <?php endif; ?>
   <a href="/admin/repos">&larr; Back to admin</a>
 </p>
 
@@ -22,7 +29,9 @@ $formAction = $formAction ?? '/admin/import/confirm';
       <?php foreach ($diffs as $d): ?>
         <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed'] || !empty($d['type_changed'])); ?>
         <?php $typeConfirmed = $d['found'] && !empty($d['proposed_type']) && empty($d['type_changed']); ?>
-        <div class="import-diff-row<?= !$d['found'] ? ' import-diff-row--missing' : '' ?><?= ($d['found'] && !$hasChanges) ? ' import-diff-row--nochange' : '' ?>">
+        <?php $isBannedProposal = ($d['proposed_type'] ?? '') === 'NonAddon'; ?>
+        <div class="import-diff-row<?= !$d['found'] ? ' import-diff-row--missing' : '' ?><?= ($d['found'] && !$hasChanges) ? ' import-diff-row--nochange' : '' ?><?= $isBannedProposal ? ' import-diff-row--banned' : '' ?>"
+             id="import-diff-row-<?= (int)$d['index'] ?>" data-full-name="<?= ofx_h($d['full_name']) ?>">
           <?php if ($d['found']): ?>
             <input type="checkbox" class="import-diff-row__check" name="confirm[]" value="<?= (int)$d['index'] ?>" checked>
             <input type="hidden" name="entry_data[<?= (int)$d['index'] ?>]" value="<?= ofx_h($d['entry_json']) ?>">
@@ -31,6 +40,12 @@ $formAction = $formAction ?? '/admin/import/confirm';
             <a href="https://github.com/<?= ofx_h($d['full_name']) ?>" target="_blank" rel="noopener">
               <?= ofx_h($d['full_name']) ?>
             </a>
+            <?php if ($isAiTriage): ?>
+              <button type="button" class="import-diff-row__deny-btn" data-full-name="<?= ofx_h($d['full_name']) ?>"
+                      title="Reject this suggestion and tell the model why, instead of just discarding it">
+                Deny
+              </button>
+            <?php endif; ?>
             <?php if (!$d['found']): ?>
               <span class="tag tag--archived">Not found in this database - will be skipped</span>
             <?php else: ?>
@@ -41,9 +56,25 @@ $formAction = $formAction ?? '/admin/import/confirm';
                 <?php $typeLabel = fn($t) => $t === 'NonAddon' ? 'Banned' : $t; ?>
                 <div class="import-diff-row__version">
                   <?php if (!empty($d['type_changed'])): ?>
-                    Type: <?= ofx_h($typeLabel($d['current_type'])) ?> &rarr; <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
+                    Type:
+                    <?php if ($d['current_type'] === 'NonAddon'): ?>
+                      <span class="tag tag--fail"><?= ofx_h($typeLabel($d['current_type'])) ?></span>
+                    <?php else: ?>
+                      <?= ofx_h($typeLabel($d['current_type'])) ?>
+                    <?php endif; ?>
+                    &rarr;
+                    <?php if ($isBannedProposal): ?>
+                      <span class="tag tag--fail"><?= ofx_h($typeLabel($d['proposed_type'])) ?></span>
+                    <?php else: ?>
+                      <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
+                    <?php endif; ?>
                   <?php else: ?>
-                    Type: <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
+                    Type:
+                    <?php if ($isBannedProposal): ?>
+                      <span class="tag tag--fail"><?= ofx_h($typeLabel($d['proposed_type'])) ?></span>
+                    <?php else: ?>
+                      <strong><?= ofx_h($typeLabel($d['proposed_type'])) ?></strong>
+                    <?php endif; ?>
                     <span class="import-diff-row__confirmed">(prior decision, unchanged)</span>
                   <?php endif; ?>
                 </div>

@@ -63,6 +63,7 @@
       <button type="submit" title="Review a diff before anything is saved">Preview</button>
     </form>
     <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>
+    <a class="admin-toolbar__link" href="/admin/ai-triage/denials" title="Suggestions denied on the review screen, with the note fed back to the model">AI triage denials &rarr;</a>
     <a class="admin-toolbar__link" href="/admin/security">Security &rarr;</a>
   </div>
 <?php endif; ?>

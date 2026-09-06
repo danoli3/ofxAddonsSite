@@ -546,6 +546,41 @@ $(function () {
     });
   });
 
+  // OF version chips on the admin sub-row - a single click saves
+  // immediately (same instant-save pattern as the feature-star toggle
+  // above), no need to hit the row's Save button. Clicking the
+  // already-confirmed chip again clears it back to a guessed version
+  // instead of doing nothing, so there's no separate "clear" control.
+  // Uses .attr(), not .data(), for the version string - jQuery's .data()
+  // auto-converts a numeric-looking value like "0.10" to the number 0.1,
+  // which would both mis-highlight chips and send the wrong value.
+  $(document).on('click', '.version-chip', function () {
+    var $chip = $(this);
+    var $group = $chip.closest('.version-picker');
+    var repoId = $chip.data('repo-id');
+    var version = $chip.hasClass('is-confirmed') ? '' : $chip.attr('data-version');
+
+    $group.find('.version-chip').prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/version',
+      method: 'POST',
+      data: { version: version },
+      dataType: 'json'
+    }).done(function (res) {
+      $group.find('.version-chip').each(function () {
+        var $c = $(this);
+        var v = $c.attr('data-version');
+        $c.toggleClass('is-confirmed', !!res.curated && v === res.version);
+        $c.toggleClass('is-guessed', !res.curated && v === res.guessed);
+      });
+    }).fail(function () {
+      window.alert('Could not update version');
+    }).always(function () {
+      $group.find('.version-chip').prop('disabled', false);
+    });
+  });
+
   $('#admin-sync-now').on('click', function () {
     var $btn = $(this);
     var $status = $('#admin-sync-status');
@@ -637,6 +672,47 @@ $(function () {
       $('#flagged-row-' + id).fadeOut(200, function () { $(this).remove(); });
     }).fail(function () {
       $btn.prop('disabled', false).text('Failed - retry');
+    });
+  });
+
+  // "Deny" on the AI triage review screen - an explicit rejection with a
+  // note for the model, distinct from just leaving the row unchecked
+  // (which the bulk Confirm button below just discards silently). The
+  // prompt() is the whole point: it's the note fed back to the model on
+  // its next batch (see denied_feedback in ofx_api_triage_batch), so
+  // skipping it (Cancel) skips the deny entirely rather than sending one
+  // with no reason.
+  $(document).on('click', '.import-diff-row__deny-btn', function () {
+    var $btn = $(this);
+    var $row = $btn.closest('.import-diff-row');
+    var fullName = $btn.data('full-name');
+    var reason = window.prompt(
+      'Note for the AI on why "' + fullName + '" is being denied (shown back to it next batch):',
+      ''
+    );
+    if (reason === null) {
+      return; // Cancel - don't deny
+    }
+
+    $row.find('.import-diff-row__deny-btn, .import-diff-row__check').prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/ai-triage/deny',
+      method: 'POST',
+      data: { full_name: fullName, reason: reason },
+      dataType: 'json'
+    }).done(function () {
+      $row.find('.import-diff-row__check').prop('checked', false);
+      $row.addClass('import-diff-row--denied').fadeTo(200, 0.5);
+      $btn.text('Denied').off('click');
+    }).fail(function (xhr) {
+      var msg = 'Deny failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
+      $row.find('.import-diff-row__deny-btn, .import-diff-row__check').prop('disabled', false);
     });
   });
 

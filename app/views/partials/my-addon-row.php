@@ -77,3 +77,19 @@
     </div>
   </td>
 </tr>
+<?php $myOfVersion = ofx_addon_of_version($repo); ?>
+<tr class="admin-row__subrow">
+  <td colspan="5">
+    <div class="version-picker version-picker--readonly">
+      <span class="version-picker__label">OF version</span>
+      <?php if ($myOfVersion): ?>
+        <span class="tag tag--version<?= $myOfVersion['curated'] ? '' : ' tag--version-guess' ?>"
+              title="<?= $myOfVersion['curated'] ? 'Confirmed by an admin, or by AI from this repo\'s README' : 'Guessed from the last commit date - not confirmed' ?>">
+          OF <?= ofx_h($myOfVersion['version']) ?>
+        </span>
+      <?php else: ?>
+        <span class="version-picker__unknown">no commits to guess from yet</span>
+      <?php endif; ?>
+    </div>
+  </td>
+</tr>

@@ -8,6 +8,11 @@
       github.com/<?= ofx_h($repo['full_name']) ?>
     </a>
     <div class="admin-row__updated">Last commit <?= ofx_h(ofx_time_ago($repo['pushed_at'] ?? null)) ?></div>
+    <?php if (!empty($repo['ai_triage_notes'])): ?>
+      <div class="admin-row__ai-note" title="Free-text note from the AI triage submission - shown to reviewers only, never applied to anything">
+        &#129302; <?= ofx_h($repo['ai_triage_notes']) ?>
+      </div>
+    <?php endif; ?>
     <?php if ($repo['type'] === 'Addon'): ?>
       <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
     <?php endif; ?>
@@ -91,5 +96,10 @@
       <?php endif; ?>
       <span class="admin-row__status"></span>
     </div>
+  </td>
+</tr>
+<tr class="admin-row__subrow">
+  <td colspan="5">
+    <?php ofx_version_picker($repo); ?>
   </td>
 </tr>
