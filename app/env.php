@@ -1,6 +1,18 @@
 <?php
 declare(strict_types=1);
 
+// Every stored datetime in this app is written as a naive UTC string
+// (gmdate() - see ofx_sync_to_datetime()), but PHP's date/time functions
+// interpret a naive string using the script's default timezone, not UTC,
+// unless told otherwise. This host's php.ini default is America/Los_Angeles,
+// not UTC, so anything reading those strings back with strtotime()/date()
+// - ofx_time_ago() foremost - was silently off by the server's UTC offset
+// (reported: an addon showing "Updated 5h ago" when Github said 12h).
+// Setting this once, here (required by both the web entry point and the
+// cron sync job - the only two places PHP ever runs in this app), fixes
+// every such read site at once instead of patching each call individually.
+date_default_timezone_set('UTC');
+
 function ofx_load_env(): array
 {
     static $env = null;
