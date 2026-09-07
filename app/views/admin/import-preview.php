@@ -15,7 +15,8 @@ $isAiTriage = $isAiTriage ?? false;
   <?php if ($isAiTriage): ?>
     Rows you <strong>Deny</strong> are recorded with your note and handed back to the model as feedback on its
     next batch (<a href="/admin/ai-triage/denials">denial log &rarr;</a>), instead of just being silently
-    discarded on unchecking.
+    discarded on unchecking. The model can keep submitting ahead of you - confirming below just brings up the
+    next oldest batch.
   <?php endif; ?>
   <a href="/admin/repos">&larr; Back to admin</a>
 </p>

@@ -912,12 +912,25 @@ function ofx_admin_import_confirm(): void
 // staged by a local model via POST /api/triage/submit) instead of an
 // uploaded file. Reuses ofx_admin_import_diff() so both flows show and
 // apply changes identically.
+//
+// Only shows the oldest OFX_AI_TRIAGE_REVIEW_PAGE_SIZE (8) queued
+// suggestions, not the whole queue - the model can now submit hundreds
+// ahead of review (see OFX_AI_TRIAGE_QUEUE_CAP), so rendering every pending
+// row here at once would make this screen just as overwhelming as the
+// batch/submit-side backpressure was meant to prevent. Confirming or
+// denying rows on this page removes them from ai_triage_queue, which is
+// what surfaces the next 8 - there's no separate "page 2" to navigate to,
+// this screen always shows whatever's oldest.
 function ofx_admin_ai_queue_review(): void
 {
     ofx_require_super_admin();
     $pdo = ofx_db();
 
-    $rows = $pdo->query('SELECT entry_json FROM ai_triage_queue ORDER BY submitted_at ASC')->fetchAll();
+    $totalQueued = (int)$pdo->query('SELECT COUNT(*) FROM ai_triage_queue')->fetchColumn();
+
+    $pageSize = OFX_AI_TRIAGE_REVIEW_PAGE_SIZE;
+    // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $pageSize is a hardcoded constant, not request input
+    $rows = $pdo->query("SELECT entry_json FROM ai_triage_queue ORDER BY submitted_at ASC LIMIT {$pageSize}")->fetchAll();
     $entries = [];
     foreach ($rows as $row) {
         $decoded = json_decode($row['entry_json'], true);
@@ -930,7 +943,7 @@ function ofx_admin_ai_queue_review(): void
 
     ofx_render('admin/import-preview', [
         'diffs' => $diffs,
-        'filename' => 'the AI triage queue (' . count($entries) . ' pending)',
+        'filename' => 'the AI triage queue (' . count($entries) . ' of ' . $totalQueued . ' pending shown, oldest first)',
         'formAction' => '/admin/ai-triage/confirm',
         'title' => 'Review AI triage queue',
         'isAiTriage' => true,
@@ -1002,8 +1015,13 @@ function ofx_admin_ai_queue_confirm(): void
             . " reviewed: {$result['updated']} applied, {$result['notFound']} not found, {$discarded} discarded"
     );
 
-    $_SESSION['flash'] = "AI triage review done: {$result['updated']} addon(s) updated, {$discarded} discarded.";
-    ofx_redirect('/admin/repos');
+    $remaining = (int)$pdo->query('SELECT COUNT(*) FROM ai_triage_queue')->fetchColumn();
+    $_SESSION['flash'] = "AI triage review done: {$result['updated']} addon(s) updated, {$discarded} discarded. "
+        . ($remaining > 0 ? "{$remaining} more pending review." : 'Queue is empty.');
+    // back to the review screen itself (not /admin/repos) so working
+    // through a large queue 8-at-a-time is a loop of "review, submit,
+    // see the next 8" rather than a trip back to the main table each time
+    ofx_redirect('/admin/ai-triage/review');
 }
 
 // POST /admin/ai-triage/deny - an explicit "no, and here's why" on one

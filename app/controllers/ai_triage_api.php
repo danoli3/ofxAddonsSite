@@ -9,15 +9,20 @@ const OFX_AI_TRIAGE_MAX_LIMIT = 20;
 // + classify + submit round trip; short enough that a crashed or
 // abandoned run doesn't strand those addons for good.
 const OFX_AI_TRIAGE_LEASE_MINUTES = 30;
-// Hard backpressure valve: with ~2000 Unsorted/Incomplete/Spam repos sitting
-// behind this API, nothing stops a model from looping batch->submit on its
-// own hundreds of times before a human ever looks at /admin/ai-triage/review
-// - by the time anyone notices, thousands of unreviewed suggestions are
-// queued. Once ai_triage_queue already holds this many awaiting review,
-// ofx_api_triage_batch refuses to hand out more until an admin reviews
-// (confirms or denies) it back down, forcing "AI decides a small batch,
-// human reviews it" to alternate instead of racing ahead unsupervised.
-const OFX_AI_TRIAGE_QUEUE_CAP = 8;
+// Backpressure ceiling, not a review batch size: the model can keep
+// classifying and submitting well ahead of a human reviewing any of it
+// (up to this many outstanding), so it doesn't have to sit idle waiting on
+// /admin/ai-triage/review - the review screen itself is what limits a
+// human to OFX_AI_TRIAGE_REVIEW_PAGE_SIZE at a time below. This cap exists
+// only as a sanity stop against a genuinely runaway/looping caller working
+// through the whole ~2000-repo Unsorted/Incomplete/Spam backlog completely
+// unsupervised - once ai_triage_queue holds this many, ofx_api_triage_batch
+// refuses to hand out more until an admin reviews some back down.
+const OFX_AI_TRIAGE_QUEUE_CAP = 500;
+// How many oldest-queued suggestions /admin/ai-triage/review renders at
+// once - independent of OFX_AI_TRIAGE_QUEUE_CAP above, which governs how
+// far ahead the model may work, not how much a human sees per page.
+const OFX_AI_TRIAGE_REVIEW_PAGE_SIZE = 8;
 
 // Every /api/triage/* endpoint is a machine-to-machine API for a locally
 // run model, not a browser session - authenticated by a static bearer key
