@@ -1,0 +1,45 @@
+name: Sync banned list
+
+# Keeps data/banned.json in this repo in sync with the live site's public
+# GET /banned.json (full_names currently typed NonAddon/Deleted) - that
+# endpoint is already public and CDN-cached, but living only on the site
+# means any GitHub Action here (or in another repo) that wants the current
+# banned list needs a live network call to ofxaddons.danoli3.com during CI.
+# Committing a snapshot instead makes it a plain versioned file: readable
+# with actions/checkout alone, diffable in git history, and still usable
+# even if the site is briefly down when a workflow runs.
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch live banned.json
+        run: |
+          curl -fsSL https://ofxaddons.danoli3.com/banned.json -o /tmp/banned.json
+          # sanity check before it ever touches the repo - a non-2xx response,
+          # truncated body, or the site serving an HTML error page instead of
+          # JSON should fail this run rather than commit garbage over a good list
+          jq -e 'type == "array"' /tmp/banned.json > /dev/null
+          mkdir -p data
+          jq '.' /tmp/banned.json > data/banned.json
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- data/banned.json; then
+            echo "No changes"
+          else
+            git add data/banned.json
+            git commit -m "Sync data/banned.json from live site"
+            git push
+          fi
