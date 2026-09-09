@@ -38,6 +38,7 @@ $flash = ofx_flash_get();
         <a href="/freshest">Freshest</a>
         <a href="/newest">Newest</a>
         <a href="/popular">Popular</a>
+        <a href="/browse">Browse</a>
         <a href="/unsorted">Unsorted</a>
         <a href="/versions">Versions</a>
         <a href="/contributors">Contributors</a>

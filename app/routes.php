@@ -31,6 +31,8 @@ function ofx_dispatch(): void
         ['GET', '#^/freshest$#', 'ofx_addons_freshest'],
         ['GET', '#^/newest$#', 'ofx_addons_newest'],
         ['GET', '#^/popular$#', 'ofx_addons_popular'],
+        ['GET', '#^/browse$#', 'ofx_browse_index'],
+        ['GET', '#^/browse\.json$#', 'ofx_browse_json'],
         ['GET', '#^/unsorted$#', 'ofx_unsorted_index'],
         ['GET', '#^/versions$#', 'ofx_versions_index'],
         ['GET', '#^/versions/([0-9.]+)$#', 'ofx_versions_show'],

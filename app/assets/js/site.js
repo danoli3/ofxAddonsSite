@@ -116,6 +116,196 @@ $(function () {
     });
   }
 
+  // /browse - loads every addon as one JSON payload (see ofx_browse_content())
+  // and does all sorting/filtering/view-switching client-side against that
+  // in-memory copy, rather than re-querying the server per interaction -
+  // same approach daandelange's ofxAddonsJs browser uses.
+  var $browseTiles = $('#browse-tiles');
+  if ($browseTiles.length) {
+    var browseAll = [];
+    var browseView = 'tiles';
+    try { browseView = localStorage.getItem('ofxBrowseView') || 'tiles'; } catch (e) {}
+    var browseDebounce = null;
+
+    function browseEsc(s) {
+      return $('<div>').text(s || '').html();
+    }
+
+    // pushed_at/created_at are naive UTC strings ("Y-m-d H:i:s") - append
+    // a literal UTC marker before parsing so the browser doesn't fall back
+    // to interpreting them in the visitor's own local timezone
+    function browseDate(s) {
+      return s ? new Date(s.replace(' ', 'T') + 'Z') : null;
+    }
+
+    function browseTimeAgo(s) {
+      var d = browseDate(s);
+      if (!d) return '';
+      var diff = (Date.now() - d.getTime()) / 1000;
+      if (diff < 60) return 'just now';
+      var mins = Math.floor(diff / 60);
+      if (mins < 60) return mins + 'm ago';
+      var hours = Math.floor(mins / 60);
+      if (hours < 24) return hours + 'h ago';
+      var days = Math.floor(hours / 24);
+      if (days < 30) return days + 'd ago';
+      var months = Math.floor(days / 30);
+      if (months < 12) return months + 'mo ago';
+      return Math.floor(months / 12) + 'y ago';
+    }
+
+    function browseAddonUrl(fullName) {
+      var parts = (fullName || '').split('/');
+      return '/addons/' + encodeURIComponent(parts[0] || '') + '/' + encodeURIComponent(parts[1] || '');
+    }
+
+    function browseSetView(view) {
+      browseView = view;
+      try { localStorage.setItem('ofxBrowseView', view); } catch (e) {}
+      $('.view-toggle__btn').removeClass('is-active');
+      $('.view-toggle__btn[data-view="' + view + '"]').addClass('is-active');
+      $browseTiles.prop('hidden', view !== 'tiles');
+      $('#browse-table-wrap').prop('hidden', view !== 'table');
+    }
+
+    function browseFilteredRows() {
+      var q = ($('#browse-search').val() || '').toLowerCase().trim();
+      var cat = $('#browse-category').val();
+      return browseAll.filter(function (a) {
+        if (cat && (a.categories || []).indexOf(cat) === -1) return false;
+        if (!q) return true;
+        return (a.name || '').toLowerCase().indexOf(q) !== -1
+          || (a.description || '').toLowerCase().indexOf(q) !== -1
+          || (a.owner || '').toLowerCase().indexOf(q) !== -1
+          || (a.full_name || '').toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function browseSortRows(rows, sortKey) {
+      var bits = sortKey.split('-');
+      var field = bits[0];
+      var mult = bits[1] === 'desc' ? -1 : 1;
+      return rows.slice().sort(function (a, b) {
+        if (field === 'name' || field === 'owner') {
+          var av = (a[field] || '').toLowerCase();
+          var bv = (b[field] || '').toLowerCase();
+          return av < bv ? -mult : av > bv ? mult : 0;
+        }
+        if (field === 'pushed_at' || field === 'created_at') {
+          var ad = browseDate(a[field]);
+          var bd = browseDate(b[field]);
+          return ((ad ? ad.getTime() : 0) - (bd ? bd.getTime() : 0)) * mult;
+        }
+        return ((a[field] || 0) - (b[field] || 0)) * mult;
+      });
+    }
+
+    function browseVersionTag(a) {
+      if (!a.of_version) return '';
+      var cls = 'tag tag--version' + (a.of_version_curated ? '' : ' tag--version-guess');
+      return '<span class="' + cls + '">OF ' + browseEsc(a.of_version) + '</span>';
+    }
+
+    function browseFlags(a) {
+      var html = '';
+      if (a.archived) html += '<span class="tag tag--archived" title="Owner has archived this repo on Github">Archived</span>';
+      if (a.has_releases) html += '<span class="tag tag--releases" title="Has tagged Github releases">Releases</span>';
+      return html;
+    }
+
+    function browseCategoryTags(a) {
+      return (a.categories || []).map(function (c) {
+        return '<span class="tag">' + browseEsc(c) + '</span>';
+      }).join('');
+    }
+
+    function browseRenderTiles(rows) {
+      if (!rows.length) {
+        $browseTiles.html('<p class="empty-state">No addons match.</p>');
+        return;
+      }
+      var html = rows.map(function (a) {
+        var url = browseAddonUrl(a.full_name);
+        var thumb = a.thumbnail
+          ? '<img class="addon-card__thumb" src="' + browseEsc(a.thumbnail) + '" alt="" loading="lazy" onerror="this.remove()">'
+          : '';
+        return '<article class="addon-card">' + thumb
+          + '<div class="addon-card__head">'
+          + '<div class="addon-card__title">'
+          + '<a class="addon-card__name" href="' + url + '">' + browseEsc(a.name) + '</a>'
+          + (a.owner ? '<a class="addon-card__owner" href="/contributors/' + encodeURIComponent(a.owner) + '">@' + browseEsc(a.owner) + '</a>' : '')
+          + '</div></div>'
+          + '<a class="addon-card__desc" href="' + url + '">' + browseEsc(a.description || 'No description.') + '</a>'
+          + '<div class="addon-card__tags">' + browseVersionTag(a) + browseCategoryTags(a) + browseFlags(a) + '</div>'
+          + '<div class="addon-card__meta">'
+          + '<span class="addon-card__stats"><span class="addon-card__stars">&#9733; ' + a.stars + '</span></span>'
+          + '<span class="addon-card__dates"><span class="addon-card__updated">Updated ' + browseTimeAgo(a.pushed_at) + '</span></span>'
+          + '</div></article>';
+      }).join('');
+      $browseTiles.html(html);
+    }
+
+    function browseRenderTable(rows) {
+      var $body = $('#browse-table-body');
+      if (!rows.length) {
+        $body.html('<tr><td colspan="9" class="empty-state">No addons match.</td></tr>');
+        return;
+      }
+      var html = rows.map(function (a) {
+        var url = browseAddonUrl(a.full_name);
+        return '<tr>'
+          + '<td><a href="' + url + '">' + browseEsc(a.name) + '</a></td>'
+          + '<td>' + (a.owner ? '<a href="/contributors/' + encodeURIComponent(a.owner) + '">@' + browseEsc(a.owner) + '</a>' : '') + '</td>'
+          + '<td>' + browseCategoryTags(a) + '</td>'
+          + '<td>' + browseVersionTag(a) + '</td>'
+          + '<td>' + a.stars + '</td>'
+          + '<td>' + a.forks + '</td>'
+          + '<td>' + browseTimeAgo(a.pushed_at) + '</td>'
+          + '<td>' + browseTimeAgo(a.created_at) + '</td>'
+          + '<td>' + browseFlags(a) + '</td>'
+          + '</tr>';
+      }).join('');
+      $body.html(html);
+    }
+
+    function browseRender() {
+      var rows = browseSortRows(browseFilteredRows(), $('#browse-sort').val());
+      $('#browse-status').text(rows.length + ' addon' + (rows.length === 1 ? '' : 's'));
+      if (browseView === 'tiles') {
+        browseRenderTiles(rows);
+      } else {
+        browseRenderTable(rows);
+      }
+    }
+
+    $('#browse-search').on('input', function () {
+      clearTimeout(browseDebounce);
+      browseDebounce = setTimeout(browseRender, 150);
+    });
+    $('#browse-sort, #browse-category').on('change', browseRender);
+    $('.view-toggle__btn').on('click', function () {
+      browseSetView($(this).data('view'));
+      browseRender();
+    });
+
+    $('#browse-status').text('Loading…');
+    $.ajax({ url: '/browse.json', method: 'GET', dataType: 'json' }).done(function (data) {
+      browseAll = data || [];
+      var seen = {};
+      var $cat = $('#browse-category');
+      browseAll.forEach(function (a) {
+        (a.categories || []).forEach(function (c) { seen[c] = true; });
+      });
+      Object.keys(seen).sort().forEach(function (c) {
+        $cat.append($('<option>').val(c).text(c));
+      });
+      browseSetView(browseView);
+      browseRender();
+    }).fail(function () {
+      $('#browse-status').text('Could not load addons - try refreshing.');
+    });
+  }
+
   function incrementPage(url) {
     var u = new URL(url, window.location.origin);
     var page = parseInt(u.searchParams.get('page') || '1', 10);

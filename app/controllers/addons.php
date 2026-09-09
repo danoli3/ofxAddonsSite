@@ -208,6 +208,75 @@ function ofx_addons_sorted_content(string $sortKey): array
     ")->fetchAll();
 }
 
+// GET /browse.json - every public Addon in one shot, trimmed to just the
+// fields the /browse page's client-side sortable table/tile view needs -
+// deliberately not the full ofx_addons_sorted_content() row (internal
+// columns like hidden_by_owner, user_id, security_flagged_* have no
+// business leaving the server). Loading the whole list at once and
+// sorting/filtering it in JS (rather than re-querying per sort/filter
+// change) is the same approach daandelange's ofxAddonsJs browser uses -
+// a few hundred KB is cheap next to a network round trip per interaction.
+function ofx_browse_content(): array
+{
+    $rows = ofx_db()->query("
+        SELECT r.*, u.login AS user_login,
+               GROUP_CONCAT(c.name SEPARATOR '||') AS categories
+        FROM repos r
+        LEFT JOIN users u ON u.id = r.user_id
+        LEFT JOIN categorizations cz ON cz.repo_id = r.id
+        LEFT JOIN categories c ON c.id = cz.category_id
+        WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.fork_hidden_by_admin = 0
+        GROUP BY r.id
+        ORDER BY LOWER(r.name) ASC
+    ")->fetchAll();
+
+    return array_map(function (array $r): array {
+        $ofVersion = ofx_addon_of_version($r);
+        return [
+            'full_name' => $r['full_name'],
+            'name' => $r['name'],
+            'owner' => $r['user_login'],
+            'description' => $r['description'],
+            'thumbnail' => ofx_addon_thumbnail_url($r),
+            'categories' => !empty($r['categories']) ? explode('||', $r['categories']) : [],
+            'of_version' => $ofVersion['version'] ?? null,
+            'of_version_curated' => $ofVersion['curated'] ?? false,
+            'stars' => (int)$r['stargazers_count'],
+            'forks' => (int)$r['forks_count'],
+            'examples' => (int)$r['example_count'],
+            'archived' => (bool)$r['archived'],
+            'has_releases' => (bool)$r['has_releases'],
+            'pushed_at' => $r['pushed_at'],
+            'created_at' => $r['created_at'],
+        ];
+    }, $rows);
+}
+
+function ofx_browse_json_content(): string
+{
+    return json_encode(ofx_browse_content(), JSON_UNESCAPED_SLASHES);
+}
+
+function ofx_browse_json(): void
+{
+    header('Content-Type: application/json');
+    header('Cache-Control: public, max-age=900');
+    ofx_cache_serve('browse.json', 'ofx_browse_json_content');
+}
+
+// GET /browse - a table/tiles view of every addon, sortable and
+// filterable client-side against /browse.json (see ofx_browse_content()) -
+// modeled on daandelange's ofxAddonsJs browser
+// (https://daandelange.github.io/ofxAddonsJs/), which the rest of this
+// site's per-category, infinite-scroll pages don't really replace: seeing
+// everything at once, sorted by stars/forks/updated, is its own useful
+// view. The page itself is just a shell; app/assets/js/site.js does the
+// actual fetch + render + sort + Tiles/Table toggle.
+function ofx_browse_index(): void
+{
+    ofx_render('browse/index', ['title' => 'Browse']);
+}
+
 function ofx_render_addons_sorted(?string $sort): void
 {
     $sortKey = in_array($sort, ['freshest', 'popular', 'newest'], true) ? $sort : 'name';

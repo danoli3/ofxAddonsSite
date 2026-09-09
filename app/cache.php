@@ -112,6 +112,7 @@ function ofx_regenerate_public_caches(): void
     ofx_cache_generate('sitemap.json', 'ofx_sitemap_json_content');
     ofx_cache_generate('banned.json', 'ofx_banned_json_content');
     ofx_cache_generate('addon-repos.json', 'ofx_addon_repos_json_content');
+    ofx_cache_generate('browse.json', 'ofx_browse_json_content');
     ofx_cache_generate_data('categories-addons.json', 'ofx_categories_addons_content');
     ofx_cache_generate_data('addons-name.json', fn () => ofx_addons_sorted_content('name'));
     ofx_cache_generate_data('addons-freshest.json', fn () => ofx_addons_sorted_content('freshest'));

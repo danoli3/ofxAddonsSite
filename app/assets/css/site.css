@@ -1088,3 +1088,51 @@ a.addon-card__desc:hover { color: var(--text); }
   .category-jump { gap: 8px; }
   .category-jump__link { padding: 5px 10px; font-size: .78rem; }
 }
+
+/* /browse - client-side sortable Tiles/Table view over /browse.json */
+.browse-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px; margin: 4px 0 18px; }
+.browse-toolbar__group { display: flex; flex-direction: column; gap: 4px; }
+.browse-toolbar__group label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+}
+.browse-toolbar select {
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .85rem;
+  padding: 7px 10px;
+  min-width: 160px;
+  cursor: pointer;
+}
+.browse-toolbar select:focus { outline: 2px solid var(--accent-1); outline-offset: 1px; }
+.view-toggle { flex-direction: row; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.view-toggle__btn {
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  border: none;
+  padding: 8px 16px;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.view-toggle__btn + .view-toggle__btn { border-left: 1px solid var(--border); }
+.view-toggle__btn:hover { color: var(--text); }
+.view-toggle__btn.is-active { background: var(--gradient); color: #0b0d14; }
+.browse-status { color: var(--text-muted); font-size: .85rem; margin: 0 0 14px; }
+.browse-table th, .browse-table td { width: auto; }
+.browse-table th:nth-child(1), .browse-table td:nth-child(1) { width: 16%; }
+.browse-table th:nth-child(2), .browse-table td:nth-child(2) { width: 10%; }
+.browse-table th:nth-child(3), .browse-table td:nth-child(3) { width: 20%; }
+.browse-table th:nth-child(4), .browse-table td:nth-child(4) { width: 8%; }
+.browse-table th:nth-child(5), .browse-table td:nth-child(5) { width: 8%; }
+.browse-table th:nth-child(6), .browse-table td:nth-child(6) { width: 8%; }
+.browse-table th:nth-child(7), .browse-table td:nth-child(7) { width: 10%; }
+.browse-table th:nth-child(8), .browse-table td:nth-child(8) { width: 10%; }
+.browse-table th:nth-child(9), .browse-table td:nth-child(9) { width: 10%; }
+.browse-table td { vertical-align: middle; }
+.browse-table .tag { margin: 2px 4px 2px 0; }
