@@ -278,13 +278,38 @@ $(function () {
       $body.html(html);
     }
 
+    // Rendering every match at once (2000+ addons, each a full tile with
+    // an image or a table row) is enough synchronous DOM work that a
+    // click could feel like it did nothing - the view/localStorage state
+    // (see browseSetView) updates instantly, but the visible re-render
+    // lags or, worse, a second impatient click queues up behind the first
+    // and the two toggles cancel out. Capping what actually gets built
+    // keeps every render fast regardless of how unfiltered the current
+    // search/category is - same mitigation the reference ofxAddonsJs
+    // browser uses (it paginates 60 at a time behind "Load more").
+    var BROWSE_RENDER_LIMIT = 300;
+
     function browseRender() {
-      var rows = browseSortRows(browseFilteredRows(), $('#browse-sort').val());
-      $('#browse-status').text(rows.length + ' addon' + (rows.length === 1 ? '' : 's'));
-      if (browseView === 'tiles') {
-        browseRenderTiles(rows);
-      } else {
-        browseRenderTable(rows);
+      var allRows = browseSortRows(browseFilteredRows(), $('#browse-sort').val());
+      var rows = allRows.slice(0, BROWSE_RENDER_LIMIT);
+      var status = allRows.length + ' addon' + (allRows.length === 1 ? '' : 's');
+      if (allRows.length > rows.length) {
+        status += ' - showing first ' + rows.length + ', search or pick a category to narrow it down';
+      }
+      $('#browse-status').text(status);
+      try {
+        if (browseView === 'tiles') {
+          browseRenderTiles(rows);
+        } else {
+          browseRenderTable(rows);
+        }
+      } catch (e) {
+        // a render that throws partway through a big html() build can
+        // otherwise leave the previous view's stale content on screen
+        // with no visible error - surface it in the status line instead
+        // of failing silently
+        $('#browse-status').text('Could not render that view - see console.');
+        if (window.console && console.error) console.error(e);
       }
     }
 
@@ -293,9 +318,16 @@ $(function () {
       browseDebounce = setTimeout(browseRender, 150);
     });
     $('#browse-sort, #browse-category').on('change', browseRender);
-    $('.view-toggle__btn').on('click', function () {
-      browseSetView($(this).data('view'));
-      browseRender();
+    // delegated (matches every other row-action binding in this file),
+    // and yields one frame between toggling visibility and the actual
+    // (potentially slow, see BROWSE_RENDER_LIMIT above) render, so the
+    // active-button/visible-panel switch paints immediately instead of
+    // being blocked behind building a few hundred rows of HTML first
+    $(document).on('click', '.view-toggle__btn', function () {
+      var view = $(this).data('view');
+      if (view === browseView) return;
+      browseSetView(view);
+      setTimeout(browseRender, 0);
     });
 
     $('#browse-status').text('Loading…');
