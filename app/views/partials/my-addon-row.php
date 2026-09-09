@@ -52,12 +52,14 @@
     <?php ofx_category_picker($categories, $selectedCategoryIds); ?>
   </td>
   <?php
-    // pre-fill with the crawler-detected thumbnail (the repo's
-    // ofxaddons_thumbnail.png convention) when there's no owner
-    // override yet, so the field shows what's actually live
-    // instead of starting blank
-    $detectedThumbnail = $repo['thumbnail_url_override']
-        ?: (!empty($repo['has_thumbnail']) ? ofx_thumbnail_url($repo['full_name']) : '');
+    // pre-fill with whatever's actually showing live for this addon when
+    // there's no owner override yet - the crawler-detected
+    // ofxaddons_thumbnail.png convention, or an admin-generated AI
+    // thumbnail (ai_thumbnail_generated_at) - same priority order
+    // ofx_addon_thumbnail_url() already uses on the public card/detail
+    // page, so this field doesn't start blank (or miss a generated image
+    // entirely) just because it duplicated only part of that logic
+    $detectedThumbnail = ofx_addon_thumbnail_url($repo) ?? '';
   ?>
   <td>
     <img class="my-addon-row__thumbnail-preview" src="<?= ofx_h($detectedThumbnail) ?>" alt=""
