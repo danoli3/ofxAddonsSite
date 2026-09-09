@@ -89,6 +89,13 @@
     <div class="admin-row__actions-inner">
       <button type="button" class="admin-row__save">Save</button>
       <button type="button" class="admin-row__ban" title="Not really an openFrameworks addon">Ban</button>
+      <?php if (in_array($repo['type'], OFX_AI_TRIAGE_TYPES, true)): ?>
+        <button type="button" class="admin-row__triage-flag<?= !empty($repo['ai_triage_priority_at']) ? ' is-flagged' : '' ?>"
+                data-repo-id="<?= (int)$repo['id'] ?>"
+                title="<?= !empty($repo['ai_triage_priority_at']) ? 'Flagged - click to unflag' : 'Jump this to the front of the next AI triage batch' ?>">
+          &#128681; <?= !empty($repo['ai_triage_priority_at']) ? 'Flagged for triage' : 'Flag for triage' ?>
+        </button>
+      <?php endif; ?>
       <?php if (!empty($showDismissRequest) && !empty($repo['ban_appealed'])): ?>
         <button type="button" class="admin-row__dismiss-appeal" title="Classification stands - clear the review request">
           Dismiss request

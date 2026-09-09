@@ -77,6 +77,7 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/add-repo$#', 'ofx_admin_add_repo'],
         ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
         ['POST', '#^/admin/repos/(\d+)/version$#', 'ofx_admin_set_version'],
+        ['POST', '#^/admin/repos/(\d+)/triage-priority$#', 'ofx_admin_toggle_triage_priority'],
         ['POST', '#^/admin/repos/(\d+)/dismiss-appeal$#', 'ofx_admin_dismiss_appeal'],
         ['GET', '#^/admin/export\.(json|xml)$#', 'ofx_admin_export'],
         ['GET', '#^/admin/export-triage\.json$#', 'ofx_admin_export_triage'],

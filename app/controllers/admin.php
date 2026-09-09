@@ -1573,6 +1573,49 @@ function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
     echo json_encode(['status' => 200, 'featured' => (bool)$newFeatured]);
 }
 
+// POST /admin/repos/{id}/triage-priority - manual equivalent of the
+// owner-edit fast-track in ofx_my_addons_update(): jumps this repo to the
+// front of the next /api/triage/batch, oldest-prioritized-first, ahead of
+// the usual updated_at ordering. Toggles - flagging an already-flagged
+// repo clears it, for when an admin changes their mind before the model
+// ever picks it up. Only meaningful for the types AI triage actually
+// covers (OFX_AI_TRIAGE_TYPES); the button is hidden for anything else.
+function ofx_admin_toggle_triage_priority(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT type, ai_triage_priority_at FROM repos WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $repo = $stmt->fetch();
+    if (!$repo) {
+        http_response_code(404);
+        echo json_encode(['status' => 404, 'error' => ['repo not found']]);
+        return;
+    }
+    if (!in_array($repo['type'], OFX_AI_TRIAGE_TYPES, true)) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ['not an AI-triage-eligible type']]);
+        return;
+    }
+
+    $flagging = empty($repo['ai_triage_priority_at']);
+    $priorityAt = $flagging ? gmdate('Y-m-d H:i:s') : null;
+    $pdo->prepare('UPDATE repos SET ai_triage_priority_at = ? WHERE id = ?')->execute([$priorityAt, $id]);
+
+    ofx_log_admin_action(
+        $pdo,
+        $admin['id'],
+        $flagging ? 'triage_priority_flag' : 'triage_priority_unflag',
+        (int)$id,
+        null
+    );
+
+    echo json_encode(['status' => 200, 'flagged' => $flagging]);
+}
+
 // POST /admin/repos/{id}/dismiss-appeal - the classification stands
 // (still banned, or still Spam), just clears the review-request flag
 // so it drops off the /admin/review queue.

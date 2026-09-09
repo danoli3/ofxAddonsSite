@@ -45,6 +45,7 @@
         <th>Author</th>
         <th>Categories</th>
         <th>OF</th>
+        <th>Description</th>
         <th>Stars</th>
         <th>Forks</th>
         <th>Updated</th>

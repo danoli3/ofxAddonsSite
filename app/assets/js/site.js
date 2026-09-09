@@ -248,7 +248,7 @@ $(function () {
     function browseRenderTable(rows) {
       var $body = $('#browse-table-body');
       if (!rows.length) {
-        $body.html('<tr><td colspan="9" class="empty-state">No addons match.</td></tr>');
+        $body.html('<tr><td colspan="10" class="empty-state">No addons match.</td></tr>');
         return;
       }
       var html = rows.map(function (a) {
@@ -258,6 +258,7 @@ $(function () {
           + '<td>' + (a.owner ? '<a href="/contributors/' + encodeURIComponent(a.owner) + '">@' + browseEsc(a.owner) + '</a>' : '') + '</td>'
           + '<td>' + browseCategoryTags(a) + '</td>'
           + '<td>' + browseVersionTag(a) + '</td>'
+          + '<td class="browse-table__desc">' + browseEsc(a.description || '') + '</td>'
           + '<td>' + a.stars + '</td>'
           + '<td>' + a.forks + '</td>'
           + '<td>' + browseTimeAgo(a.pushed_at) + '</td>'
@@ -477,6 +478,30 @@ $(function () {
   $(document).on('click', '.admin-row__unban', function () {
     var $row = $(this).closest('.admin-row');
     saveRepoType($row, 'Unsorted', [], []);
+  });
+
+  // manual equivalent of the owner-edit AI triage fast-track - jumps this
+  // repo to the front of the next /api/triage/batch. Toggles, so clicking
+  // an already-flagged repo clears it again.
+  $(document).on('click', '.admin-row__triage-flag', function () {
+    var $btn = $(this);
+    var repoId = $btn.data('repo-id');
+
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/repos/' + repoId + '/triage-priority',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $btn.toggleClass('is-flagged', res.flagged);
+      $btn.html('&#128681; ' + (res.flagged ? 'Flagged for triage' : 'Flag for triage'));
+      $btn.attr('title', res.flagged ? 'Flagged - click to unflag' : 'Jump this to the front of the next AI triage batch');
+    }).fail(function () {
+      window.alert('Could not update triage priority');
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
   });
 
   $(document).on('click', '.admin-row__dismiss-appeal', function () {

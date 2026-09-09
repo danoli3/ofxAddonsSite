@@ -964,6 +964,22 @@ a.addon-card__desc:hover { color: var(--text); }
   font-size: .85rem;
 }
 .admin-row__ban:hover, .admin-row__unban:hover { background: rgba(255, 107, 107, .1); }
+.admin-row__triage-flag {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  min-width: 74px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+.admin-row__triage-flag:hover { border-color: var(--accent-1); color: var(--text); }
+.admin-row__triage-flag.is-flagged { background: rgba(124, 92, 255, .18); border-color: var(--accent-1); color: var(--text); }
+.admin-row__triage-flag:disabled { opacity: .6; cursor: default; }
 .admin-row__dismiss-appeal {
   background: transparent;
   color: var(--text-muted);
@@ -1124,15 +1140,17 @@ a.addon-card__desc:hover { color: var(--text); }
 .view-toggle__btn:hover { color: var(--text); }
 .view-toggle__btn.is-active { background: var(--gradient); color: #0b0d14; }
 .browse-status { color: var(--text-muted); font-size: .85rem; margin: 0 0 14px; }
+/* auto (not admin-table's usual fixed) layout: a fixed table couldn't
+   shrink/grow a column to fit an unbroken run of content (a long category
+   tag, a long description) - it just let that content visually bleed into
+   the next column instead of wrapping or widening. Auto layout sizes each
+   column to its content and lets rows grow taller for wrapped multi-line
+   cells (categories stacking, description wrapping) instead of either. */
+.browse-table { table-layout: auto; }
 .browse-table th, .browse-table td { width: auto; }
-.browse-table th:nth-child(1), .browse-table td:nth-child(1) { width: 16%; }
-.browse-table th:nth-child(2), .browse-table td:nth-child(2) { width: 10%; }
-.browse-table th:nth-child(3), .browse-table td:nth-child(3) { width: 20%; }
-.browse-table th:nth-child(4), .browse-table td:nth-child(4) { width: 8%; }
-.browse-table th:nth-child(5), .browse-table td:nth-child(5) { width: 8%; }
-.browse-table th:nth-child(6), .browse-table td:nth-child(6) { width: 8%; }
-.browse-table th:nth-child(7), .browse-table td:nth-child(7) { width: 10%; }
-.browse-table th:nth-child(8), .browse-table td:nth-child(8) { width: 10%; }
-.browse-table th:nth-child(9), .browse-table td:nth-child(9) { width: 10%; }
-.browse-table td { vertical-align: middle; }
+.browse-table th:nth-child(3), .browse-table td:nth-child(3) { max-width: 240px; }
+.browse-table th:nth-child(5), .browse-table td:nth-child(5) { min-width: 220px; max-width: 360px; }
+.browse-table td { vertical-align: top; }
+.browse-table td:nth-child(4) { vertical-align: middle; }
 .browse-table .tag { margin: 2px 4px 2px 0; }
+.browse-table__desc { color: var(--text-muted); font-size: .84rem; white-space: normal; }
