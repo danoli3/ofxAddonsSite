@@ -219,6 +219,15 @@ $(function () {
       }).join('');
     }
 
+    // table cells don't reliably respect max-width/width for wrapping
+    // inline content in table-layout:auto (it's a well-known cross-browser
+    // quirk) - a flex-wrap div with its own max-width does, so the table
+    // view gets its own wrapper instead of reusing browseCategoryTags()'s
+    // bare tags directly.
+    function browseCategoryTagsWrapped(a) {
+      return '<div class="browse-table__cats">' + browseCategoryTags(a) + '</div>';
+    }
+
     function browseRenderTiles(rows) {
       if (!rows.length) {
         $browseTiles.html('<p class="empty-state">No addons match.</p>');
@@ -255,10 +264,10 @@ $(function () {
         var url = browseAddonUrl(a.full_name);
         return '<tr>'
           + '<td><a href="' + url + '">' + browseEsc(a.name) + '</a></td>'
+          + '<td><div class="browse-table__desc">' + browseEsc(a.description || '') + '</div></td>'
           + '<td>' + (a.owner ? '<a href="/contributors/' + encodeURIComponent(a.owner) + '">@' + browseEsc(a.owner) + '</a>' : '') + '</td>'
-          + '<td>' + browseCategoryTags(a) + '</td>'
+          + '<td>' + browseCategoryTagsWrapped(a) + '</td>'
           + '<td>' + browseVersionTag(a) + '</td>'
-          + '<td class="browse-table__desc">' + browseEsc(a.description || '') + '</td>'
           + '<td>' + a.stars + '</td>'
           + '<td>' + a.forks + '</td>'
           + '<td>' + browseTimeAgo(a.pushed_at) + '</td>'

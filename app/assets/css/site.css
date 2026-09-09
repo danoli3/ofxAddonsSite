@@ -1145,12 +1145,15 @@ a.addon-card__desc:hover { color: var(--text); }
    tag, a long description) - it just let that content visually bleed into
    the next column instead of wrapping or widening. Auto layout sizes each
    column to its content and lets rows grow taller for wrapped multi-line
-   cells (categories stacking, description wrapping) instead of either. */
+   cells instead of either - though a plain width/max-width on the <td>
+   itself is a well-known no-op for wrapping in auto-layout tables across
+   browsers, which is why the categories/description cells below wrap an
+   inner flex/block element with its own max-width instead of relying on
+   the cell. */
 .browse-table { table-layout: auto; }
 .browse-table th, .browse-table td { width: auto; }
-.browse-table th:nth-child(3), .browse-table td:nth-child(3) { max-width: 240px; }
-.browse-table th:nth-child(5), .browse-table td:nth-child(5) { min-width: 220px; max-width: 360px; }
 .browse-table td { vertical-align: top; }
-.browse-table td:nth-child(4) { vertical-align: middle; }
+.browse-table td:nth-child(5) { vertical-align: middle; }
 .browse-table .tag { margin: 2px 4px 2px 0; }
-.browse-table__desc { color: var(--text-muted); font-size: .84rem; white-space: normal; }
+.browse-table__desc { color: var(--text-muted); font-size: .84rem; white-space: normal; max-width: 320px; }
+.browse-table__cats { display: flex; flex-wrap: wrap; gap: 4px; max-width: 260px; }
