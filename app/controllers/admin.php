@@ -966,8 +966,12 @@ function ofx_admin_ai_queue_confirm(): void
     $deleteStmt = $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)');
     // also clears the batch/submit API's claim (ai_triage_batched_at) - a
     // discarded-but-unchanged repo is otherwise fine to hand out again
-    // right away rather than waiting out the rest of its claim window
-    $clearClaimStmt = $pdo->prepare('UPDATE repos SET ai_triage_batched_at = NULL WHERE LOWER(full_name) = LOWER(?)');
+    // right away rather than waiting out the rest of its claim window -
+    // and the owner-edit priority flag (ai_triage_priority_at), since it's
+    // now been reviewed and shouldn't keep jumping the queue indefinitely
+    $clearClaimStmt = $pdo->prepare(
+        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL WHERE LOWER(full_name) = LOWER(?)'
+    );
     foreach ($allEntries as $entry) {
         $deleteStmt->execute([$entry['full_name']]);
         $clearClaimStmt->execute([$entry['full_name']]);
@@ -1033,7 +1037,9 @@ function ofx_admin_ai_queue_deny(): void
     // the staged suggestion and clear the batch claim so the repo is free
     // to be re-picked-up (now with this denial visible as feedback)
     $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)')->execute([$fullName]);
-    $pdo->prepare('UPDATE repos SET ai_triage_batched_at = NULL WHERE LOWER(full_name) = LOWER(?)')->execute([$fullName]);
+    $pdo->prepare(
+        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL WHERE LOWER(full_name) = LOWER(?)'
+    )->execute([$fullName]);
 
     ofx_log_admin_action(
         $pdo,

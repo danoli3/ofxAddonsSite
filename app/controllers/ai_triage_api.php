@@ -63,6 +63,12 @@ function ofx_api_triage_require_key(): bool
 // retries, a slow per-addon README fetch) just re-served the same
 // addons every time. The claim expires on its own if nothing is ever
 // submitted, so a crashed/abandoned run doesn't strand those addons.
+// Repos with ai_triage_priority_at set (an owner saved an edit to their
+// own still-Unsorted addon on /my/addons - see ofx_my_addons_update()) sort
+// ahead of everything else, oldest-prioritized-first, regardless of the
+// usual updated_at ordering - a human just showed interest in that one,
+// worth surfacing to review before addons nobody's touched since the last
+// crawl.
 function ofx_api_triage_batch(): void
 {
     if (!ofx_api_triage_require_key()) {
@@ -102,7 +108,8 @@ function ofx_api_triage_batch(): void
         WHERE type IN ({$typePlaceholders})
           AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
           AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
-        ORDER BY (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
+        ORDER BY (ai_triage_priority_at IS NOT NULL) DESC, ai_triage_priority_at ASC,
+                 (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
         LIMIT {$limit}
     ");
     $stmt->execute(OFX_AI_TRIAGE_TYPES);

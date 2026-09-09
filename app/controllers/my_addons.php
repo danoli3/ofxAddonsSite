@@ -102,18 +102,30 @@ function ofx_my_addons_update(string $id): void
         $type = $currentType;
     }
 
+    // An owner editing their own still-Unsorted addon (description,
+    // thumbnail, etc. - not enough to self-categorize into Addon) is a
+    // signal a human already looked at this one and improved it, worth
+    // jumping ahead of addons nobody's touched since the last crawl - see
+    // the ai_triage_priority_at ordering in ofx_api_triage_batch(). Set
+    // unconditionally off $type (not just when it was already Unsorted) so
+    // dropping all categories off a real Addon back to Unsorted here also
+    // queues it. Cleared once an admin resolves the resulting suggestion
+    // (see ofx_admin_ai_queue_confirm()/_deny()), not here - the priority
+    // is "get this looked at soon", not "for exactly one batch".
+    $priorityAt = $type === 'Unsorted' ? gmdate('Y-m-d H:i:s') : null;
+
     $pdo->beginTransaction();
     try {
         if (array_key_exists('description', $_POST)) {
             $generated = !empty($_POST['description_generated']) ? 1 : 0;
             $pdo->prepare(
                 'UPDATE repos SET type = ?, description = ?, description_curated = 1, description_generated = ?,
-                 hidden_by_owner = ?, thumbnail_url_override = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$type, $_POST['description'], $generated, $hidden, $thumbnailOverride ?: null, $id]);
+                 hidden_by_owner = ?, thumbnail_url_override = ?, ai_triage_priority_at = ?, updated_at = NOW() WHERE id = ?'
+            )->execute([$type, $_POST['description'], $generated, $hidden, $thumbnailOverride ?: null, $priorityAt, $id]);
         } else {
             $pdo->prepare(
-                'UPDATE repos SET type = ?, hidden_by_owner = ?, thumbnail_url_override = ?, updated_at = NOW() WHERE id = ?'
-            )->execute([$type, $hidden, $thumbnailOverride ?: null, $id]);
+                'UPDATE repos SET type = ?, hidden_by_owner = ?, thumbnail_url_override = ?, ai_triage_priority_at = ?, updated_at = NOW() WHERE id = ?'
+            )->execute([$type, $hidden, $thumbnailOverride ?: null, $priorityAt, $id]);
         }
 
         $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$id]);
