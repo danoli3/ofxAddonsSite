@@ -9,7 +9,7 @@
     </a>
     <div class="admin-row__updated">Last commit <?= ofx_h(ofx_time_ago($repo['pushed_at'] ?? null)) ?></div>
     <?php if (!empty($repo['ai_triage_notes'])): ?>
-      <div class="admin-row__ai-note" title="Free-text note from the AI triage submission - shown to reviewers only, never applied to anything">
+      <div class="admin-row__ai-note" title="Free-text note from the AI triage submission - shown to reviewers only, never applied to anything. Sticks around after the suggestion is confirmed/denied, until a newer submission replaces it.">
         &#129302; <?= ofx_h($repo['ai_triage_notes']) ?>
       </div>
     <?php endif; ?>

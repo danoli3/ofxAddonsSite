@@ -254,6 +254,11 @@ function ofx_api_triage_submit(): void
         VALUES (?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), entry_json = VALUES(entry_json), submitted_at = NOW()
     ');
+    // written straight onto the repo (not just ai_triage_queue) so it stays
+    // visible on the main admin table for every addon the model has ever
+    // left a note on - confirmed, denied, or still pending - instead of
+    // disappearing the moment the queue row it came in on is resolved
+    $noteStmt = $pdo->prepare('UPDATE repos SET ai_triage_notes = ? WHERE id = ?');
 
     $accepted = 0;
     $skipped = 0;
@@ -291,6 +296,7 @@ function ofx_api_triage_submit(): void
         }
         if (!empty($entry['notes'])) {
             $normalized['notes'] = mb_substr(trim((string)$entry['notes']), 0, 500);
+            $noteStmt->execute([$normalized['notes'], $repoId]);
         }
 
         $upsert->execute([$repoId, $fullName, json_encode($normalized)]);

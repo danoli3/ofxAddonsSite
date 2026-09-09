@@ -115,7 +115,6 @@ function ofx_admin_index(): void
 
     $categories = $pdo->query('SELECT id, name FROM categories ORDER BY LOWER(name) ASC')->fetchAll();
     $repoCategoryIds = ofx_admin_category_ids_for($pdo, array_column($repos, 'id'));
-    ofx_admin_attach_ai_notes($pdo, $repos);
 
     if (ofx_is_ajax()) {
         header('X-Has-More: ' . ($hasMore ? '1' : '0'));
@@ -187,37 +186,6 @@ function ofx_admin_category_ids_for(PDO $pdo, array $repoIds): array
         $result[$row['repo_id']][] = (int)$row['category_id'];
     }
     return $result;
-}
-
-// Fills in $repo['ai_triage_notes'] (mutates in place, hence by-reference)
-// from any pending ai_triage_queue suggestion for that repo - the free-text
-// "notes" a local model can optionally attach when it submits (see
-// ofx_api_triage_submit), shown only to a human reviewer and never applied
-// to anything on its own. Surfacing it inline here means an admin can see
-// "AI flagged this as a possible fork" etc. while categorizing on the main
-// list, without a separate trip to /admin/ai-triage/review.
-function ofx_admin_attach_ai_notes(PDO $pdo, array &$repos): void
-{
-    $repoIds = array_column($repos, 'id');
-    if (empty($repoIds)) {
-        return;
-    }
-    $placeholders = implode(',', array_fill(0, count($repoIds), '?'));
-    $stmt = $pdo->prepare("SELECT repo_id, entry_json FROM ai_triage_queue WHERE repo_id IN ({$placeholders})");
-    $stmt->execute($repoIds);
-
-    $notesByRepoId = [];
-    while ($row = $stmt->fetch()) {
-        $decoded = json_decode((string)$row['entry_json'], true);
-        if (is_array($decoded) && !empty($decoded['notes'])) {
-            $notesByRepoId[(int)$row['repo_id']] = (string)$decoded['notes'];
-        }
-    }
-
-    foreach ($repos as &$repo) {
-        $repo['ai_triage_notes'] = $notesByRepoId[(int)$repo['id']] ?? null;
-    }
-    unset($repo);
 }
 
 function ofx_admin_row_partial(array $repo, array $categories, array $selectedCategoryIds, bool $showDismissRequest = false): void
