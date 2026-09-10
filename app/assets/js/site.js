@@ -324,9 +324,7 @@ $(function () {
     // active-button/visible-panel switch paints immediately instead of
     // being blocked behind building a few hundred rows of HTML first
     $(document).on('click', '.view-toggle__btn', function () {
-      var view = $(this).data('view');
-      if (view === browseView) return;
-      browseSetView(view);
+      browseSetView($(this).data('view'));
       setTimeout(browseRender, 0);
     });
 
