@@ -271,6 +271,12 @@ main.wrap { padding-top: 30px; padding-bottom: 70px; min-height: 50vh; }
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
 }
+/* an explicit display:grid at equal specificity beats the browser's own
+   [hidden]{display:none} default (author styles win ties over the UA
+   stylesheet), so setting the hidden attribute/property alone silently
+   failed to actually hide an .addon-grid - #browse-tiles stayed visible
+   under the table view even though .prop('hidden', true) had "worked". */
+.addon-grid[hidden] { display: none; }
 .addon-card {
   background: var(--surface);
   border: 1px solid var(--border);
