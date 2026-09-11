@@ -957,6 +957,27 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.admin-unflag-ban-btn', function () {
+    var $btn = $(this);
+    var id = $btn.data('id');
+    var $row = $('#flagged-row-' + id);
+    if (!window.confirm('Ban this repo and clear the flag?')) {
+      return;
+    }
+    $row.find('.admin-unflag-btn, .admin-unflag-ban-btn').prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/repos/' + id + '/unflag-and-ban',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $row.fadeOut(200, function () { $(this).remove(); });
+    }).fail(function () {
+      $btn.prop('disabled', false).text('Failed - retry');
+      $row.find('.admin-unflag-btn').prop('disabled', false);
+    });
+  });
+
   $(document).on('click', '.admin-unban-btn', function () {
     var $btn = $(this);
     var id = $btn.data('id');

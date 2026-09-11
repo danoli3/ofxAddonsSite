@@ -1603,6 +1603,27 @@ function ofx_admin_unflag(string $id): void
     echo json_encode(['status' => 200]);
 }
 
+// POST /admin/repos/{id}/unflag-and-ban - the other call an admin makes
+// off the flagged queue: the detection was right, and (unlike the
+// auto-quarantine at detection time - see ofx_detect_security_threats())
+// this one was still sitting as a confirmed Addon or some other type
+// rather than already NonAddon. One click sets it Banned and clears the
+// flag together, instead of a trip to /admin/repos to change type first.
+function ofx_admin_unflag_and_ban(string $id): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $pdo->prepare(
+        "UPDATE repos SET type = 'NonAddon', security_flagged = 0, security_flag_reason = NULL, updated_at = NOW() WHERE id = ?"
+    )->execute([$id]);
+    ofx_log_admin_action($pdo, $admin['id'] ?? null, 'security_unflag_and_ban', (int)$id);
+
+    echo json_encode(['status' => 200]);
+}
+
 function ofx_admin_toggle_featured(string $repoId, string $categoryId): void
 {
     $admin = ofx_require_admin();

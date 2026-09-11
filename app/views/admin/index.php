@@ -61,7 +61,7 @@
     <form class="admin-toolbar__group" action="/admin/import/preview" method="post" enctype="multipart/form-data">
       <span class="admin-toolbar__label">Import</span>
       <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
-      <input type="file" name="file" accept=".json,.xml" required>
+      <input type="file" class="admin-file-input" name="file" accept=".json,.xml" required>
       <button type="submit" title="Review a diff before anything is saved">Preview</button>
     </form>
     <a class="admin-toolbar__link" href="/admin/ai-triage/review" title="Suggestions a local model has submitted via the /api/triage API, waiting for review">AI triage queue<?= $aiQueueCount > 0 ? ' (' . $aiQueueCount . ')' : '' ?> &rarr;</a>

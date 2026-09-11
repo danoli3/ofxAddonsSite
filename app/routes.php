@@ -76,6 +76,7 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/security/bans/(\d+)/unban$#', 'ofx_admin_unban_ip'],
         ['GET', '#^/admin/flagged$#', 'ofx_admin_flagged'],
         ['POST', '#^/admin/repos/(\d+)/unflag$#', 'ofx_admin_unflag'],
+        ['POST', '#^/admin/repos/(\d+)/unflag-and-ban$#', 'ofx_admin_unflag_and_ban'],
         ['POST', '#^/admin/add-repo$#', 'ofx_admin_add_repo'],
         ['POST', '#^/admin/categorizations/(\d+)/(\d+)/toggle-featured$#', 'ofx_admin_toggle_featured'],
         ['POST', '#^/admin/repos/(\d+)/version$#', 'ofx_admin_set_version'],

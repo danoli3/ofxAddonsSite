@@ -999,6 +999,56 @@ a.addon-card__desc:hover { color: var(--text); }
   font-size: .85rem;
 }
 .admin-row__dismiss-appeal:hover { background: var(--surface-hover); color: var(--text); }
+.admin-unflag-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  min-width: 74px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .85rem;
+}
+.admin-unflag-btn:hover { background: var(--surface-hover); color: var(--text); }
+.admin-unflag-btn:disabled { opacity: .6; cursor: default; }
+.admin-unflag-ban-btn {
+  background: transparent;
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, .4);
+  border-radius: 8px;
+  padding: 6px 14px;
+  min-width: 74px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+.admin-unflag-ban-btn:hover { background: rgba(255, 107, 107, .1); }
+.admin-unflag-ban-btn:disabled { opacity: .6; cursor: default; }
+.admin-file-input {
+  color: var(--text-muted);
+  font-size: .82rem;
+  max-width: 220px;
+}
+.admin-file-input::file-selector-button, .admin-file-input::-webkit-file-upload-button {
+  background: var(--bg-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  margin-right: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .82rem;
+  font-family: inherit;
+}
+.admin-file-input:hover::file-selector-button, .admin-file-input:hover::-webkit-file-upload-button {
+  border-color: var(--accent-1);
+  color: var(--text);
+}
 .admin-row__status { font-size: .8rem; color: var(--text-muted); }
 .admin-row.is-saved { background: rgba(56, 225, 198, .06); }
 .admin-row.is-error .admin-row__status { color: #ff6b6b; }
