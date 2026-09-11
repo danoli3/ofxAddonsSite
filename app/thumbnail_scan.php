@@ -19,7 +19,13 @@ declare(strict_types=1);
 const OFX_GENERIC_THUMBNAIL_BLOB_SHA = '0090c27c1152fc112af3ef8c9983fe68857159e6';
 const OFX_THUMBNAIL_SCAN_BATCH = 30;
 
-function ofx_thumbnail_blob_sha(string $fullName): ?string
+// Returns the blob sha on success, null if Github confirms the file
+// genuinely doesn't exist (404 - e.g. deleted since the crawler last saw
+// it), or false for anything else: rate-limited, timed out, a 5xx, a
+// network blip. The caller must not treat false the same as null - doing
+// so would permanently record a transient failure as "checked, not
+// generic" and it would never be retried.
+function ofx_thumbnail_blob_sha(string $fullName): string|false|null
 {
     [$owner, $repo] = array_pad(explode('/', $fullName, 2), 2, '');
     $url = 'https://api.github.com/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo)
@@ -41,11 +47,14 @@ function ofx_thumbnail_blob_sha(string $fullName): ?string
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($status !== 200 || !$body) {
+    if ($status === 404) {
         return null;
     }
+    if ($status !== 200 || !$body) {
+        return false;
+    }
     $data = json_decode($body, true);
-    return is_array($data) ? ($data['sha'] ?? null) : null;
+    return is_array($data) && isset($data['sha']) ? $data['sha'] : false;
 }
 
 // Processes up to $limit not-yet-checked repos (has_thumbnail=1,
@@ -67,13 +76,21 @@ function ofx_scan_generic_thumbnails(PDO $pdo, int $limit = OFX_THUMBNAIL_SCAN_B
     $stmt->execute();
     $rows = $stmt->fetchAll();
 
+    $checked = 0;
     $genericFound = 0;
     $update = $pdo->prepare('UPDATE repos SET thumbnail_is_generic = ?, thumbnail_checked_at = NOW() WHERE id = ?');
 
     foreach ($rows as $row) {
         $sha = ofx_thumbnail_blob_sha($row['full_name']);
+        if ($sha === false) {
+            // transient failure (rate-limited, timed out, Github hiccup) -
+            // leave thumbnail_checked_at NULL so this repo is retried on
+            // the next batch instead of being silently skipped forever
+            continue;
+        }
         $isGeneric = $sha !== null && hash_equals(OFX_GENERIC_THUMBNAIL_BLOB_SHA, $sha);
         $update->execute([$isGeneric ? 1 : 0, $row['id']]);
+        $checked++;
         if ($isGeneric) {
             $genericFound++;
         }
@@ -83,5 +100,5 @@ function ofx_scan_generic_thumbnails(PDO $pdo, int $limit = OFX_THUMBNAIL_SCAN_B
         'SELECT COUNT(*) FROM repos WHERE has_thumbnail = 1 AND thumbnail_checked_at IS NULL'
     )->fetchColumn();
 
-    return ['checked' => count($rows), 'generic_found' => $genericFound, 'remaining' => $remaining];
+    return ['checked' => $checked, 'generic_found' => $genericFound, 'remaining' => $remaining];
 }
