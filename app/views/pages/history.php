@@ -14,6 +14,7 @@
 
 <h2>This site</h2>
 <p>This ofxAddons is a separate, independent build &mdash; not a fork of the original codebase &mdash; but it exists because that original project proved the idea was worth having: point a crawler at Github's <code>ofx</code> naming convention, and the openFrameworks addon ecosystem organizes itself. Everything here, from the category browser down to the naming convention it relies on, is a direct continuation of that idea.</p>
+<p>This new version was started by <a href="https://github.com/danoli3" target="_blank" rel="noopener">Dan Rosser (@danoli3)</a>, to bring the directory into the modern era and, hopefully, inspire developers back into openFrameworks.</p>
 <p>See <a href="/about-openframeworks">About openFrameworks</a> for what the toolkit itself is, or <a href="/pages/howto">How To</a> for how addons and this directory work day to day.</p>
 
 </div>
