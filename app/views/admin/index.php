@@ -14,6 +14,8 @@
     <span id="admin-sync-status" class="admin-row__status"></span>
     <button type="button" id="admin-regenerate-caches" title="Rebuild the cached sitemap.xml/json and addon-repos.json/banned.json feeds now, instead of waiting for the next sync">Regenerate feeds</button>
     <span id="admin-regenerate-caches-status" class="admin-row__status"></span>
+    <button type="button" id="admin-scan-thumbnails" title="Checks a batch of addons for an untouched ofxAddonTemplate placeholder image being shown as their thumbnail - click again to work through the backlog">Scan thumbnails</button>
+    <span id="admin-scan-thumbnails-status" class="admin-row__status"></span>
   </div>
   <div class="admin-toolbar__group">
     <span class="admin-toolbar__label">Add repo</span>

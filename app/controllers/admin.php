@@ -1406,6 +1406,35 @@ function ofx_admin_regenerate_caches(): void
     echo json_encode(['status' => 200]);
 }
 
+// POST /admin/scan-thumbnails - processes one batch (see
+// OFX_THUMBNAIL_SCAN_BATCH) of not-yet-checked has_thumbnail repos,
+// flagging any whose ofxaddons_thumbnail.png is an untouched copy of
+// ofxAddonTemplate's own placeholder (see app/thumbnail_scan.php) so it
+// stops being shown as a real thumbnail. Regenerates the public caches
+// afterward so the fix shows up on /categories, /addons, etc. immediately
+// rather than waiting for the next crawl sync to happen to touch those
+// same repos. Safe to click repeatedly to work through a large backlog.
+function ofx_admin_scan_thumbnails(): void
+{
+    $admin = ofx_require_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $result = ofx_scan_generic_thumbnails(ofx_db());
+    if ($result['generic_found'] > 0) {
+        ofx_regenerate_public_caches();
+    }
+    ofx_log_admin_action(
+        ofx_db(),
+        $admin['id'],
+        'scan_thumbnails',
+        null,
+        "{$result['checked']} checked, {$result['generic_found']} generic found, {$result['remaining']} remaining"
+    );
+
+    echo json_encode(['status' => 200] + $result);
+}
+
 // GET /admin/cache - when each cached page/feed (see app/cache.php) was
 // last regenerated, how long that took, and how big it came out - lets
 // an admin see whether the cache is actually fresh/healthy, not just

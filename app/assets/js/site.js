@@ -885,6 +885,34 @@ $(function () {
     });
   });
 
+  $('#admin-scan-thumbnails').on('click', function () {
+    var $btn = $(this);
+    var $status = $('#admin-scan-thumbnails-status');
+
+    $btn.prop('disabled', true);
+    $status.removeClass('is-error').text('Scanning…');
+
+    $.ajax({
+      url: '/admin/scan-thumbnails',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function (res) {
+      $status.text(
+        res.checked + ' checked, ' + res.generic_found + ' generic found, '
+        + res.remaining + ' left to check'
+      );
+    }).fail(function (xhr) {
+      var msg = 'Scan failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      $status.addClass('is-error').text(msg);
+    }).always(function () {
+      $btn.prop('disabled', false);
+    });
+  });
+
   $('#admin-toggle-maintenance').on('click', function () {
     var $btn = $(this);
     var turningOn = $btn.data('on') !== 1 && $btn.data('on') !== '1';

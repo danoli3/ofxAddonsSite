@@ -385,12 +385,19 @@ function ofx_thumbnail_url(string $fullName, ?string $override = null): string
 // ships itself, then an admin-generated AI thumbnail as a last resort.
 // Returns null (not a placeholder) when none of the three apply, so the
 // caller can skip rendering an <img> at all, same as before this existed.
+//
+// has_thumbnail only means "a file named ofxaddons_thumbnail.png exists
+// in this repo" (that's all the crawl snapshot records) - it says nothing
+// about whether that file is an actual thumbnail for the addon, or just
+// an untouched copy of ofxAddonTemplate's own placeholder image left over
+// from forking it, which is common enough that this needed its own check
+// (see app/thumbnail_scan.php) rather than trusting has_thumbnail alone.
 function ofx_addon_thumbnail_url(array $addon): ?string
 {
     if (!empty($addon['thumbnail_url_override'])) {
         return $addon['thumbnail_url_override'];
     }
-    if (!empty($addon['has_thumbnail']) && !empty($addon['full_name'])) {
+    if (!empty($addon['has_thumbnail']) && empty($addon['thumbnail_is_generic']) && !empty($addon['full_name'])) {
         return ofx_thumbnail_url($addon['full_name']);
     }
     if (!empty($addon['ai_thumbnail_generated_at']) && !empty($addon['id'])) {

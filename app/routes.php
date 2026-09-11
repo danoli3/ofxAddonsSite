@@ -69,6 +69,7 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/admins/(\d+)/toggle-super$#', 'ofx_admin_toggle_super_admin'],
         ['POST', '#^/admin/sync-now$#', 'ofx_admin_sync_now'],
         ['POST', '#^/admin/regenerate-caches$#', 'ofx_admin_regenerate_caches'],
+        ['POST', '#^/admin/scan-thumbnails$#', 'ofx_admin_scan_thumbnails'],
         ['GET', '#^/admin/cache$#', 'ofx_admin_cache_stats'],
         ['POST', '#^/admin/maintenance/toggle$#', 'ofx_admin_toggle_maintenance'],
         ['GET', '#^/admin/security$#', 'ofx_admin_security'],

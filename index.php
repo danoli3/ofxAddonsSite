@@ -45,6 +45,7 @@ require_once __DIR__ . '/app/csrf.php';
 require_once __DIR__ . '/app/sync.php';
 require_once __DIR__ . '/app/ai.php';
 require_once __DIR__ . '/app/image.php';
+require_once __DIR__ . '/app/thumbnail_scan.php';
 require_once __DIR__ . '/app/security_scan.php';
 require_once __DIR__ . '/app/cache.php';
 
