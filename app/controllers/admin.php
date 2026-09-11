@@ -1711,6 +1711,16 @@ function ofx_admin_review_queue(): void
 // crawler just never had a parent link to begin with. Grouped by name,
 // oldest created_at first as the presumed original, so an admin can
 // confirm the relationship by hand.
+// Only ever processes OFX_ADMIN_DUPLICATES_PAGE_SIZE (8) groups per load -
+// each repo in a shown group gets a live, synchronous Github README fetch
+// below, so this bounds it to a small, fixed number of network calls per
+// request. Without that cap, a large number of duplicate-name groups meant
+// a request making hundreds of live fetches in a row and hanging entirely.
+// Resolving a group (confirm-fork/confirm-unique) removes it from
+// detection, so - same as the AI triage review queue - working through
+// the shown 8 naturally surfaces the next ones on reload.
+const OFX_ADMIN_DUPLICATES_PAGE_SIZE = 8;
+
 function ofx_admin_duplicates(): void
 {
     ofx_require_admin();
@@ -1720,13 +1730,17 @@ function ofx_admin_duplicates(): void
     // projects that just happen to share a name) are excluded from
     // detection entirely - if that leaves only one repo with a given
     // name, it's no longer a "duplicate" group at all
-    $dupeNames = $pdo->query("
+    $allDupeNames = $pdo->query("
         SELECT LOWER(name) AS name_key
         FROM repos
         WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
         GROUP BY LOWER(name)
         HAVING COUNT(*) > 1
+        ORDER BY name_key ASC
     ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $totalGroups = count($allDupeNames);
+    $dupeNames = array_slice($allDupeNames, 0, OFX_ADMIN_DUPLICATES_PAGE_SIZE);
 
     $groups = [];
     if (!empty($dupeNames)) {
@@ -1754,6 +1768,7 @@ function ofx_admin_duplicates(): void
 
     ofx_render('admin/duplicates', [
         'groups' => $groups,
+        'totalGroups' => $totalGroups,
         'title' => 'Possible duplicate addons',
     ]);
 }

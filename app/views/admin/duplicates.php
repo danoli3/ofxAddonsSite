@@ -4,6 +4,9 @@
 <p class="page-intro">
   Addons sharing the exact same name - usually the same addon twice: a fork Github's own metadata doesn't
   (or no longer does) mark as a fork. The oldest by creation date is assumed to be the original.
+  Each repo shown fetches its README live from Github, so this page only ever loads
+  <?= count($groups) ?> of <?= (int)$totalGroups ?> group<?= $totalGroups === 1 ? '' : 's' ?> at a time -
+  resolving (or marking "Not a duplicate") the ones below brings the next batch in on reload.
   <a href="/admin/repos">&larr; Back to admin</a>
 </p>
 
