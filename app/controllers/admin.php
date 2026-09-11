@@ -1480,6 +1480,10 @@ function ofx_admin_security(): void
         "SELECT login, admin, super_admin FROM users WHERE admin = 1 OR super_admin = 1 ORDER BY super_admin DESC, login ASC"
     )->fetchAll();
 
+    $activeBans = $pdo->query(
+        'SELECT * FROM security_bans WHERE expires_at > NOW() ORDER BY banned_at DESC'
+    )->fetchAll();
+
     ofx_render('admin/security', [
         'htaccessChecks' => $htaccessChecks,
         'envExists' => $envExists,
@@ -1492,8 +1496,36 @@ function ofx_admin_security(): void
         'displayErrorsOff' => ini_get('display_errors') === '' || ini_get('display_errors') === '0',
         'isHttps' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
         'flaggedCount' => (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE security_flagged = 1')->fetchColumn(),
+        'activeBans' => $activeBans,
         'title' => 'Security',
     ]);
+}
+
+// POST /admin/security/bans/{id}/unban - lifts one active ban early (see
+// app/security_ban.php) - e.g. a false positive (shared/office IP, a
+// legitimate script that briefly had the wrong AI_TRIAGE_API_KEY). Doesn't
+// touch security_failures, so a genuinely bad actor re-triggering the
+// same threshold shortly after being unbanned just gets banned again.
+function ofx_admin_unban_ip(string $id): void
+{
+    $admin = ofx_require_super_admin();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $stmt = $pdo->prepare('SELECT ip FROM security_bans WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $ip = $stmt->fetchColumn();
+    if (!$ip) {
+        http_response_code(404);
+        echo json_encode(['error' => 'ban not found']);
+        return;
+    }
+
+    $pdo->prepare('DELETE FROM security_bans WHERE id = ?')->execute([$id]);
+    ofx_log_admin_action($pdo, $admin['id'], 'ip_unbanned', null, (string)$ip);
+
+    echo json_encode(['ok' => true]);
 }
 
 // GET /admin/flagged - every repo ofx_detect_security_threats() has

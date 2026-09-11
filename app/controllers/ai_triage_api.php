@@ -42,6 +42,12 @@ function ofx_api_triage_require_key(): bool
     $provided = str_starts_with($auth, 'Bearer ') ? substr($auth, 7) : '';
 
     if (!$secret || !hash_equals($secret, $provided)) {
+        // only counts against the caller when a real key IS configured and
+        // they just got it wrong - a missing server-side key entirely is
+        // this site's own misconfiguration, not an attack signal
+        if ($secret) {
+            ofx_security_record_failure(ofx_db(), ofx_client_ip(), 'triage_auth', OFX_BAN_TRIAGE_AUTH_THRESHOLD);
+        }
         http_response_code(403);
         echo json_encode(['error' => 'forbidden']);
         return false;

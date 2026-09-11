@@ -37,15 +37,22 @@ if (is_file(__DIR__ . '/app/maintenance.flag')) {
 
 require_once __DIR__ . '/app/env.php';
 require_once __DIR__ . '/app/db.php';
+require_once __DIR__ . '/app/audit.php';
+require_once __DIR__ . '/app/security_ban.php';
 require_once __DIR__ . '/app/view.php';
 require_once __DIR__ . '/app/auth.php';
 require_once __DIR__ . '/app/csrf.php';
 require_once __DIR__ . '/app/sync.php';
 require_once __DIR__ . '/app/ai.php';
 require_once __DIR__ . '/app/image.php';
-require_once __DIR__ . '/app/audit.php';
 require_once __DIR__ . '/app/security_scan.php';
 require_once __DIR__ . '/app/cache.php';
+
+// Per-IP ban check (see app/security_ban.php) - right after the DB
+// connection is available, before any route-specific work runs. Exits
+// early (503) for an already-banned IP or an unambiguous scanner/probe
+// signature; a no-op for everyone else.
+ofx_security_enforce(ofx_db());
 require_once __DIR__ . '/app/controllers/categories.php';
 require_once __DIR__ . '/app/controllers/addons.php';
 require_once __DIR__ . '/app/controllers/unsorted.php';

@@ -10,6 +10,7 @@
 /** @var bool $displayErrorsOff */
 /** @var bool $isHttps */
 /** @var int $flaggedCount */
+/** @var array $activeBans */
 
 // .env world/group-readable would be perm 644/664 etc - only the owner
 // should be able to read it (600/640).
@@ -112,6 +113,11 @@ $envPermsOk = $envPerms !== null && in_array($envPerms, ['0600', '0640'], true);
       <td><span class="tag <?= $flaggedCount > 0 ? 'tag--warn' : 'tag--pass' ?>"><?= $flaggedCount > 0 ? $flaggedCount . ' flagged' : 'None flagged' ?></span></td>
       <td><a href="/admin/flagged">Review on /admin/flagged &rarr;</a></td>
     </tr>
+    <tr>
+      <td>Per-IP auto-ban (repeated auth failures, scanner/probe signatures)</td>
+      <td><span class="tag <?= count($activeBans) > 0 ? 'tag--warn' : 'tag--pass' ?>"><?= count($activeBans) > 0 ? count($activeBans) . ' active' : 'None active' ?></span></td>
+      <td>See "Banned IPs" below</td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -131,3 +137,39 @@ $envPermsOk = $envPerms !== null && in_array($envPerms, ['0600', '0640'], true);
   </tbody>
 </table>
 </div>
+
+<h2 style="margin-top:28px">Banned IPs</h2>
+<p class="page-intro">
+  Currently active bans (see app/security_ban.php) - an IP lands here either instantly, for an unambiguous
+  scanner/exploit-probe signature (a known attack tool's user-agent, or a path like /wp-admin or /.env that
+  doesn't exist on this app at all), or after repeatedly failing to authenticate against /admin or
+  /api/triage/*. Each ban is 4 hours; <strong>Unban</strong> lifts one early if it's a false positive.
+</p>
+<?php if (empty($activeBans)): ?>
+  <p class="empty-state">No IPs currently banned.</p>
+<?php else: ?>
+  <div class="table-scroll">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>IP</th>
+        <th>Reason</th>
+        <th>Banned</th>
+        <th>Expires</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($activeBans as $ban): ?>
+        <tr id="ban-row-<?= (int)$ban['id'] ?>">
+          <td><?= ofx_h($ban['ip']) ?></td>
+          <td><?= ofx_h($ban['reason']) ?></td>
+          <td><?= ofx_h(ofx_time_ago($ban['banned_at'])) ?></td>
+          <td><?= ofx_h(gmdate('M j, H:i', strtotime($ban['expires_at']))) ?> UTC</td>
+          <td><button type="button" class="admin-unban-btn" data-id="<?= (int)$ban['id'] ?>">Unban</button></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  </div>
+<?php endif; ?>

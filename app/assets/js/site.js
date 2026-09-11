@@ -929,6 +929,22 @@ $(function () {
     });
   });
 
+  $(document).on('click', '.admin-unban-btn', function () {
+    var $btn = $(this);
+    var id = $btn.data('id');
+    $btn.prop('disabled', true);
+
+    $.ajax({
+      url: '/admin/security/bans/' + id + '/unban',
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      $('#ban-row-' + id).fadeOut(200, function () { $(this).remove(); });
+    }).fail(function () {
+      $btn.prop('disabled', false).text('Failed - retry');
+    });
+  });
+
   // "Deny" on the AI triage review screen - an explicit rejection with a
   // note for the model, distinct from just leaving the row unchecked
   // (which the bulk Confirm button below just discards silently). The

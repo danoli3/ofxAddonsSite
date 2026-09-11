@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/env.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/view.php';
+require_once __DIR__ . '/security_ban.php';
 
 function ofx_session_start(): void
 {
@@ -55,6 +56,10 @@ function ofx_require_admin(): array
     ofx_send_private_no_store();
     $user = ofx_current_user();
     if (!$user || !$user['admin']) {
+        // a real admin/super-admin failing the *tier above* this one is
+        // an authorized user hitting a permissions ceiling, not a probe -
+        // only a non-admin (or no session at all) counts toward a ban
+        ofx_security_record_failure(ofx_db(), ofx_client_ip(), 'admin_probe', OFX_BAN_ADMIN_PROBE_THRESHOLD);
         http_response_code(403);
         ofx_render('errors/403', ['title' => 'Forbidden']);
         exit;
@@ -69,6 +74,9 @@ function ofx_require_super_admin(): array
 {
     ofx_send_private_no_store();
     $user = ofx_current_user();
+    if (!$user || !$user['admin']) {
+        ofx_security_record_failure(ofx_db(), ofx_client_ip(), 'admin_probe', OFX_BAN_ADMIN_PROBE_THRESHOLD);
+    }
     if (!$user || !$user['admin'] || !$user['super_admin']) {
         http_response_code(403);
         ofx_render('errors/403', ['title' => 'Forbidden']);
