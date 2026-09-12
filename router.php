@@ -6,11 +6,17 @@
 declare(strict_types=1);
 
 $path = urldecode((string)parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-$file = __DIR__ . $path;
 
-// an existing real file/directory (assets, favicon, etc) - let the
-// built-in server's default static-file handling serve it directly
-if ($path !== '/' && file_exists($file) && !is_dir($file)) {
+// realpath() both confirms the file actually exists AND resolves any
+// ".."/symlink segments - the str_starts_with check after it is what
+// actually matters: without it, a request path built with "../../"
+// could resolve to a real file outside this directory entirely (e.g.
+// something elsewhere on disk) and this router would hand it straight
+// to the built-in server's static-file responder.
+$resolved = realpath(__DIR__ . $path);
+$withinDocroot = $resolved !== false && str_starts_with($resolved, __DIR__ . DIRECTORY_SEPARATOR);
+
+if ($path !== '/' && $withinDocroot && !is_dir($resolved)) {
     return false;
 }
 
