@@ -7,7 +7,8 @@ Addon data itself is crawled separately by [danoli3/ofxAddons](https://github.co
 ## Layout
 
 ```
-index.php              front controller / router
+index.php              front controller (real webserver rewrites into this - see .htaccess)
+router.php             front controller for `php -S` (local dev / tests/smoke.sh - no rewrite rules of its own)
 .htaccess               rewrites everything without a matching file to index.php
 app/
   env.php, db.php        .env loader, PDO singleton
@@ -15,17 +16,22 @@ app/
   sync.php                applies a crawl snapshot into repos/users
   ai.php                  README fetch + OpenAI description generation
   audit.php               admin action logging
+  security_ban.php        per-IP auto-ban (scanner signatures, repeated auth failures)
+  thumbnail_scan.php      detects an unreplaced ofxAddonTemplate placeholder thumbnail
   routes.php              route table
   controllers/            categories, addons, unsorted, contributors, admin, my_addons, webhooks, session
   views/                  PHP templates
   assets/                 css/js/img - self-contained, no build step
 cron/
   sync_from_release.php   fallback: pulls the latest crawl release directly, in case a webhook call ever fails
+tests/
+  schema.sql, seed.sql    DB schema (dumped from production) + fixture data for local dev and CI
+  smoke.sh                HTTP-level smoke tests - see .github/workflows/smoke-tests.yml
 ```
 
 ## Running it
 
-Needs PHP with `pdo_mysql` and `curl`, and a MySQL database matching the `repos`/`users`/`categories`/`categorizations`/`admin_logs` tables. Config comes from a `.env` file at the repo root (never committed):
+Needs PHP with `pdo_mysql` and `curl`, and a MySQL database matching `tests/schema.sql` (the `repos`/`users`/`categories`/`categorizations`/`admin_logs`/`ai_triage_queue`/`ai_triage_denials`/`security_bans`/`security_failures` tables - that file is dumped from production, so it's the actual source of truth, not a guess). Config comes from a `.env` file at the repo root (never committed):
 
 ```
 DB_HOST=...
@@ -37,9 +43,25 @@ GITHUB_CLIENT_SECRET=...
 GITHUB_TOKEN=...           # personal access token, used for README fetches
 OPENAI_API_KEY=...         # optional - powers the "Generate description" button
 SYNC_SECRET=...            # shared secret the crawler repo's webhook authenticates with
+AI_TRIAGE_API_KEY=...      # bearer key for the local-model /api/triage/* endpoints
 ```
 
-Point a webserver at this directory (or `php -S localhost:8080 router.php` locally with a small router script that falls back to `index.php` for anything not an existing file), load the schema, and it should just run - no Composer, no build step, no asset pipeline.
+Point a webserver at this directory (or `php -S localhost:8080 router.php` locally - that router script already exists at the repo root), load `tests/schema.sql`, and it should just run - no Composer, no build step, no asset pipeline.
+
+## Tests
+
+`tests/smoke.sh` boots the app against a real (throwaway) MySQL database seeded from `tests/schema.sql` + `tests/seed.sql` and hits a curated list of routes, asserting both the status code and that each request completes within a time budget - see `.github/workflows/smoke-tests.yml`, which runs it on every push/PR. The timing check matters as much as the status code: a couple of real bugs here were pages that hung (an unbounded live-Github-call-per-repo loop) rather than ones that 500'd, which a status-code-only check wouldn't have caught.
+
+Run it locally:
+
+```
+mysql -uroot -e "CREATE DATABASE ofxaddons_test"
+mysql -uroot ofxaddons_test < tests/schema.sql
+mysql -uroot ofxaddons_test < tests/seed.sql
+# .env pointed at ofxaddons_test
+php -S 127.0.0.1:8080 router.php &
+BASE_URL=http://127.0.0.1:8080 tests/smoke.sh
+```
 
 ## Who can do what
 
