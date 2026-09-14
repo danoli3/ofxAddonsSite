@@ -59,6 +59,7 @@ function ofx_dispatch(): void
         ['GET', '#^/admin/banned$#', 'ofx_admin_banned'],
         ['GET', '#^/admin/review$#', 'ofx_admin_review_queue'],
         ['GET', '#^/admin/duplicates$#', 'ofx_admin_duplicates'],
+        ['GET', '#^/admin/duplicates/confirmed$#', 'ofx_admin_duplicates_confirmed'],
         ['POST', '#^/admin/repos/(\d+)/confirm-fork$#', 'ofx_admin_confirm_fork'],
         ['POST', '#^/admin/repos/(\d+)/unconfirm-fork$#', 'ofx_admin_unconfirm_fork'],
         ['POST', '#^/admin/repos/(\d+)/confirm-unique$#', 'ofx_admin_confirm_unique'],

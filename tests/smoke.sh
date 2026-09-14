@@ -88,6 +88,7 @@ check "/this-route-does-not-exist-xyz" 404
 check "/admin/repos" 403
 check "/admin/security" 403
 check "/admin/duplicates" 403
+check "/admin/duplicates/confirmed" 403
 check "/admin/flagged" 403
 check "/my/addons" 403
 

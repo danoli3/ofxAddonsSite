@@ -141,12 +141,12 @@ function ofx_admin_index(): void
     )->fetchColumn();
     $counts['Deleted'] = (int)$pdo->query("SELECT COUNT(*) FROM repos WHERE type = 'Deleted'")->fetchColumn();
     $reviewCount = (int)$pdo->query('SELECT COUNT(*) FROM repos WHERE ban_appealed = 1')->fetchColumn();
-    // confirmed_unique repos are excluded, same as the actual /admin/duplicates
-    // query - otherwise this badge count could show a group that page doesn't
+    // matches ofx_admin_duplicates()'s own HAVING clause exactly - otherwise
+    // this badge could count (or omit) a group that page doesn't
     $dupeCount = (int)$pdo->query("
         SELECT COUNT(*) FROM (
             SELECT 1 FROM repos WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
-            GROUP BY LOWER(name) HAVING COUNT(*) > 1
+            GROUP BY LOWER(name) HAVING COUNT(*) > 1 AND SUM(confirmed_fork_of IS NULL) > 1
         ) t
     ")->fetchColumn();
     $aiQueueCount = (int)$pdo->query('SELECT COUNT(*) FROM ai_triage_queue')->fetchColumn();
@@ -1771,21 +1771,26 @@ function ofx_admin_review_queue(): void
 // the shown 8 naturally surfaces the next ones on reload.
 const OFX_ADMIN_DUPLICATES_PAGE_SIZE = 8;
 
+// GET /admin/duplicates - name collisions still needing a decision. A
+// group drops out of here on its own once every member besides the
+// presumed original (oldest by created_at, never itself confirmed a fork
+// of anything) has been confirmed one way or the other - confirmed_fork_of
+// set, or confirmed_unique. Before this, a group stayed in this feed
+// forever even after being fully resolved, because the query only ever
+// excluded confirmed_unique repos, never confirmed_fork_of ones - see
+// ofx_admin_duplicates_confirmed() for where a resolved group actually
+// goes instead of just disappearing.
 function ofx_admin_duplicates(): void
 {
     ofx_require_admin();
     $pdo = ofx_db();
 
-    // confirmed_unique repos (an admin decided these are unrelated
-    // projects that just happen to share a name) are excluded from
-    // detection entirely - if that leaves only one repo with a given
-    // name, it's no longer a "duplicate" group at all
     $allDupeNames = $pdo->query("
         SELECT LOWER(name) AS name_key
         FROM repos
         WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
         GROUP BY LOWER(name)
-        HAVING COUNT(*) > 1
+        HAVING COUNT(*) > 1 AND SUM(confirmed_fork_of IS NULL) > 1
         ORDER BY name_key ASC
     ")->fetchAll(PDO::FETCH_COLUMN);
 
@@ -1819,7 +1824,57 @@ function ofx_admin_duplicates(): void
     ofx_render('admin/duplicates', [
         'groups' => $groups,
         'totalGroups' => $totalGroups,
+        'activeTab' => 'pending',
         'title' => 'Possible duplicate addons',
+    ]);
+}
+
+// GET /admin/duplicates/confirmed - the other half of the same feed: every
+// name-collision group that has at least one confirmed_fork_of decision in
+// it, so a confirmed dupe has somewhere to actually be (with its Undo
+// button still reachable) once ofx_admin_duplicates() above stops showing
+// it. No live README fetch here - the decision's already made, this is
+// just an audit trail, and there's no reason to pay Github-call cost for it.
+function ofx_admin_duplicates_confirmed(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $allDupeNames = $pdo->query("
+        SELECT LOWER(name) AS name_key
+        FROM repos
+        WHERE type = 'Addon' AND hidden_by_owner = 0
+        GROUP BY LOWER(name)
+        HAVING SUM(confirmed_fork_of IS NOT NULL) > 0
+        ORDER BY name_key ASC
+    ")->fetchAll(PDO::FETCH_COLUMN);
+
+    $totalGroups = count($allDupeNames);
+    $dupeNames = array_slice($allDupeNames, 0, OFX_ADMIN_DUPLICATES_PAGE_SIZE);
+
+    $groups = [];
+    if (!empty($dupeNames)) {
+        $placeholders = implode(',', array_fill(0, count($dupeNames), '?'));
+        $stmt = $pdo->prepare("
+            SELECT r.*, u.login AS user_login
+            FROM repos r
+            LEFT JOIN users u ON u.id = r.user_id
+            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
+              AND LOWER(r.name) IN ({$placeholders})
+            ORDER BY LOWER(r.name) ASC, r.created_at ASC
+        ");
+        $stmt->execute($dupeNames);
+        foreach ($stmt->fetchAll() as $repo) {
+            $repo['readme_tail'] = null;
+            $groups[strtolower($repo['name'])][] = $repo;
+        }
+    }
+
+    ofx_render('admin/duplicates', [
+        'groups' => $groups,
+        'totalGroups' => $totalGroups,
+        'activeTab' => 'confirmed',
+        'title' => 'Confirmed duplicate addons',
     ]);
 }
 
