@@ -123,8 +123,8 @@ $(function () {
   var $browseTiles = $('#browse-tiles');
   if ($browseTiles.length) {
     var browseAll = [];
-    var browseView = 'tiles';
-    try { browseView = localStorage.getItem('ofxBrowseView') || 'tiles'; } catch (e) {}
+    var browseView = 'table';
+    try { browseView = localStorage.getItem('ofxBrowseView') || 'table'; } catch (e) {}
     var browseDebounce = null;
 
     function browseEsc(s) {
