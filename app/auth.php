@@ -97,8 +97,18 @@ function ofx_require_user(): array
     return $user;
 }
 
+// A CLI context (cron/sync_from_release.php, or any one-off admin
+// script) has no real HTTP request to derive this from - $_SERVER['HTTP_HOST']
+// is simply unset there. Silently building "http://" (empty host) into
+// every URL this produces is exactly what corrupted every <loc> in
+// sitemap.xml/json the one time this got called from a bare CLI script -
+// falling back to the real production domain instead means a CLI-invoked
+// cache regeneration produces the same URLs a real request would.
 function ofx_base_url(): string
 {
+    if (empty($_SERVER['HTTP_HOST'])) {
+        return 'https://ofxaddons.danoli3.com';
+    }
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     return $scheme . '://' . $_SERVER['HTTP_HOST'];
 }

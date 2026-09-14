@@ -80,6 +80,18 @@ check "/addon-repos.json" 200
 check "/sitemap.xml" 200
 check "/sitemap.json" 200
 
+# ofx_base_url() has no real request to derive a host from when it's ever
+# called from a CLI context (cron/sync_from_release.php, or any one-off
+# admin script) - it used to silently build "http://" with an empty host
+# into every <loc>, corrupting the whole sitemap the one time this path
+# ran outside a real HTTP request. Guards against that regressing.
+if curl -s --max-time "$MAX_TIME" "${BASE_URL}/sitemap.xml" | grep -qE 'loc>https?:///'; then
+  echo "FAIL  /sitemap.xml contains a malformed <loc> (empty host - see ofx_base_url())"
+  FAILED=1
+else
+  echo "pass  /sitemap.xml <loc> entries have a real host"
+fi
+
 # --- unknown route ---
 check "/this-route-does-not-exist-xyz" 404
 
