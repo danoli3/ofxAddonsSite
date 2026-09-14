@@ -8,6 +8,21 @@ declare(strict_types=1);
 // data; those compute a real MAX(pushed_at) instead, below.
 const OFX_SITE_LAUNCHED_AT = '2026-09-02';
 
+// An addon's lastmod floor is when it was added to ofxAddons
+// (created_at), not pushed_at's raw value or the site's own launch date -
+// a repo added years after it was last pushed on Github (which is most of
+// them) previously showed that old pushed_at as-is, which read as "stuck
+// on its creation date" even on an addon that got re-categorized or
+// otherwise touched here more recently. This only moves lastmod forward
+// of that floor when pushed_at is genuinely later than it.
+function ofx_sitemap_addon_lastmod(?string $pushedAt, ?string $createdAt): string
+{
+    $baselineTs = strtotime($createdAt ?: OFX_SITE_LAUNCHED_AT);
+    $pushedTs = $pushedAt ? strtotime($pushedAt) : false;
+    $ts = ($pushedTs !== false && $pushedTs > $baselineTs) ? $pushedTs : $baselineTs;
+    return gmdate('Y-m-d', $ts);
+}
+
 // Shared by ofx_sitemap_xml() and ofx_sitemap_json() so the two formats
 // can never drift apart - every entry is ['loc' => full URL, 'lastmod'
 // => 'Y-m-d']. A listing page's lastmod is the most recent pushed_at
@@ -20,7 +35,7 @@ function ofx_sitemap_urls(): array
     $urls = [];
 
     $addons = $pdo->query("
-        SELECT full_name, pushed_at FROM repos
+        SELECT full_name, pushed_at, created_at FROM repos
         WHERE type = 'Addon' AND hidden_by_owner = 0 AND fork_hidden_by_admin = 0
     ")->fetchAll();
 
@@ -80,7 +95,7 @@ function ofx_sitemap_urls(): array
     foreach ($addons as $a) {
         $urls[] = [
             'loc' => $base . ofx_addon_url($a['full_name']),
-            'lastmod' => $a['pushed_at'] ? gmdate('Y-m-d', strtotime($a['pushed_at'])) : gmdate('Y-m-d', strtotime(OFX_SITE_LAUNCHED_AT)),
+            'lastmod' => ofx_sitemap_addon_lastmod($a['pushed_at'], $a['created_at']),
         ];
     }
 

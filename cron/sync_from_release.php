@@ -27,12 +27,21 @@ fwrite(STDOUT, sprintf(
 // backlog - bounded so this can't turn an unattended daily cron run into
 // the same kind of hang ofx_admin_duplicates() had before it was capped.
 $thumbScan = ofx_scan_generic_thumbnails(ofx_db());
-if ($thumbScan['generic_found'] > 0) {
-    ofx_regenerate_public_caches();
-}
 fwrite(STDOUT, sprintf(
     "Thumbnail scan: %d checked, %d generic found, %d left to check\n",
     $thumbScan['checked'],
     $thumbScan['generic_found'],
     $thumbScan['remaining']
 ));
+
+// Unconditional - matches ofx_webhook_sync() exactly. This used to only
+// regenerate when the thumbnail scan above happened to flag something,
+// which meant sitemap.xml/json, categories-addons.json, addons-*.json
+// etc. only picked up a day's real pushed_at/type/category changes on
+// days that ALSO happened to find a generic thumbnail - everything else
+// (lastmod included) kept serving whatever the last regeneration had,
+// however stale. This is the only path that runs daily regardless of
+// whether the crawler's own webhook call ever reaches this site, so it
+// can't be conditional on something unrelated to whether a real sync
+// actually happened.
+ofx_regenerate_public_caches();
