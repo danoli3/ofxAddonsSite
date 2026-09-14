@@ -1771,6 +1771,88 @@ function ofx_admin_review_queue(): void
 // the shown 8 naturally surfaces the next ones on reload.
 const OFX_ADMIN_DUPLICATES_PAGE_SIZE = 8;
 
+// Shared by ofx_admin_duplicates() and ofx_admin_duplicates_confirmed() -
+// $mode is 'pending' (still needs a decision) or 'confirmed' (audit
+// trail). $search matches against the addon name (case-insensitive
+// substring). Paginates PAST the first OFX_ADMIN_DUPLICATES_PAGE_SIZE
+// groups via $page, same as the admin repo table's own infinite scroll -
+// each page is still capped to 8 groups, so scrolling further just means
+// more capped requests, never one uncapped one (that cap is what
+// ofx_admin_duplicates() exists to protect in the first place - see its
+// own doc comment).
+function ofx_admin_duplicates_data(string $mode, string $search, int $page): array
+{
+    $pdo = ofx_db();
+    $isConfirmed = $mode === 'confirmed';
+
+    $params = [];
+    $nameFilter = '';
+    if ($search !== '') {
+        $nameFilter = 'AND name LIKE ? ';
+        $params[] = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
+    }
+
+    if ($isConfirmed) {
+        $sql = "
+            SELECT LOWER(name) AS name_key
+            FROM repos
+            WHERE type = 'Addon' AND hidden_by_owner = 0 {$nameFilter}
+            GROUP BY LOWER(name)
+            HAVING SUM(confirmed_fork_of IS NOT NULL) > 0
+            ORDER BY name_key ASC
+        ";
+    } else {
+        $sql = "
+            SELECT LOWER(name) AS name_key
+            FROM repos
+            WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0 {$nameFilter}
+            GROUP BY LOWER(name)
+            HAVING COUNT(*) > 1 AND SUM(confirmed_fork_of IS NULL) > 1
+            ORDER BY name_key ASC
+        ";
+    }
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $allDupeNames = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $totalGroups = count($allDupeNames);
+    $offset = ($page - 1) * OFX_ADMIN_DUPLICATES_PAGE_SIZE;
+    $dupeNames = array_slice($allDupeNames, $offset, OFX_ADMIN_DUPLICATES_PAGE_SIZE);
+    $hasMore = ($offset + OFX_ADMIN_DUPLICATES_PAGE_SIZE) < $totalGroups;
+
+    $groups = [];
+    if (!empty($dupeNames)) {
+        $placeholders = implode(',', array_fill(0, count($dupeNames), '?'));
+        $memberFilter = $isConfirmed ? '' : 'AND r.confirmed_unique = 0 ';
+        $stmt = $pdo->prepare("
+            SELECT r.*, u.login AS user_login
+            FROM repos r
+            LEFT JOIN users u ON u.id = r.user_id
+            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 {$memberFilter}
+              AND LOWER(r.name) IN ({$placeholders})
+            ORDER BY LOWER(r.name) ASC, r.created_at ASC
+        ");
+        $stmt->execute($dupeNames);
+        foreach ($stmt->fetchAll() as $repo) {
+            if ($isConfirmed) {
+                // decision's already made - this is an audit trail, no
+                // reason to pay Github-call cost for it
+                $repo['readme_tail'] = null;
+            } else {
+                // last 200 chars of the actual README, live-fetched -
+                // often has an install/usage note or a signature ("by
+                // so-and-so") that's a faster tell for "same addon" vs
+                // "coincidence" than eyeballing the description alone.
+                $readme = ofx_fetch_readme($repo['full_name']);
+                $repo['readme_tail'] = $readme ? trim(mb_substr($readme, -200)) : null;
+            }
+            $groups[strtolower($repo['name'])][] = $repo;
+        }
+    }
+
+    return [$groups, $totalGroups, $hasMore];
+}
+
 // GET /admin/duplicates - name collisions still needing a decision. A
 // group drops out of here on its own once every member besides the
 // presumed original (oldest by created_at, never itself confirmed a fork
@@ -1783,47 +1865,22 @@ const OFX_ADMIN_DUPLICATES_PAGE_SIZE = 8;
 function ofx_admin_duplicates(): void
 {
     ofx_require_admin();
-    $pdo = ofx_db();
+    $search = trim($_GET['q'] ?? '');
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    [$groups, $totalGroups, $hasMore] = ofx_admin_duplicates_data('pending', $search, $page);
 
-    $allDupeNames = $pdo->query("
-        SELECT LOWER(name) AS name_key
-        FROM repos
-        WHERE type = 'Addon' AND hidden_by_owner = 0 AND confirmed_unique = 0
-        GROUP BY LOWER(name)
-        HAVING COUNT(*) > 1 AND SUM(confirmed_fork_of IS NULL) > 1
-        ORDER BY name_key ASC
-    ")->fetchAll(PDO::FETCH_COLUMN);
-
-    $totalGroups = count($allDupeNames);
-    $dupeNames = array_slice($allDupeNames, 0, OFX_ADMIN_DUPLICATES_PAGE_SIZE);
-
-    $groups = [];
-    if (!empty($dupeNames)) {
-        $placeholders = implode(',', array_fill(0, count($dupeNames), '?'));
-        $stmt = $pdo->prepare("
-            SELECT r.*, u.login AS user_login
-            FROM repos r
-            LEFT JOIN users u ON u.id = r.user_id
-            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0 AND r.confirmed_unique = 0
-              AND LOWER(r.name) IN ({$placeholders})
-            ORDER BY LOWER(r.name) ASC, r.created_at ASC
-        ");
-        $stmt->execute($dupeNames);
-        foreach ($stmt->fetchAll() as $repo) {
-            // last 200 chars of the actual README, live-fetched - often
-            // has an install/usage note or a signature ("by so-and-so")
-            // that's a faster tell for "same addon" vs "coincidence"
-            // than eyeballing the description alone. Duplicate groups
-            // are small in practice, so this stays a handful of calls.
-            $readme = ofx_fetch_readme($repo['full_name']);
-            $repo['readme_tail'] = $readme ? trim(mb_substr($readme, -200)) : null;
-            $groups[strtolower($repo['name'])][] = $repo;
-        }
+    if (ofx_is_ajax()) {
+        header('X-Has-More: ' . ($hasMore ? '1' : '0'));
+        ofx_admin_dupe_groups_partial($groups);
+        return;
     }
 
     ofx_render('admin/duplicates', [
         'groups' => $groups,
         'totalGroups' => $totalGroups,
+        'hasMore' => $hasMore,
+        'search' => $search,
+        'nextUrl' => ofx_next_page_url(2),
         'activeTab' => 'pending',
         'title' => 'Possible duplicate addons',
     ]);
@@ -1838,44 +1895,30 @@ function ofx_admin_duplicates(): void
 function ofx_admin_duplicates_confirmed(): void
 {
     ofx_require_admin();
-    $pdo = ofx_db();
+    $search = trim($_GET['q'] ?? '');
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    [$groups, $totalGroups, $hasMore] = ofx_admin_duplicates_data('confirmed', $search, $page);
 
-    $allDupeNames = $pdo->query("
-        SELECT LOWER(name) AS name_key
-        FROM repos
-        WHERE type = 'Addon' AND hidden_by_owner = 0
-        GROUP BY LOWER(name)
-        HAVING SUM(confirmed_fork_of IS NOT NULL) > 0
-        ORDER BY name_key ASC
-    ")->fetchAll(PDO::FETCH_COLUMN);
-
-    $totalGroups = count($allDupeNames);
-    $dupeNames = array_slice($allDupeNames, 0, OFX_ADMIN_DUPLICATES_PAGE_SIZE);
-
-    $groups = [];
-    if (!empty($dupeNames)) {
-        $placeholders = implode(',', array_fill(0, count($dupeNames), '?'));
-        $stmt = $pdo->prepare("
-            SELECT r.*, u.login AS user_login
-            FROM repos r
-            LEFT JOIN users u ON u.id = r.user_id
-            WHERE r.type = 'Addon' AND r.hidden_by_owner = 0
-              AND LOWER(r.name) IN ({$placeholders})
-            ORDER BY LOWER(r.name) ASC, r.created_at ASC
-        ");
-        $stmt->execute($dupeNames);
-        foreach ($stmt->fetchAll() as $repo) {
-            $repo['readme_tail'] = null;
-            $groups[strtolower($repo['name'])][] = $repo;
-        }
+    if (ofx_is_ajax()) {
+        header('X-Has-More: ' . ($hasMore ? '1' : '0'));
+        ofx_admin_dupe_groups_partial($groups);
+        return;
     }
 
     ofx_render('admin/duplicates', [
         'groups' => $groups,
         'totalGroups' => $totalGroups,
+        'hasMore' => $hasMore,
+        'search' => $search,
+        'nextUrl' => ofx_next_page_url(2),
         'activeTab' => 'confirmed',
         'title' => 'Confirmed duplicate addons',
     ]);
+}
+
+function ofx_admin_dupe_groups_partial(array $groups): void
+{
+    include __DIR__ . '/../views/partials/dupe-groups.php';
 }
 
 // POST /admin/repos/{id}/confirm-fork - body: of=<parent repo id>,

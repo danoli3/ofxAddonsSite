@@ -1196,4 +1196,63 @@ $(function () {
       }, 350);
     });
   }
+
+  // /admin/duplicates and /admin/duplicates/confirmed - same infinite-
+  // scroll-plus-search pattern as #admin-tbody above, just simpler (no
+  // AJAX-intercepted tab switching - Needs review/Confirmed stay plain
+  // links). Each page here is still capped to
+  // OFX_ADMIN_DUPLICATES_PAGE_SIZE server-side regardless of how far
+  // scrolled, same reason that cap exists at all - see
+  // ofx_admin_duplicates()'s own doc comment.
+  var $dupeGroups = $('#dupe-groups');
+  if ($dupeGroups.length) {
+    var $dupeSentinel = $('#dupe-sentinel');
+    var $dupeLoading = $dupeSentinel.next('.grid-loading');
+    var $dupeEnd = $dupeLoading.next('.grid-end');
+    var dupeBusy = false;
+
+    function loadDupeGroups(url, replace) {
+      if (dupeBusy) return;
+      dupeBusy = true;
+      $dupeLoading.prop('hidden', false);
+      if (replace) $dupeEnd.prop('hidden', true);
+
+      $.ajax({ url: url, method: 'GET' }).done(function (html, status, xhr) {
+        if (replace) $dupeGroups.empty();
+        if ($.trim(html) === '' && replace) {
+          $dupeGroups.html('<p class="empty-state">No matches.</p>');
+        } else {
+          $dupeGroups.append(html);
+        }
+        var hasMore = xhr.getResponseHeader('X-Has-More') === '1';
+        $dupeGroups.data('has-more', hasMore ? '1' : '0');
+        $dupeGroups.data('next-url', incrementPage(url));
+        $dupeLoading.prop('hidden', true);
+        $dupeEnd.prop('hidden', !!hasMore);
+      }).fail(function () {
+        $dupeLoading.prop('hidden', true);
+      }).always(function () {
+        dupeBusy = false;
+      });
+    }
+
+    new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting && $dupeGroups.data('has-more') == 1) {
+        loadDupeGroups($dupeGroups.data('next-url'), false);
+      }
+    }, { rootMargin: '400px' }).observe($dupeSentinel[0]);
+
+    var dupeSearchTimer;
+    $('#dupe-search').on('input', function () {
+      var $input = $(this);
+      clearTimeout(dupeSearchTimer);
+      dupeSearchTimer = setTimeout(function () {
+        var q = $input.val().trim();
+        var url = window.location.pathname + (q ? '?q=' + encodeURIComponent(q) : '');
+        if (window.history && history.pushState) history.pushState(null, '', url);
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        loadDupeGroups(url + sep + 'page=1', true);
+      }, 350);
+    });
+  }
 });
