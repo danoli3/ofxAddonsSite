@@ -7,10 +7,10 @@
 </div>
 
 <div class="sort-tabs">
-  <a href="/addons" class="<?= $sort === null ? 'active' : '' ?>">Name</a>
+  <a href="/addons?sort=popular" class="<?= $sort === null || $sort === 'popular' ? 'active' : '' ?>">Popular</a>
+  <a href="/addons?sort=name" class="<?= $sort === 'name' ? 'active' : '' ?>">Name</a>
   <a href="/addons?sort=freshest" class="<?= $sort === 'freshest' ? 'active' : '' ?>">Freshest</a>
   <a href="/addons?sort=newest" class="<?= $sort === 'newest' ? 'active' : '' ?>">Newest</a>
-  <a href="/addons?sort=popular" class="<?= $sort === 'popular' ? 'active' : '' ?>">Popular</a>
 </div>
 
 <div id="search-results" class="addon-grid" hidden></div>

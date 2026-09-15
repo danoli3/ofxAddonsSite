@@ -99,6 +99,9 @@ function ofx_dispatch(): void
         ['POST', '#^/my/addons/(\d+)$#', 'ofx_my_addons_update'],
         ['POST', '#^/my/addons/(\d+)/generate-description$#', 'ofx_my_addons_generate_description'],
         ['POST', '#^/my/addons/(\d+)/appeal-ban$#', 'ofx_my_addons_appeal_ban'],
+        ['POST', '#^/my/addons/(\d+)/mark-example$#', 'ofx_my_addons_mark_example'],
+        ['POST', '#^/my/addons/(\d+)/self-ban$#', 'ofx_my_addons_self_ban'],
+        ['POST', '#^/my/addons/(\d+)/undo-self-type$#', 'ofx_my_addons_undo_self_type'],
     ];
 
     if ($isHead) {

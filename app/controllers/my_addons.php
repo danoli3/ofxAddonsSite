@@ -233,11 +233,100 @@ function ofx_my_addons_generate_description(string $id): void
 
 function ofx_my_addons_owned_repo(PDO $pdo, string $repoId, int $userId): ?array
 {
-    $stmt = $pdo->prepare('SELECT id, full_name, name, user_id, type FROM repos WHERE id = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT id, full_name, name, user_id, type, type_set_by_owner FROM repos WHERE id = ? LIMIT 1');
     $stmt->execute([$repoId]);
     $repo = $stmt->fetch();
     if (!$repo || (int)$repo['user_id'] !== $userId) {
         return null;
     }
     return $repo;
+}
+
+// Types an owner may put their own repo into directly, with no admin
+// review - both are the owner's own honest call about their own repo
+// (this isn't really a reusable addon; or please pull this from public
+// listings), not a moderation decision, so they don't need to wait on
+// Ask for Admin Review for either one. Only reachable from a
+// currently-unclassified state (Addon/Unsorted) - an admin's own
+// classification (a real ban, auto-detected Spam) still needs the
+// existing appeal flow, not a quiet owner override.
+const OFX_OWNER_SETTABLE_TYPES = ['Example', 'NonAddon'];
+
+// POST /my/addons/{id}/mark-example - "this is an example/ofApp I wrote,
+// not really a reusable addon" - see OFX_OWNER_SETTABLE_TYPES above.
+function ofx_my_addons_mark_example(string $id): void
+{
+    ofx_my_addons_set_self_type($id, 'Example');
+}
+
+// POST /my/addons/{id}/self-ban - the inverse of Ask for Admin Review:
+// instead of asking an admin to look at it, the owner just pulls their
+// own repo from public listings themselves. See OFX_OWNER_SETTABLE_TYPES.
+function ofx_my_addons_self_ban(string $id): void
+{
+    ofx_my_addons_set_self_type($id, 'NonAddon');
+}
+
+function ofx_my_addons_set_self_type(string $id, string $type): void
+{
+    $user = ofx_require_user();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $repo = ofx_my_addons_owned_repo($pdo, $id, (int)$user['id']);
+    if (!$repo) {
+        http_response_code(403);
+        echo json_encode(['status' => 403, 'error' => ['not your addon']]);
+        return;
+    }
+    if (!in_array($repo['type'], ['Addon', 'Unsorted'], true)) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ['this addon is already classified - use Ask for Admin Review instead']]);
+        return;
+    }
+
+    $pdo->prepare(
+        'UPDATE repos SET type = ?, type_set_by_owner = 1, updated_at = NOW() WHERE id = ?'
+    )->execute([$type, $id]);
+    ofx_log_admin_action($pdo, $user['id'], 'owner_self_type', (int)$id, $type);
+
+    echo json_encode(['status' => 200]);
+}
+
+// POST /my/addons/{id}/undo-self-type - inverse of mark-example/self-ban.
+// Only works on a type the owner set themselves (type_set_by_owner) - an
+// admin's own classification isn't something this quietly reverses; that
+// still goes through Ask for Admin Review. Lands back on Addon if the
+// repo still has categories assigned, Unsorted otherwise - the same rule
+// ofx_my_addons_update() uses for a fresh/reset repo.
+function ofx_my_addons_undo_self_type(string $id): void
+{
+    $user = ofx_require_user();
+    header('Content-Type: application/json');
+    ofx_require_csrf();
+
+    $pdo = ofx_db();
+    $repo = ofx_my_addons_owned_repo($pdo, $id, (int)$user['id']);
+    if (!$repo) {
+        http_response_code(403);
+        echo json_encode(['status' => 403, 'error' => ['not your addon']]);
+        return;
+    }
+    if (empty($repo['type_set_by_owner']) || !in_array($repo['type'], OFX_OWNER_SETTABLE_TYPES, true)) {
+        http_response_code(400);
+        echo json_encode(['status' => 400, 'error' => ['nothing to undo']]);
+        return;
+    }
+
+    $countStmt = $pdo->prepare('SELECT COUNT(*) FROM categorizations WHERE repo_id = ?');
+    $countStmt->execute([$id]);
+    $type = ((int)$countStmt->fetchColumn() > 0) ? 'Addon' : 'Unsorted';
+
+    $pdo->prepare(
+        'UPDATE repos SET type = ?, type_set_by_owner = 0, updated_at = NOW() WHERE id = ?'
+    )->execute([$type, $id]);
+    ofx_log_admin_action($pdo, $user['id'], 'owner_self_type_undo', (int)$id, $type);
+
+    echo json_encode(['status' => 200]);
 }

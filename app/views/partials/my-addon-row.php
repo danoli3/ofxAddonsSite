@@ -9,14 +9,25 @@
     <a href="https://github.com/<?= ofx_h($repo['full_name']) ?>" target="_blank" rel="noopener">
       <?= ofx_h($repo['name']) ?>
     </a>
-    <div class="admin-row__owner"><?= ofx_h($repo['type']) ?></div>
+    <div class="admin-row__owner"><?= ofx_h(ofx_repo_type_label($repo['type'])) ?></div>
     <?php if ($repo['type'] === 'Addon'): ?>
       <a class="addon-card__more" href="<?= ofx_h(ofx_addon_url($repo['full_name'])) ?>">More info &rarr;</a>
     <?php endif; ?>
     <?php if (!empty($repo['hidden_by_owner'])): ?>
       <span class="tag tag--archived">Hidden from public</span>
     <?php endif; ?>
-    <?php if (in_array($repo['type'], OFX_REVIEWABLE_TYPES, true)): ?>
+    <?php if (!empty($repo['type_set_by_owner']) && in_array($repo['type'], OFX_OWNER_SETTABLE_TYPES, true)): ?>
+      <span class="tag tag--archived">
+        <?= $repo['type'] === 'Example' ? 'Marked as example / ofApp' : 'Self-banned' ?>
+      </span>
+      <button type="button" class="my-addon-row__undo-self-type" data-repo-id="<?= (int)$repo['id'] ?>">Undo</button>
+    <?php elseif (in_array($repo['type'], ['Addon', 'Unsorted'], true)): ?>
+      <button type="button" class="my-addon-row__mark-example" data-repo-id="<?= (int)$repo['id'] ?>"
+              title="This is an example / ofApp, not a reusable addon">Mark as Example</button>
+      <button type="button" class="my-addon-row__self-ban" data-repo-id="<?= (int)$repo['id'] ?>"
+              title="Pull this from public listings yourself">Ban</button>
+    <?php endif; ?>
+    <?php if (in_array($repo['type'], OFX_REVIEWABLE_TYPES, true) && empty($repo['type_set_by_owner'])): ?>
       <?php if (!empty($repo['ban_appealed'])): ?>
         <span class="tag tag--curated">Review requested</span>
       <?php else: ?>

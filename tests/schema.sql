@@ -111,6 +111,7 @@ CREATE TABLE repos (
   ai_triage_priority_at DATETIME DEFAULT NULL,
   thumbnail_is_generic TINYINT(1) NOT NULL DEFAULT 0,
   thumbnail_checked_at DATETIME DEFAULT NULL,
+  type_set_by_owner TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   KEY index_repos_full_name (full_name(191)),
   KEY repos_user_id_fk (user_id),

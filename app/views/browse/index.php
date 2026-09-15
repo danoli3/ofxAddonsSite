@@ -14,8 +14,8 @@
   <div class="browse-toolbar__group">
     <label for="browse-sort">Sort</label>
     <select id="browse-sort">
+      <option value="stars-desc" selected>Popularity (most stars)</option>
       <option value="name-asc">Name (A&ndash;Z)</option>
-      <option value="stars-desc">Stars (most)</option>
       <option value="forks-desc">Forks (most)</option>
       <option value="pushed_at-desc">Updated (newest)</option>
       <option value="created_at-desc">Created (newest)</option>

@@ -970,6 +970,35 @@ a.addon-card__desc:hover { color: var(--text); }
   font-size: .85rem;
 }
 .admin-row__ban:hover, .admin-row__unban:hover { background: rgba(255, 107, 107, .1); }
+.my-addon-row__mark-example, .my-addon-row__undo-self-type {
+  background: transparent;
+  color: var(--accent-1);
+  border: 1px solid rgba(124, 92, 255, .4);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .78rem;
+  margin-top: 6px;
+  margin-right: 6px;
+}
+.my-addon-row__mark-example:hover, .my-addon-row__undo-self-type:hover { background: rgba(124, 92, 255, .1); }
+.my-addon-row__self-ban {
+  background: transparent;
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, .4);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .78rem;
+  margin-top: 6px;
+}
+.my-addon-row__self-ban:hover { background: rgba(255, 107, 107, .1); }
+.my-addon-row__mark-example:disabled, .my-addon-row__self-ban:disabled, .my-addon-row__undo-self-type:disabled {
+  opacity: .5;
+  cursor: default;
+}
 .admin-row__triage-flag {
   background: transparent;
   color: var(--text-muted);

@@ -279,7 +279,10 @@ function ofx_browse_index(): void
 
 function ofx_render_addons_sorted(?string $sort): void
 {
-    $sortKey = in_array($sort, ['freshest', 'popular', 'newest'], true) ? $sort : 'name';
+    // No ?sort= at all (a bare /addons visit) defaults to popular, same as
+    // Browse's own default - ?sort=name is still how the Name tab links to
+    // itself explicitly.
+    $sortKey = in_array($sort, ['freshest', 'popular', 'newest', 'name'], true) ? $sort : 'popular';
 
     $page = max(1, (int)($_GET['page'] ?? 1));
     $offset = ($page - 1) * OFX_PAGE_SIZE;

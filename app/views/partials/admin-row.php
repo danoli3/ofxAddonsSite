@@ -78,7 +78,7 @@
     <select class="admin-row__type">
       <?php foreach (OFX_REPO_TYPES as $type): ?>
         <option value="<?= ofx_h($type) ?>" <?= $repo['type'] === $type ? 'selected' : '' ?>>
-          <?= $type === 'NonAddon' ? 'Banned' : ofx_h($type) ?>
+          <?= ofx_h(ofx_repo_type_label($type)) ?>
         </option>
       <?php endforeach; ?>
     </select>

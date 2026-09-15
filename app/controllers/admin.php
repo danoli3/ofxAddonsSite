@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Incomplete', 'NonAddon', 'Spam', 'Unsorted'];
-const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam', 'Addon'];
+const OFX_REPO_TYPES = ['Addon', 'Deleted', 'Empty', 'Example', 'Incomplete', 'NonAddon', 'Spam', 'Unsorted'];
+const OFX_ADMIN_TYPES = ['Unsorted', 'Incomplete', 'Spam', 'Addon', 'Example'];
 // Same definition /admin/banned uses - shared here so /my/addons can
 // group an owner's own banned repos the same way.
 const OFX_BANNED_TYPES = ['NonAddon', 'Deleted'];
@@ -31,6 +31,19 @@ const OFX_ADMIN_PAGE_SIZE = 25;
 function ofx_normalize_repo_type(string $type): string
 {
     return $type === 'Banned' ? 'NonAddon' : $type;
+}
+
+// Human-facing label for a repos.type value - shared by the admin Type
+// dropdown (admin-row.php), the AI triage API's type list, and the
+// owner-facing label on /my/addons (my-addon-row.php), so all three stay
+// in sync rather than each hardcoding the NonAddon->"Banned" mapping.
+function ofx_repo_type_label(string $type): string
+{
+    static $labels = [
+        'NonAddon' => 'Banned',
+        'Example' => 'ofApp / Example',
+    ];
+    return $labels[$type] ?? $type;
 }
 
 function ofx_admin_index(): void
@@ -225,18 +238,21 @@ function ofx_admin_update(string $id): void
     try {
 
         // moving off NonAddon (unbanning) clears any pending appeal too -
-        // it's resolved either way, and a future re-ban should start fresh
+        // it's resolved either way, and a future re-ban should start fresh.
+        // type_set_by_owner always clears here too - an admin's own call on
+        // the type now supersedes whatever the owner self-flagged it as (see
+        // ofx_my_addons_set_self_type()/_undo_self_type() for that flag).
         if (array_key_exists('description', $_POST)) {
             $generated = !empty($_POST['description_generated']) ? 1 : 0;
             $pdo->prepare(
                 "UPDATE repos SET type = ?, description = ?, description_curated = 1,
                  description_generated = ?, ban_appealed = IF(? != 'NonAddon', 0, ban_appealed),
-                 updated_at = NOW() WHERE id = ?"
+                 type_set_by_owner = 0, updated_at = NOW() WHERE id = ?"
             )->execute([$type, $_POST['description'], $generated, $type, $id]);
         } else {
             $pdo->prepare(
                 "UPDATE repos SET type = ?, ban_appealed = IF(? != 'NonAddon', 0, ban_appealed),
-                 updated_at = NOW() WHERE id = ?"
+                 type_set_by_owner = 0, updated_at = NOW() WHERE id = ?"
             )->execute([$type, $type, $id]);
         }
         $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$id]);
@@ -1162,7 +1178,7 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
             }
 
             $pdo->prepare(
-                'UPDATE repos SET type = ?, categories_ai_curated = ?, updated_at = NOW() WHERE id = ?'
+                'UPDATE repos SET type = ?, categories_ai_curated = ?, type_set_by_owner = 0, updated_at = NOW() WHERE id = ?'
             )->execute([$type !== '' ? $type : 'Addon', $aiCurated ? 1 : 0, $repoId]);
             $pdo->prepare('DELETE FROM categorizations WHERE repo_id = ?')->execute([$repoId]);
             $insert = $pdo->prepare(
@@ -1172,7 +1188,7 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
                 $insert->execute([$categoryId, $repoId]);
             }
         } elseif ($type !== '') {
-            $pdo->prepare('UPDATE repos SET type = ?, updated_at = NOW() WHERE id = ?')->execute([$type, $repoId]);
+            $pdo->prepare('UPDATE repos SET type = ?, type_set_by_owner = 0, updated_at = NOW() WHERE id = ?')->execute([$type, $repoId]);
         }
 
         if ($ofVersion !== '' && in_array($ofVersion, $validVersions, true)) {
@@ -1617,7 +1633,7 @@ function ofx_admin_unflag_and_ban(string $id): void
 
     $pdo = ofx_db();
     $pdo->prepare(
-        "UPDATE repos SET type = 'NonAddon', security_flagged = 0, security_flag_reason = NULL, updated_at = NOW() WHERE id = ?"
+        "UPDATE repos SET type = 'NonAddon', security_flagged = 0, security_flag_reason = NULL, type_set_by_owner = 0, updated_at = NOW() WHERE id = ?"
     )->execute([$id]);
     ofx_log_admin_action($pdo, $admin['id'] ?? null, 'security_unflag_and_ban', (int)$id);
 

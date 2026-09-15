@@ -699,6 +699,47 @@ $(function () {
     });
   });
 
+  // Self-service reclassification on /my/addons - mark-example and
+  // self-ban both only apply from Addon/Unsorted (server enforces this
+  // too), and undo-self-type only reverses a type the owner set this way
+  // themselves - see OFX_OWNER_SETTABLE_TYPES in my_addons.php. All three
+  // just reload on success since the row's whole action area changes
+  // shape (buttons swap for a tag + Undo).
+  function ofxMyAddonSelfAction($btn, action, confirmMsg) {
+    var repoId = $btn.data('repo-id');
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    $btn.prop('disabled', true);
+    $.ajax({
+      url: '/my/addons/' + repoId + '/' + action,
+      method: 'POST',
+      dataType: 'json'
+    }).done(function () {
+      window.location.reload();
+    }).fail(function (xhr) {
+      var msg = 'Failed';
+      try {
+        var body = JSON.parse(xhr.responseText);
+        if (body.error) msg = [].concat(body.error).join(', ');
+      } catch (e) {}
+      window.alert(msg);
+      $btn.prop('disabled', false);
+    });
+  }
+
+  $(document).on('click', '.my-addon-row__mark-example', function () {
+    ofxMyAddonSelfAction($(this), 'mark-example',
+      'Mark this as an example / ofApp instead of a reusable addon? You can undo this yourself later.');
+  });
+
+  $(document).on('click', '.my-addon-row__self-ban', function () {
+    ofxMyAddonSelfAction($(this), 'self-ban',
+      'Pull this addon from public listings? You can undo this yourself later.');
+  });
+
+  $(document).on('click', '.my-addon-row__undo-self-type', function () {
+    ofxMyAddonSelfAction($(this), 'undo-self-type', null);
+  });
+
   $(document).on('click', '.admin-row__generate-desc', function () {
     var $btn = $(this);
     var $row = $btn.closest('.admin-row');

@@ -177,7 +177,8 @@ function ofx_api_triage_batch(): void
 
         if (!empty($threats)) {
             $pdo->prepare('
-                UPDATE repos SET type = ?, security_flagged = 1, security_flag_reason = ?, security_flagged_at = ?
+                UPDATE repos SET type = ?, security_flagged = 1, security_flag_reason = ?, security_flagged_at = ?,
+                type_set_by_owner = 0
                 WHERE id = ?
             ')->execute(['NonAddon', implode('; ', $threats), gmdate('Y-m-d H:i:s'), $row['id']]);
             ofx_log_admin_action($pdo, null, 'security_quarantine', (int)$row['id'], implode('; ', $threats));
@@ -229,7 +230,7 @@ function ofx_api_triage_batch(): void
             . 'similar addon in this batch.',
         'categories' => $categories,
         'of_versions' => array_column(OFX_VERSIONS, 'version'),
-        'types' => array_map(fn($t) => $t === 'NonAddon' ? 'Banned' : $t, OFX_REPO_TYPES),
+        'types' => array_map('ofx_repo_type_label', OFX_REPO_TYPES),
         'quarantined_this_batch' => $quarantined,
         'denied_feedback' => $deniedFeedback,
         'addons' => $addons,

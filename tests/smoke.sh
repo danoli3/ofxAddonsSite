@@ -103,6 +103,9 @@ check "/admin/duplicates" 403
 check "/admin/duplicates/confirmed" 403
 check "/admin/flagged" 403
 check "/my/addons" 403
+check "/my/addons/1/mark-example" 403 "POST"
+check "/my/addons/1/self-ban" 403 "POST"
+check "/my/addons/1/undo-self-type" 403 "POST"
 
 # --- machine-to-machine API: no bearer token, must be rejected ---
 check "/api/triage/batch" 403
