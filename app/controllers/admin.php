@@ -1225,6 +1225,44 @@ function ofx_admin_log(): void
     ]);
 }
 
+const OFX_SYNC_LOG_PAGE_SIZE = 100;
+
+// GET /admin/sync-log - one row per attempt to pull the crawler's latest
+// Github release (cron, webhook, or a manual "Pull latest release"
+// click - see ofx_log_sync_run() in app/sync.php), each with the
+// added/updated/removed/skipped diff from that pull. Classic
+// numbered-page pagination (not the infinite scroll the repo tables use)
+// since this is a plain chronological log, not something worth filtering
+// down before you can use it.
+function ofx_admin_sync_log(): void
+{
+    ofx_require_admin();
+    $pdo = ofx_db();
+
+    $total = (int)$pdo->query('SELECT COUNT(*) FROM sync_logs')->fetchColumn();
+    $totalPages = max(1, (int)ceil($total / OFX_SYNC_LOG_PAGE_SIZE));
+    $page = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
+    $offset = ($page - 1) * OFX_SYNC_LOG_PAGE_SIZE;
+
+    $stmt = $pdo->prepare('
+        SELECT l.*, u.login AS user_login, u.avatar_url AS user_avatar_url
+        FROM sync_logs l
+        LEFT JOIN users u ON u.id = l.user_id
+        ORDER BY l.created_at DESC
+        LIMIT ' . OFX_SYNC_LOG_PAGE_SIZE . ' OFFSET ?
+    ');
+    $stmt->bindValue(1, $offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    ofx_render('admin/sync-log', [
+        'entries' => $stmt->fetchAll(),
+        'title' => 'Sync Log',
+        'page' => $page,
+        'totalPages' => $totalPages,
+        'total' => $total,
+    ]);
+}
+
 function ofx_admin_admins(): void
 {
     $admin = ofx_require_admin();
@@ -1384,15 +1422,18 @@ function ofx_admin_sync_now(): void
     header('Content-Type: application/json');
     ofx_require_csrf();
 
+    $pdo = ofx_db();
+
     $snapshot = ofx_fetch_latest_crawl_snapshot();
     if (!$snapshot) {
+        ofx_log_sync_run($pdo, 'manual', null, null, $admin['id'], 'could not fetch the latest release from danoli3/ofxAddons');
         http_response_code(502);
         echo json_encode(['status' => 502, 'error' => ['could not fetch the latest release from danoli3/ofxAddons']]);
         return;
     }
 
-    $pdo = ofx_db();
     $result = ofx_apply_crawl_snapshot($pdo, $snapshot['addons']);
+    ofx_log_sync_run($pdo, 'manual', $snapshot, $result, $admin['id']);
     ofx_regenerate_public_caches();
 
     ofx_log_admin_action(

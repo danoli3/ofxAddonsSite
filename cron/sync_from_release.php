@@ -9,11 +9,13 @@ require_once __DIR__ . '/../app/cache.php';
 
 $snapshot = ofx_fetch_latest_crawl_snapshot();
 if (!$snapshot) {
+    ofx_log_sync_run(ofx_db(), 'cron', null, null, null, 'Could not fetch latest release from danoli3/ofxAddons');
     fwrite(STDERR, "Could not fetch latest release from danoli3/ofxAddons\n");
     exit(1);
 }
 
 $result = ofx_apply_crawl_snapshot(ofx_db(), $snapshot['addons']);
+ofx_log_sync_run(ofx_db(), 'cron', $snapshot, $result);
 fwrite(STDOUT, sprintf(
     "Synced from release generated_at=%s: %d added, %d updated, %d skipped (banned)\n",
     $snapshot['generated_at'] ?? 'unknown',

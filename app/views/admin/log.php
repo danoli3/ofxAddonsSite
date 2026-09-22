@@ -3,6 +3,8 @@
 </div>
 <p class="page-intro">
   Last <?= OFX_ADMIN_LOG_LIMIT ?> admin actions.
+  <a href="/admin/sync-log">Sync log &rarr;</a>
+  &middot;
   <a href="/admin/repos">&larr; Back to admin</a>
 </p>
 

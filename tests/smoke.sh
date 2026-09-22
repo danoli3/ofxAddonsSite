@@ -98,6 +98,7 @@ check "/this-route-does-not-exist-xyz" 404
 # --- session-gated: no cookie sent, so every one of these must refuse,
 #     not silently render admin/owner-only content ---
 check "/admin/repos" 403
+check "/admin/sync-log" 403
 check "/admin/security" 403
 check "/admin/duplicates" 403
 check "/admin/duplicates/confirmed" 403

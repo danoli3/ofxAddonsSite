@@ -31,6 +31,29 @@ CREATE TABLE admin_logs (
   KEY idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- One row per attempt to pull the crawler's latest Github release
+-- (danoli3/ofxAddons), regardless of what triggered it - the daily cron
+-- (cron/sync_from_release.php), the crawler's own webhook
+-- (POST /webhooks/sync), or an admin's "Pull latest release" button
+-- (POST /admin/sync-now). See app/sync.php's ofx_log_sync_run().
+CREATE TABLE sync_logs (
+  id INT NOT NULL AUTO_INCREMENT,
+  source VARCHAR(20) NOT NULL,
+  user_id INT DEFAULT NULL,
+  generated_at DATETIME DEFAULT NULL,
+  total_seen INT NOT NULL DEFAULT 0,
+  added INT NOT NULL DEFAULT 0,
+  updated INT NOT NULL DEFAULT 0,
+  removed INT NOT NULL DEFAULT 0,
+  skipped_banned INT NOT NULL DEFAULT 0,
+  status VARCHAR(10) NOT NULL DEFAULT 'ok',
+  error TEXT,
+  created_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_created (created_at),
+  KEY idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE users (
   id INT NOT NULL AUTO_INCREMENT,
   provider VARCHAR(255) NOT NULL,

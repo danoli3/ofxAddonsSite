@@ -15,14 +15,18 @@ function ofx_webhook_sync(): void
         return;
     }
 
+    $pdo = ofx_db();
+
     $snapshot = ofx_fetch_latest_crawl_snapshot();
     if (!$snapshot) {
+        ofx_log_sync_run($pdo, 'webhook', null, null, null, 'could not fetch latest release');
         http_response_code(502);
         echo json_encode(['status' => 502, 'error' => 'could not fetch latest release']);
         return;
     }
 
-    $result = ofx_apply_crawl_snapshot(ofx_db(), $snapshot['addons']);
+    $result = ofx_apply_crawl_snapshot($pdo, $snapshot['addons']);
+    ofx_log_sync_run($pdo, 'webhook', $snapshot, $result);
     ofx_regenerate_public_caches();
     echo json_encode(['status' => 200] + $result);
 }

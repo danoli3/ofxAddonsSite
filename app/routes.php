@@ -65,6 +65,7 @@ function ofx_dispatch(): void
         ['POST', '#^/admin/repos/(\d+)/confirm-unique$#', 'ofx_admin_confirm_unique'],
         ['POST', '#^/admin/repos/(\d+)/unconfirm-unique$#', 'ofx_admin_unconfirm_unique'],
         ['GET', '#^/admin/log$#', 'ofx_admin_log'],
+        ['GET', '#^/admin/sync-log$#', 'ofx_admin_sync_log'],
         ['GET', '#^/admin/admins$#', 'ofx_admin_admins'],
         ['POST', '#^/admin/admins/(\d+)/toggle$#', 'ofx_admin_toggle_admin'],
         ['POST', '#^/admin/admins/(\d+)/toggle-super$#', 'ofx_admin_toggle_super_admin'],

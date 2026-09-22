@@ -213,6 +213,51 @@ function ofx_fetch_crawl_release_asset(string $asset, bool $gzipped): ?array
     return is_array($data['addons'] ?? null) ? $data : null;
 }
 
+// Records one row in sync_logs for every attempt to pull the crawler's
+// latest release, success or failure, no matter which of the three
+// triggers made it (cron/sync_from_release.php, the webhook, or an
+// admin's manual "Pull latest release") - see /admin/sync-log.
+// $error set (fetch failed, so $snapshot/$result are both null) logs a
+// failed attempt instead of a diff.
+function ofx_log_sync_run(PDO $pdo, string $source, ?array $snapshot, ?array $result, ?int $userId = null, ?string $error = null): void
+{
+    $totalSeen = 0;
+    $removed = 0;
+
+    if ($snapshot) {
+        $fullNames = array_values(array_filter(array_map(
+            static fn($item) => $item['full_name'] ?? null,
+            $snapshot['addons'] ?? []
+        )));
+        $totalSeen = count($fullNames);
+
+        // Repos this site still treats as live/pending (not already
+        // banned) that this pull's feed didn't mention at all - e.g. the
+        // repo was deleted/renamed on Github since the last pull. Loaded
+        // into PHP and diffed there rather than a giant SQL NOT IN(...)
+        // list, since $fullNames can run into the thousands.
+        $existing = $pdo->query("SELECT full_name FROM repos WHERE type NOT IN ('NonAddon', 'Deleted')")
+            ->fetchAll(PDO::FETCH_COLUMN);
+        $removed = count(array_diff($existing, $fullNames));
+    }
+
+    $pdo->prepare(
+        'INSERT INTO sync_logs (source, user_id, generated_at, total_seen, added, updated, removed, skipped_banned, status, error, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+    )->execute([
+        $source,
+        $userId,
+        $snapshot ? ofx_sync_to_datetime($snapshot['generated_at'] ?? null) : null,
+        $totalSeen,
+        $result['added'] ?? 0,
+        $result['updated'] ?? 0,
+        $removed,
+        $result['skipped_banned'] ?? 0,
+        $error ? 'error' : 'ok',
+        $error,
+    ]);
+}
+
 function ofx_banned_full_names(PDO $pdo): array
 {
     $stmt = $pdo->query('SELECT full_name FROM repos WHERE type IN ("NonAddon", "Deleted") ORDER BY full_name');

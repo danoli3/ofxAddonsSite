@@ -728,6 +728,20 @@ a.addon-card__desc:hover { color: var(--text); }
 .admin-table th:nth-child(3), .admin-table td:nth-child(3) { width: 13%; }
 .admin-table th:nth-child(4), .admin-table td:nth-child(4) { width: 29%; }
 .admin-table th:nth-child(5), .admin-table td:nth-child(5) { width: 12%; }
+/* Sync log has its own 7-column layout, not the 5-column one the
+   .admin-table nth-child widths above assume. */
+.sync-log-table { min-width: 900px; }
+.sync-log-table th:nth-child(1), .sync-log-table td:nth-child(1) { width: 18%; }
+.sync-log-table th:nth-child(2), .sync-log-table td:nth-child(2) { width: 18%; }
+.sync-log-table th:nth-child(3), .sync-log-table td:nth-child(3) { width: 10%; }
+.sync-log-table th:nth-child(4), .sync-log-table td:nth-child(4) { width: 10%; }
+.sync-log-table th:nth-child(5), .sync-log-table td:nth-child(5) { width: 10%; }
+.sync-log-table th:nth-child(6), .sync-log-table td:nth-child(6) { width: 14%; }
+.sync-log-table th:nth-child(7), .sync-log-table td:nth-child(7) { width: 20%; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 20px 0; }
+.pager__link { font-weight: 600; }
+.pager__status { color: var(--text-muted); font-size: .85rem; }
+
 /* /my/addons has a different column order (Categories then Thumbnail
    URL, not Type then Categories) - swap the 3rd/4th widths so the
    category chip picker isn't squeezed into the narrow "Type" slot */
