@@ -178,15 +178,13 @@ function ofx_sync_to_datetime(?string $iso): ?string
     return $ts !== false ? gmdate('Y-m-d H:i:s', $ts) : null;
 }
 
+// crawl.yml only ever publishes addons.json.gz (the plain addons.json
+// was dropped from releases as dead weight - ~10x the size for no
+// benefit, since this is the only thing that ever fetched it), so
+// there's nothing left to fall back to if this 404s.
 function ofx_fetch_latest_crawl_snapshot(): ?array
 {
-    $snapshot = ofx_fetch_crawl_release_asset('addons.json.gz', true);
-    return $snapshot ?? ofx_fetch_crawl_release_asset('addons.json', false);
-}
-
-function ofx_fetch_crawl_release_asset(string $asset, bool $gzipped): ?array
-{
-    $url = "https://github.com/danoli3/ofxAddons/releases/latest/download/{$asset}";
+    $url = 'https://github.com/danoli3/ofxAddons/releases/latest/download/addons.json.gz';
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -202,11 +200,9 @@ function ofx_fetch_crawl_release_asset(string $asset, bool $gzipped): ?array
         return null;
     }
 
-    if ($gzipped) {
-        $body = @gzdecode($body);
-        if ($body === false) {
-            return null;
-        }
+    $body = @gzdecode($body);
+    if ($body === false) {
+        return null;
     }
 
     $data = json_decode($body, true);
