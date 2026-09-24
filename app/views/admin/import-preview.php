@@ -28,7 +28,7 @@ $isAiTriage = $isAiTriage ?? false;
     <input type="hidden" name="_csrf" value="<?= ofx_h(ofx_csrf_token()) ?>">
     <div class="import-diff-list">
       <?php foreach ($diffs as $d): ?>
-        <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed'] || !empty($d['type_changed'])); ?>
+        <?php $hasChanges = $d['found'] && (!empty($d['added_categories']) || !empty($d['removed_categories']) || $d['version_changed'] || !empty($d['type_changed']) || !empty($d['description_will_apply'])); ?>
         <?php $typeConfirmed = $d['found'] && !empty($d['proposed_type']) && empty($d['type_changed']); ?>
         <?php $isBannedProposal = ($d['proposed_type'] ?? '') === 'NonAddon'; ?>
         <div class="import-diff-row<?= !$d['found'] ? ' import-diff-row--missing' : '' ?><?= ($d['found'] && !$hasChanges) ? ' import-diff-row--nochange' : '' ?><?= $isBannedProposal ? ' import-diff-row--banned' : '' ?>"
@@ -42,6 +42,11 @@ $isAiTriage = $isAiTriage ?? false;
               <?= ofx_h($d['full_name']) ?>
             </a>
             <?php if ($isAiTriage): ?>
+              <?php if (!empty($d['submitted_at'])): ?>
+                <span class="import-diff-row__submitted" title="<?= ofx_h($d['submitted_at']) ?>">
+                  AI-processed <?= ofx_h(ofx_time_ago($d['submitted_at'])) ?>
+                </span>
+              <?php endif; ?>
               <button type="button" class="import-diff-row__deny-btn" data-full-name="<?= ofx_h($d['full_name']) ?>"
                       title="Reject this suggestion and tell the model why, instead of just discarding it">
                 Deny
@@ -100,6 +105,16 @@ $isAiTriage = $isAiTriage ?? false;
                     <em>none</em>
                   <?php endif; ?>
                   &rarr; <strong><?= ofx_h($d['proposed_version']) ?></strong>
+                </div>
+              <?php endif; ?>
+              <?php if (!empty($d['proposed_description'])): ?>
+                <div class="import-diff-row__version">
+                  Description:
+                  <?php if (!empty($d['description_will_apply'])): ?>
+                    <em>none</em> &rarr; <strong><?= ofx_h($d['proposed_description']) ?></strong>
+                  <?php else: ?>
+                    <span class="import-diff-row__confirmed">already set - proposal ignored: &ldquo;<?= ofx_h($d['proposed_description']) ?>&rdquo;</span>
+                  <?php endif; ?>
                 </div>
               <?php endif; ?>
               <?php if (!empty($d['notes'])): ?>

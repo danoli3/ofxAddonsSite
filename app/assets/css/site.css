@@ -1163,6 +1163,7 @@ a.addon-card__desc:hover { color: var(--text); }
 }
 .import-diff-row__deny-btn:hover { background: rgba(255, 107, 107, .1); }
 .import-diff-row__deny-btn:disabled { opacity: .6; cursor: default; }
+.import-diff-row__submitted { margin-left: 8px; color: var(--text-muted); font-size: .78rem; }
 .import-diff-row__body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
 .import-diff-row__cats { display: flex; flex-wrap: wrap; gap: 6px; }
 .import-diff-row__version { font-size: .82rem; color: var(--text-muted); }

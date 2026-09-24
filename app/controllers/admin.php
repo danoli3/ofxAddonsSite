@@ -781,6 +781,9 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
             $proposedType = '';
         }
         $notes = isset($entry['notes']) ? trim((string)$entry['notes']) : '';
+        $proposedDescription = isset($entry['description'])
+            ? mb_substr(trim((string)$entry['description']), 0, OFX_DESCRIPTION_MAX_LENGTH)
+            : '';
 
         // re-encoded from the normalized values above (not the raw
         // upload) so a confirmed row can only ever apply what this same
@@ -792,9 +795,12 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         if ($proposedType !== '') {
             $normalizedEntry['type'] = $proposedType;
         }
+        if ($proposedDescription !== '') {
+            $normalizedEntry['description'] = $proposedDescription;
+        }
 
         $stmt = $pdo->prepare(
-            'SELECT id, full_name, name, type, of_version, of_version_curated FROM repos WHERE LOWER(full_name) = LOWER(?) LIMIT 1'
+            'SELECT id, full_name, name, type, description, of_version, of_version_curated FROM repos WHERE LOWER(full_name) = LOWER(?) LIMIT 1'
         );
         $stmt->execute([$fullName]);
         $repo = $stmt->fetch();
@@ -834,6 +840,11 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
             'proposed_type' => $proposedType !== '' ? $proposedType : null,
             'type_changed' => $proposedType !== '' && $proposedType !== $repo['type'],
             'notes' => $notes !== '' ? $notes : null,
+            'proposed_description' => $proposedDescription !== '' ? $proposedDescription : null,
+            // only ever applies onto a blank description (see
+            // ofx_apply_addon_import()) - shown so a reviewer isn't left
+            // wondering why a proposed description didn't take effect
+            'description_will_apply' => $proposedDescription !== '' && empty($repo['description']),
         ];
     }
 
@@ -914,16 +925,27 @@ function ofx_admin_ai_queue_review(): void
 
     $pageSize = OFX_AI_TRIAGE_REVIEW_PAGE_SIZE;
     // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $pageSize is a hardcoded constant, not request input
-    $rows = $pdo->query("SELECT entry_json FROM ai_triage_queue ORDER BY submitted_at ASC LIMIT {$pageSize}")->fetchAll();
+    $rows = $pdo->query("SELECT full_name, entry_json, submitted_at FROM ai_triage_queue ORDER BY submitted_at ASC LIMIT {$pageSize}")->fetchAll();
     $entries = [];
+    $submittedAt = [];
     foreach ($rows as $row) {
         $decoded = json_decode($row['entry_json'], true);
         if (is_array($decoded)) {
             $entries[] = $decoded;
+            $submittedAt[strtolower($row['full_name'])] = $row['submitted_at'];
         }
     }
 
     $diffs = ofx_admin_import_diff($pdo, $entries);
+    // submitted_at isn't part of ofx_admin_import_diff()'s own output -
+    // that function is shared with the plain JSON/XML import screen,
+    // which has no such concept - so it's merged in here, keyed by
+    // full_name, purely for this AI-triage view to show when the model
+    // actually submitted each suggestion.
+    foreach ($diffs as &$diff) {
+        $diff['submitted_at'] = $submittedAt[strtolower($diff['full_name'] ?? '')] ?? null;
+    }
+    unset($diff);
 
     ofx_render('admin/import-preview', [
         'diffs' => $diffs,
@@ -1151,7 +1173,10 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
         if ($type !== '' && !in_array($type, OFX_REPO_TYPES, true)) {
             $type = '';
         }
-        if (!$fullName || (empty($categoryNames) && $ofVersion === '' && $type === '')) {
+        $description = isset($entry['description'])
+            ? mb_substr(trim((string)$entry['description']), 0, OFX_DESCRIPTION_MAX_LENGTH)
+            : '';
+        if (!$fullName || (empty($categoryNames) && $ofVersion === '' && $type === '' && $description === '')) {
             continue;
         }
 
@@ -1194,6 +1219,16 @@ function ofx_apply_addon_import(PDO $pdo, array $entries, bool $aiCurated = fals
         if ($ofVersion !== '' && in_array($ofVersion, $validVersions, true)) {
             $pdo->prepare('UPDATE repos SET of_version = ?, of_version_curated = 1, updated_at = NOW() WHERE id = ?')
                 ->execute([$ofVersion, $repoId]);
+        }
+
+        // Guarded on the current column value, not a value read earlier in
+        // this request - only ever fills a still-blank description, so a
+        // stale or hallucinated suggestion can never overwrite a real one.
+        if ($description !== '') {
+            $pdo->prepare(
+                "UPDATE repos SET description = ?, description_curated = 1, description_generated = 1, updated_at = NOW()
+                 WHERE id = ? AND (description IS NULL OR description = '')"
+            )->execute([$description, $repoId]);
         }
 
         $updated++;
