@@ -769,9 +769,18 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         if ($fullName === '') {
             continue;
         }
-        $proposedCategories = array_values(array_unique(array_filter(
-            array_map('trim', $entry['categories'] ?? [])
-        )));
+        // Absent "categories" key (every AI-triage description-only
+        // submission - see ofx_api_triage_batch()'s description_only pool)
+        // means no category change was proposed at all, not "propose
+        // zero categories" - treating those the same used to diff every
+        // one of a repo's existing categories as being removed, when
+        // ofx_apply_addon_import() was actually going to leave them
+        // untouched (it only touches categorizations when passed a
+        // non-empty list).
+        $categoriesProposed = array_key_exists('categories', $entry);
+        $proposedCategories = $categoriesProposed
+            ? array_values(array_unique(array_filter(array_map('trim', $entry['categories']))))
+            : [];
         $proposedVersion = isset($entry['of_version']) ? trim((string)$entry['of_version']) : '';
         if ($proposedVersion !== '' && !in_array($proposedVersion, $validVersions, true)) {
             $proposedVersion = '';
@@ -788,7 +797,10 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
         // re-encoded from the normalized values above (not the raw
         // upload) so a confirmed row can only ever apply what this same
         // diff actually showed the admin, not whatever else the file said
-        $normalizedEntry = ['full_name' => $fullName, 'categories' => $proposedCategories];
+        $normalizedEntry = ['full_name' => $fullName];
+        if ($categoriesProposed) {
+            $normalizedEntry['categories'] = $proposedCategories;
+        }
         if ($proposedVersion !== '') {
             $normalizedEntry['of_version'] = $proposedVersion;
         }
@@ -830,9 +842,12 @@ function ofx_admin_import_diff(PDO $pdo, array $entries): array
             'found' => true,
             'full_name' => $repo['full_name'],
             'name' => $repo['name'],
-            'added_categories' => array_values(array_diff($proposedCategories, $currentCategories)),
-            'removed_categories' => array_values(array_diff($currentCategories, $proposedCategories)),
-            'unchanged_categories' => array_values(array_intersect($currentCategories, $proposedCategories)),
+            // No proposal at all (categoriesProposed false) means keep
+            // showing the repo's actual current categories, as unchanged -
+            // never as removed, since nothing is actually being touched.
+            'added_categories' => $categoriesProposed ? array_values(array_diff($proposedCategories, $currentCategories)) : [],
+            'removed_categories' => $categoriesProposed ? array_values(array_diff($currentCategories, $proposedCategories)) : [],
+            'unchanged_categories' => $categoriesProposed ? array_values(array_intersect($currentCategories, $proposedCategories)) : $currentCategories,
             'current_version' => $currentVersion,
             'proposed_version' => $proposedVersion !== '' ? $proposedVersion : null,
             'version_changed' => $proposedVersion !== '' && $proposedVersion !== $currentVersion,
