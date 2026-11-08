@@ -228,12 +228,8 @@ $(function () {
       return '<div class="browse-table__cats">' + browseCategoryTags(a) + '</div>';
     }
 
-    function browseRenderTiles(rows) {
-      if (!rows.length) {
-        $browseTiles.html('<p class="empty-state">No addons match.</p>');
-        return;
-      }
-      var html = rows.map(function (a) {
+    function browseTilesHtml(rows) {
+      return rows.map(function (a) {
         var url = browseAddonUrl(a.full_name);
         var thumb = a.thumbnail
           ? '<img class="addon-card__thumb" src="' + browseEsc(a.thumbnail) + '" alt="" loading="lazy" onerror="this.remove()">'
@@ -251,16 +247,22 @@ $(function () {
           + '<span class="addon-card__dates"><span class="addon-card__updated">Updated ' + browseTimeAgo(a.pushed_at) + '</span></span>'
           + '</div></article>';
       }).join('');
-      $browseTiles.html(html);
     }
 
-    function browseRenderTable(rows) {
-      var $body = $('#browse-table-body');
-      if (!rows.length) {
-        $body.html('<tr><td colspan="10" class="empty-state">No addons match.</td></tr>');
+    // $replace true rebuilds the whole container (a fresh sort/filter/
+    // search) - false appends (Load more), so the rows already on screen
+    // aren't rebuilt and repainted again on every click.
+    function browseRenderTiles(rows, replace) {
+      if (replace && !rows.length) {
+        $browseTiles.html('<p class="empty-state">No addons match.</p>');
         return;
       }
-      var html = rows.map(function (a) {
+      var html = browseTilesHtml(rows);
+      if (replace) { $browseTiles.html(html); } else { $browseTiles.append(html); }
+    }
+
+    function browseTableRowsHtml(rows) {
+      return rows.map(function (a) {
         var url = browseAddonUrl(a.full_name);
         return '<tr>'
           + '<td><a href="' + url + '">' + browseEsc(a.name) + '</a></td>'
@@ -275,7 +277,16 @@ $(function () {
           + '<td>' + browseFlags(a) + '</td>'
           + '</tr>';
       }).join('');
-      $body.html(html);
+    }
+
+    function browseRenderTable(rows, replace) {
+      var $body = $('#browse-table-body');
+      if (replace && !rows.length) {
+        $body.html('<tr><td colspan="10" class="empty-state">No addons match.</td></tr>');
+        return;
+      }
+      var html = browseTableRowsHtml(rows);
+      if (replace) { $body.html(html); } else { $body.append(html); }
     }
 
     // Rendering every match at once (2000+ addons, each a full tile with
@@ -283,25 +294,37 @@ $(function () {
     // click could feel like it did nothing - the view/localStorage state
     // (see browseSetView) updates instantly, but the visible re-render
     // lags or, worse, a second impatient click queues up behind the first
-    // and the two toggles cancel out. Capping what actually gets built
-    // keeps every render fast regardless of how unfiltered the current
-    // search/category is - same mitigation the reference ofxAddonsJs
-    // browser uses (it paginates 60 at a time behind "Load more").
-    var BROWSE_RENDER_LIMIT = 300;
+    // and the two toggles cancel out. Rendering a page at a time (first
+    // BROWSE_PAGE_SIZE up front, more via the "Load more" button) keeps
+    // each render fast regardless of how unfiltered the current
+    // search/category is - same approach the reference ofxAddonsJs
+    // browser uses (it paginates 60 at a time the same way).
+    var BROWSE_PAGE_SIZE = 300;
+    // The full sorted/filtered set for whatever sort/search/category is
+    // currently active, and how much of it has been rendered so far -
+    // both reset on a new browseRender(), both left alone by a plain
+    // Tiles/Table toggle or a "Load more" click.
+    var browseCurrentRows = [];
+    var browseRenderedCount = 0;
 
-    function browseRender() {
-      var allRows = browseSortRows(browseFilteredRows(), $('#browse-sort').val());
-      var rows = allRows.slice(0, BROWSE_RENDER_LIMIT);
-      var status = allRows.length + ' addon' + (allRows.length === 1 ? '' : 's');
-      if (allRows.length > rows.length) {
-        status += ' - showing first ' + rows.length + ', search or pick a category to narrow it down';
+    function browseUpdateStatusAndButton() {
+      var total = browseCurrentRows.length;
+      var shown = Math.min(browseRenderedCount, total);
+      var status = total + ' addon' + (total === 1 ? '' : 's');
+      var hasMore = shown < total;
+      if (hasMore) {
+        status += ' - showing ' + shown;
       }
       $('#browse-status').text(status);
+      $('#browse-load-more-wrap').prop('hidden', !hasMore);
+    }
+
+    function browseRenderRows(rows, replace) {
       try {
         if (browseView === 'tiles') {
-          browseRenderTiles(rows);
+          browseRenderTiles(rows, replace);
         } else {
-          browseRenderTable(rows);
+          browseRenderTable(rows, replace);
         }
       } catch (e) {
         // a render that throws partway through a big html() build can
@@ -313,19 +336,44 @@ $(function () {
       }
     }
 
+    // Full reset - a new sort, search, or category narrows/reorders the
+    // whole set, so pagination starts over from the first page.
+    function browseRender() {
+      browseCurrentRows = browseSortRows(browseFilteredRows(), $('#browse-sort').val());
+      browseRenderedCount = Math.min(BROWSE_PAGE_SIZE, browseCurrentRows.length);
+      browseRenderRows(browseCurrentRows.slice(0, browseRenderedCount), true);
+      browseUpdateStatusAndButton();
+    }
+
+    // Tiles/Table toggle only - same rows, same page position, just
+    // redrawn into whichever container is now visible (the other one
+    // starts out empty, so this always needs to be a full replace).
+    function browseRerenderCurrentView() {
+      browseRenderRows(browseCurrentRows.slice(0, browseRenderedCount), true);
+      browseUpdateStatusAndButton();
+    }
+
+    function browseLoadMore() {
+      var next = browseCurrentRows.slice(browseRenderedCount, browseRenderedCount + BROWSE_PAGE_SIZE);
+      browseRenderedCount += next.length;
+      browseRenderRows(next, false);
+      browseUpdateStatusAndButton();
+    }
+
     $('#browse-search').on('input', function () {
       clearTimeout(browseDebounce);
       browseDebounce = setTimeout(browseRender, 150);
     });
     $('#browse-sort, #browse-category').on('change', browseRender);
+    $('#browse-load-more').on('click', browseLoadMore);
     // delegated (matches every other row-action binding in this file),
     // and yields one frame between toggling visibility and the actual
-    // (potentially slow, see BROWSE_RENDER_LIMIT above) render, so the
+    // (potentially slow, see BROWSE_PAGE_SIZE above) render, so the
     // active-button/visible-panel switch paints immediately instead of
     // being blocked behind building a few hundred rows of HTML first
     $(document).on('click', '.view-toggle__btn', function () {
       browseSetView($(this).data('view'));
-      setTimeout(browseRender, 0);
+      setTimeout(browseRerenderCurrentView, 0);
     });
 
     $('#browse-status').text('Loading…');

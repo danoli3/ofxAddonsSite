@@ -469,7 +469,7 @@ function ofx_admin_banned(): void
 }
 
 // GET /admin/export-banned.json - downloadable list of every banned
-// repo (NonAddon/Deleted), for feeding into external automation (e.g.
+// repo (NonAddon/Deleted/Spam), for feeding into external automation (e.g.
 // a Github Action that wants to skip them). banned_at prefers the
 // admin_logs entry that actually recorded the ban over repos.updated_at,
 // since that column also moves on unrelated crawl syncs.
@@ -488,7 +488,7 @@ function ofx_admin_export_banned(): void
                 WHERE l.repo_id = r.id AND l.details LIKE 'type: NonAddon%'
                 ORDER BY l.created_at DESC LIMIT 1) AS banned_by
         FROM repos r
-        WHERE r.type IN ('NonAddon', 'Deleted')
+        WHERE r.type IN ('NonAddon', 'Deleted', 'Spam')
         ORDER BY LOWER(r.full_name) ASC
     ");
     $banned = array_map(function (array $row): array {
@@ -976,8 +976,9 @@ function ofx_admin_ai_queue_review(): void
 // (checked or not) is a queued suggestion the admin has now looked at, so
 // all of them are removed from ai_triage_queue here - checked ones get
 // applied first, unchecked ones are simply discarded. A discarded addon
-// stays whatever type it already was, so it's free to be re-picked up by
-// a future /api/triage/batch call if it's still Unsorted/Incomplete/Spam.
+// stays whatever type it already was, but is only re-picked up by a
+// future /api/triage/batch call once it gets new commits on Github or is
+// flagged for triage again - not straight away on the next batch.
 function ofx_admin_ai_queue_confirm(): void
 {
     ofx_require_super_admin();
@@ -1017,13 +1018,15 @@ function ofx_admin_ai_queue_confirm(): void
     }
 
     $deleteStmt = $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)');
-    // also clears the batch/submit API's claim (ai_triage_batched_at) - a
-    // discarded-but-unchanged repo is otherwise fine to hand out again
-    // right away rather than waiting out the rest of its claim window -
-    // and the owner-edit priority flag (ai_triage_priority_at), since it's
-    // now been reviewed and shouldn't keep jumping the queue indefinitely
+    // stamps ai_triage_reviewed_at so /api/triage/batch leaves this repo
+    // alone until it actually changes on Github (new pushed_at) or a human
+    // re-flags it - see OFX_AI_TRIAGE_ELIGIBLE_SQL. Also clears the claim
+    // (ai_triage_batched_at) and the owner-edit priority flag
+    // (ai_triage_priority_at), since it's now been reviewed and shouldn't
+    // keep jumping the queue indefinitely
     $clearClaimStmt = $pdo->prepare(
-        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL WHERE LOWER(full_name) = LOWER(?)'
+        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL, ai_triage_reviewed_at = NOW(),
+        ai_triage_attempts = 0 WHERE LOWER(full_name) = LOWER(?)'
     );
     foreach ($allEntries as $entry) {
         $deleteStmt->execute([$entry['full_name']]);
@@ -1087,11 +1090,13 @@ function ofx_admin_ai_queue_deny(): void
     ]);
 
     // same cleanup as a plain discard on /admin/ai-triage/confirm - remove
-    // the staged suggestion and clear the batch claim so the repo is free
-    // to be re-picked-up (now with this denial visible as feedback)
+    // the staged suggestion and mark it reviewed, so it's only re-analysed
+    // once it changes on Github or is flagged again (this denial is still
+    // handed to the model as feedback for similar repos meanwhile)
     $pdo->prepare('DELETE FROM ai_triage_queue WHERE LOWER(full_name) = LOWER(?)')->execute([$fullName]);
     $pdo->prepare(
-        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL WHERE LOWER(full_name) = LOWER(?)'
+        'UPDATE repos SET ai_triage_batched_at = NULL, ai_triage_priority_at = NULL, ai_triage_reviewed_at = NOW(),
+        ai_triage_attempts = 0 WHERE LOWER(full_name) = LOWER(?)'
     )->execute([$fullName]);
 
     ofx_log_admin_action(
@@ -1946,11 +1951,11 @@ function ofx_admin_duplicates_data(string $mode, string $search, int $page): arr
                 // reason to pay Github-call cost for it
                 $repo['readme_tail'] = null;
             } else {
-                // last 200 chars of the actual README, live-fetched -
-                // often has an install/usage note or a signature ("by
-                // so-and-so") that's a faster tell for "same addon" vs
-                // "coincidence" than eyeballing the description alone.
+                // Reuse the existing fetch for a rendered opening preview
+                // plus the ending/signature; no extra Github calls.
                 $readme = ofx_fetch_readme($repo['full_name']);
+                $repo['readme_preview'] = $readme ? trim(mb_substr($readme, 0, 3000)) : null;
+                $repo['readme_truncated'] = $readme && mb_strlen($readme) > 3000;
                 $repo['readme_tail'] = $readme ? trim(mb_substr($readme, -200)) : null;
             }
             $groups[strtolower($repo['name'])][] = $repo;

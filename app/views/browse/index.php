@@ -56,3 +56,7 @@
     <tbody id="browse-table-body"></tbody>
   </table>
 </div>
+
+<p class="browse-load-more-wrap" id="browse-load-more-wrap" hidden>
+  <button type="button" id="browse-load-more">Load more</button>
+</p>

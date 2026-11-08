@@ -1123,6 +1123,14 @@ a.addon-card__desc:hover { color: var(--text); }
 }
 .dupe-item__status { font-size: .8rem; color: var(--text-muted); }
 .dupe-item__status.is-error { color: #ff6b6b; }
+.dupe-item__description { flex-basis: 100%; margin: 0; font-size: .88rem; overflow-wrap: anywhere; }
+.dupe-item__readme-preview { flex-basis: 100%; min-width: 0; }
+.dupe-item__readme-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: .8rem; }
+.dupe-item__readme-body { margin: 0; padding: 14px; max-height: 320px; overflow: auto; font-size: .85rem; overflow-wrap: anywhere; }
+.dupe-item__readme-body h1 { font-size: 1.3rem; }
+.dupe-item__readme-body h2 { font-size: 1.1rem; }
+.dupe-item__readme-body img { max-height: 180px; object-fit: contain; }
+.dupe-item__readme-note { margin: 6px 0 0; color: var(--text-muted); font-size: .78rem; }
 .dupe-item__readme {
   flex-basis: 100%;
   margin: 0;
@@ -1243,6 +1251,18 @@ a.addon-card__desc:hover { color: var(--text); }
 .view-toggle__btn:hover { color: var(--text); }
 .view-toggle__btn.is-active { background: var(--gradient); color: #0b0d14; }
 .browse-status { color: var(--text-muted); font-size: .85rem; margin: 0 0 14px; }
+.browse-load-more-wrap { text-align: center; padding: 20px 0; }
+.browse-load-more-wrap button {
+  padding: 8px 24px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  font-size: .86rem;
+  cursor: pointer;
+}
+.browse-load-more-wrap button:hover { border-color: var(--accent-1); }
 /* auto (not admin-table's usual fixed) layout: a fixed table couldn't
    shrink/grow a column to fit an unbroken run of content (a long category
    tag, a long description) - it just let that content visually bleed into

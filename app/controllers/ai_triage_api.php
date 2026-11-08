@@ -9,6 +9,25 @@ const OFX_AI_TRIAGE_MAX_LIMIT = 20;
 // + classify + submit round trip; short enough that a crashed or
 // abandoned run doesn't strand those addons for good.
 const OFX_AI_TRIAGE_LEASE_MINUTES = 30;
+// How many times a repo can be handed out without the model ever
+// submitting anything for it (e.g. a description-only row whose readme
+// gave it nothing to say) before it's parked like a reviewed one - see
+// OFX_AI_TRIAGE_ELIGIBLE_SQL. Without this, a repo the model always
+// skips came straight back every lease window, forever.
+const OFX_AI_TRIAGE_MAX_ATTEMPTS = 3;
+// Shared "worth (re)analysing?" filter for every batch/count query below.
+// A repo is only handed out if it has never been analysed+reviewed, OR
+// it has had new commits on Github (pushed_at) since it was last reviewed,
+// OR a human explicitly asked for it (owner edit on /my/addons or the
+// admin "Flag for triage" toggle -> ai_triage_priority_at). Previously
+// reviewing a suggestion just reset ai_triage_batched_at to NULL, which
+// sorted the exact same unchanged repo to the *front* of the next batch -
+// anything confirmed/left as Unsorted/Incomplete/Spam, discarded, or
+// denied got re-analysed over and over. updated_at isn't usable for this:
+// every crawl sync bumps it whether or not anything changed.
+const OFX_AI_TRIAGE_ELIGIBLE_SQL = '(ai_triage_priority_at IS NOT NULL
+    OR ai_triage_reviewed_at IS NULL
+    OR pushed_at > ai_triage_reviewed_at)';
 // Backpressure ceiling, not a review batch size: the model can keep
 // classifying and submitting well ahead of a human reviewing any of it
 // (up to this many outstanding), so it doesn't have to sit idle waiting on
@@ -105,6 +124,8 @@ function ofx_api_triage_batch(): void
 
     $typePlaceholders = implode(',', array_fill(0, count(OFX_AI_TRIAGE_TYPES), '?'));
     $leaseMinutes = OFX_AI_TRIAGE_LEASE_MINUTES;
+    $eligible = OFX_AI_TRIAGE_ELIGIBLE_SQL;
+    $maxAttempts = OFX_AI_TRIAGE_MAX_ATTEMPTS;
 
     // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $typePlaceholders is "?,?"-shaped (count of a hardcoded constant array), $limit is (int)-cast + min()-clamped, $leaseMinutes is a constant; all real values bound via execute()
     $stmt = $pdo->prepare("
@@ -114,6 +135,7 @@ function ofx_api_triage_batch(): void
         WHERE type IN ({$typePlaceholders})
           AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
           AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
+          AND {$eligible}
         ORDER BY (ai_triage_priority_at IS NOT NULL) DESC, ai_triage_priority_at ASC,
                  (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
         LIMIT {$limit}
@@ -138,6 +160,7 @@ function ofx_api_triage_batch(): void
             WHERE type = 'Addon' AND (description IS NULL OR description = '')
               AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
               AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
+          AND {$eligible}
             ORDER BY (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
             LIMIT {$remainingLimit}
         ");
@@ -150,14 +173,26 @@ function ofx_api_triage_batch(): void
     if (!empty($rows)) {
         $idPlaceholders = implode(',', array_fill(0, count($rows), '?'));
         // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $idPlaceholders is a "?,?"-shaped string sized only by count($rows); real ids bound via execute() below
-        $pdo->prepare("UPDATE repos SET ai_triage_batched_at = NOW() WHERE id IN ({$idPlaceholders})")
-            ->execute(array_column($rows, 'id'));
+        // MySQL applies SET assignments left to right, so every IF() below
+        // still sees the pre-increment ai_triage_attempts. On the
+        // OFX_AI_TRIAGE_MAX_ATTEMPTS-th hand-out with no submission in
+        // between, the repo is parked (stamped reviewed, priority dropped)
+        // until its next Github push - it's still in *this* batch, so if
+        // the model does submit it this time it goes to review as normal.
+        $pdo->prepare("
+            UPDATE repos SET ai_triage_batched_at = NOW(),
+                ai_triage_reviewed_at = IF(ai_triage_attempts + 1 >= {$maxAttempts}, NOW(), ai_triage_reviewed_at),
+                ai_triage_priority_at = IF(ai_triage_attempts + 1 >= {$maxAttempts}, NULL, ai_triage_priority_at),
+                ai_triage_attempts = IF(ai_triage_attempts + 1 >= {$maxAttempts}, 0, ai_triage_attempts + 1)
+            WHERE id IN ({$idPlaceholders})
+        ")->execute(array_column($rows, 'id'));
     }
 
     $countStmt = $pdo->prepare("
         SELECT COUNT(*) FROM repos
         WHERE type IN ({$typePlaceholders}) AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
           AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
+          AND {$eligible}
     ");
     $countStmt->execute(OFX_AI_TRIAGE_TYPES);
     $descCountStmt = $pdo->query("
@@ -165,6 +200,7 @@ function ofx_api_triage_batch(): void
         WHERE type = 'Addon' AND (description IS NULL OR description = '')
           AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
           AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
+          AND {$eligible}
     ");
     $remaining = (int)$countStmt->fetchColumn() + (int)$descCountStmt->fetchColumn();
 
@@ -335,6 +371,9 @@ function ofx_api_triage_submit(): void
     // left a note on - confirmed, denied, or still pending - instead of
     // disappearing the moment the queue row it came in on is resolved
     $noteStmt = $pdo->prepare('UPDATE repos SET ai_triage_notes = ? WHERE id = ?');
+    // the model did produce something for this repo, so it no longer
+    // counts towards OFX_AI_TRIAGE_MAX_ATTEMPTS' "keeps being skipped" park
+    $resetAttemptsStmt = $pdo->prepare('UPDATE repos SET ai_triage_attempts = 0 WHERE id = ?');
 
     $accepted = 0;
     $skipped = 0;
@@ -384,6 +423,7 @@ function ofx_api_triage_submit(): void
         }
 
         $upsert->execute([$repoId, $fullName, json_encode($normalized)]);
+        $resetAttemptsStmt->execute([$repoId]);
         $accepted++;
     }
 

@@ -18,6 +18,9 @@
             <?= $i === 0 ? '&middot; presumed original' : '' ?>
           </span>
         </div>
+        <?php if (!empty($repo['description'])): ?>
+          <p class="dupe-item__description"><?= ofx_h($repo['description']) ?></p>
+        <?php endif; ?>
         <?php if (!empty($repo['confirmed_fork_of'])): ?>
           <span class="tag tag--curated">Confirmed fork of <?= ofx_h($members[0]['full_name']) ?></span>
           <?php if (!empty($repo['fork_hidden_by_admin'])): ?>
@@ -44,8 +47,24 @@
           </button>
         <?php endif; ?>
         <span class="dupe-item__status"></span>
+        <?php if (array_key_exists('readme_preview', $repo)): ?>
+          <section class="dupe-item__readme-preview" aria-label="README preview for <?= ofx_h($repo['full_name']) ?>">
+            <div class="dupe-item__readme-heading">
+              <strong>README preview</strong>
+              <a href="https://github.com/<?= ofx_h($repo['full_name']) ?>#readme" target="_blank" rel="noopener noreferrer">Full README &nearr;</a>
+            </div>
+            <?php if (!empty($repo['readme_preview'])): ?>
+              <div class="addon-detail__readme dupe-item__readme-body"><?= ofx_render_markdown_lite($repo['readme_preview'], $repo['full_name'], $repo['default_branch'] ?? null) ?></div>
+              <?php if (!empty($repo['readme_truncated'])): ?>
+                <p class="dupe-item__readme-note">Showing the beginning of the README. Open the full README for more.</p>
+              <?php endif; ?>
+            <?php else: ?>
+              <p class="dupe-item__readme-note">README unavailable. Open the repository on Github to check.</p>
+            <?php endif; ?>
+          </section>
+        <?php endif; ?>
         <?php if (!empty($repo['readme_tail'])): ?>
-          <p class="dupe-item__readme">&hellip;<?= ofx_h($repo['readme_tail']) ?></p>
+          <details class="dupe-item__readme"><summary>README ending</summary>&hellip;<?= ofx_h($repo['readme_tail']) ?></details>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>

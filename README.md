@@ -48,6 +48,17 @@ AI_TRIAGE_API_KEY=...      # bearer key for the local-model /api/triage/* endpoi
 
 Point a webserver at this directory (or `php -S localhost:8080 router.php` locally - that router script already exists at the repo root), load `tests/schema.sql`, and it should just run - no Composer, no build step, no asset pipeline.
 
+For an existing installation, apply `migrations/20261108_ai_triage_review.sql`
+once before deploying the AI-triage review changes (skip it if both columns
+already exist). Deploy the minified CSS/JS alongside their source files, since
+the page loads `site.min.css` and `site.min.js`.
+
+The crawler exclusion feed at `/banned.json` and `/admin/export-banned.json`
+includes `NonAddon`, `Deleted`, and `Spam` repos. After deploying this change,
+use the admin "Regenerate feeds" action to refresh any existing cached feed.
+The "Sync banned list" GitHub Action then copies the public feed into
+`data/banned.json` on its daily schedule or when run manually.
+
 ## Tests
 
 `tests/smoke.sh` boots the app against a real (throwaway) MySQL database seeded from `tests/schema.sql` + `tests/seed.sql` and hits a curated list of routes, asserting both the status code and that each request completes within a time budget - see `.github/workflows/smoke-tests.yml`, which runs it on every push/PR. The timing check matters as much as the status code: a couple of real bugs here were pages that hung (an unbounded live-Github-call-per-repo loop) rather than ones that 500'd, which a status-code-only check wouldn't have caught.

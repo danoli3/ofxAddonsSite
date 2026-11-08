@@ -33,6 +33,14 @@ INSERT INTO repos (
   (3, 'ofxSmokeBanned', 'smoketest-owner/ofxSmokeBanned', 'A banned fixture repo.', 'NonAddon', 1,
    0, 0, 0, 0,
    0, 0, 0, 0,
+   '2024-01-01 00:00:00', '2023-01-01 00:00:00', '2024-01-01 00:00:00', NULL, 0),
+  (4, 'ofxSmokeSpam', 'smoketest-owner/ofxSmokeSpam', 'A spam fixture repo.', 'Spam', 1,
+   0, 0, 0, 0,
+   0, 0, 0, 0,
+   '2024-01-01 00:00:00', '2023-01-01 00:00:00', '2024-01-01 00:00:00', NULL, 0),
+  (5, 'ofxSmokeDeleted', 'smoketest-owner/ofxSmokeDeleted', 'A deleted fixture repo.', 'Deleted', 1,
+   0, 0, 0, 0,
+   0, 0, 0, 0,
    '2024-01-01 00:00:00', '2023-01-01 00:00:00', '2024-01-01 00:00:00', NULL, 0);
 
 INSERT INTO categorizations (category_id, repo_id, created_at, updated_at, featured) VALUES

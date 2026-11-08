@@ -80,6 +80,24 @@ check "/addon-repos.json" 200
 check "/sitemap.xml" 200
 check "/sitemap.json" 200
 
+# The crawler's exclusion feed must include Spam as well as banned/deleted
+# repos, while leaving the Addon and Unsorted fixtures available to crawl.
+if curl -fsS --max-time "$MAX_TIME" "${BASE_URL}/banned.json" | php -r '
+    $names = json_decode(stream_get_contents(STDIN), true);
+    if (!is_array($names)) { exit(1); }
+    sort($names);
+    exit($names === [
+        "smoketest-owner/ofxSmokeBanned",
+        "smoketest-owner/ofxSmokeDeleted",
+        "smoketest-owner/ofxSmokeSpam",
+    ] ? 0 : 1);
+'; then
+  echo "pass  /banned.json includes banned, deleted and spam repos only"
+else
+  echo "FAIL  /banned.json does not match the crawler exclusion fixtures"
+  FAILED=1
+fi
+
 # ofx_base_url() has no real request to derive a host from when it's ever
 # called from a CLI context (cron/sync_from_release.php, or any one-off
 # admin script) - it used to silently build "http://" with an empty host

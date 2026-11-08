@@ -1,7 +1,7 @@
 name: Sync banned list
 
 # Keeps data/banned.json in this repo in sync with the live site's public
-# GET /banned.json (full_names currently typed NonAddon/Deleted) - that
+# GET /banned.json (full_names currently typed NonAddon/Deleted/Spam) - that
 # endpoint is already public and CDN-cached, but living only on the site
 # means any GitHub Action here (or in another repo) that wants the current
 # banned list needs a live network call to ofxaddons.danoli3.com during CI.

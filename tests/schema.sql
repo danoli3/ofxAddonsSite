@@ -132,6 +132,8 @@ CREATE TABLE repos (
   security_flagged_at DATETIME DEFAULT NULL,
   ai_triage_notes TEXT,
   ai_triage_priority_at DATETIME DEFAULT NULL,
+  ai_triage_reviewed_at DATETIME DEFAULT NULL,
+  ai_triage_attempts INT NOT NULL DEFAULT 0,
   thumbnail_is_generic TINYINT(1) NOT NULL DEFAULT 0,
   thumbnail_checked_at DATETIME DEFAULT NULL,
   type_set_by_owner TINYINT(1) NOT NULL DEFAULT 0,

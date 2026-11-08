@@ -256,6 +256,6 @@ function ofx_log_sync_run(PDO $pdo, string $source, ?array $snapshot, ?array $re
 
 function ofx_banned_full_names(PDO $pdo): array
 {
-    $stmt = $pdo->query('SELECT full_name FROM repos WHERE type IN ("NonAddon", "Deleted") ORDER BY full_name');
+    $stmt = $pdo->query('SELECT full_name FROM repos WHERE type IN ("NonAddon", "Deleted", "Spam") ORDER BY full_name');
     return $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
