@@ -160,10 +160,11 @@ function ofx_api_triage_batch(): void
             WHERE type = 'Addon' AND (description IS NULL OR description = '')
               AND id NOT IN (SELECT repo_id FROM ai_triage_queue)
               AND (ai_triage_batched_at IS NULL OR ai_triage_batched_at < (NOW() - INTERVAL {$leaseMinutes} MINUTE))
-          AND {$eligible}
+              AND {$eligible}
             ORDER BY (ai_triage_batched_at IS NULL) DESC, ai_triage_batched_at ASC, updated_at ASC
-            LIMIT {$remainingLimit}
+            LIMIT ?
         ");
+        $descStmt->bindValue(1, $remainingLimit, PDO::PARAM_INT);
         $descStmt->execute();
         $descRows = $descStmt->fetchAll();
         $descOnlyIds = array_column($descRows, 'id');
@@ -172,13 +173,13 @@ function ofx_api_triage_batch(): void
 
     if (!empty($rows)) {
         $idPlaceholders = implode(',', array_fill(0, count($rows), '?'));
-        // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $idPlaceholders is a "?,?"-shaped string sized only by count($rows); real ids bound via execute() below
         // MySQL applies SET assignments left to right, so every IF() below
         // still sees the pre-increment ai_triage_attempts. On the
         // OFX_AI_TRIAGE_MAX_ATTEMPTS-th hand-out with no submission in
         // between, the repo is parked (stamped reviewed, priority dropped)
         // until its next Github push - it's still in *this* batch, so if
         // the model does submit it this time it goes to review as normal.
+        // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable,php.lang.security.injection.tainted-sql-string.tainted-sql-string -- $idPlaceholders contains only question marks and commas sized by count($rows); $maxAttempts is a hardcoded constant; real ids are bound via execute()
         $pdo->prepare("
             UPDATE repos SET ai_triage_batched_at = NOW(),
                 ai_triage_reviewed_at = IF(ai_triage_attempts + 1 >= {$maxAttempts}, NOW(), ai_triage_reviewed_at),
